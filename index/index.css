@@ -1,0 +1,201 @@
+/* ==========================================================================
+   NOVARA CAPITAL - INDEX (HOME) PAGE SPECIFIC STYLES
+   Ventriloc Warm Paper Editorial Observatory × Slash Midnight Luxury Accents
+   ========================================================================== */
+
+/* Hero Section Refinements */
+.hero-section {
+  background-color: var(--bg-main);
+  padding: 72px 0 96px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-badge {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+}
+
+.hero-badge .flag-icon {
+  font-size: 0.95rem;
+}
+
+.hero-headline {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 3.8rem;
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.hero-headline em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--color-primary-navy);
+}
+
+.hero-subheadline {
+  font-family: var(--font-body);
+  font-size: 1.15rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  max-width: 520px;
+  margin-bottom: 36px;
+}
+
+/* Action dialect: Sharp-cornered buttons */
+.btn-primary-hero {
+  border-radius: var(--radius-sharp);
+  background: var(--text-primary);
+  color: #FFFFFF;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.98rem;
+  padding: 14px 28px;
+  box-shadow: 0 4px 14px rgba(18, 19, 20, 0.12);
+  transition: all var(--transition-fast);
+}
+
+.btn-primary-hero:hover {
+  background: var(--color-ember);
+  box-shadow: 0 8px 24px rgba(255, 85, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-link-hero {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.98rem;
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+.btn-link-hero:hover {
+  color: var(--color-ember);
+}
+
+/* Floating Card Signatures (Ventriloc Asymmetric Corner) */
+.floating-badge-goal {
+  border-radius: var(--radius-asymmetric);
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-floating);
+  padding: 20px 24px;
+}
+
+.floating-badge-goal .goal-title {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.floating-badge-goal .goal-amount {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.floating-badge-portfolio {
+  border-radius: var(--radius-asymmetric);
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-floating);
+  padding: 20px 24px;
+}
+
+.floating-badge-portfolio .portfolio-value {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.portfolio-return-badge {
+  color: var(--color-ember);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Features Built for Long-Term Growth (Asymmetric Ventriloc Radii) */
+.features-section {
+  padding: 88px 0;
+  background-color: var(--bg-alt);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.feature-card {
+  border-radius: var(--radius-asymmetric);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 32px 28px;
+  transition: all var(--transition-fast);
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-ember);
+}
+
+.feature-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sharp);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+}
+
+.feature-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.feature-text {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Interactive Calculator Container */
+.calculator-section {
+  padding: 88px 0;
+  background-color: var(--bg-main);
+}
+
+.calc-card-main {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-asymmetric-lg);
+  box-shadow: var(--shadow-md);
+  padding: 48px;
+}
+
+@media (max-width: 768px) {
+  .calc-card-main {
+    padding: 24px;
+  }
+}

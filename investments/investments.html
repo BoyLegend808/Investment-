@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+  <!-- Open Graph / Social Share -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://novaracapital.com/investments/investments.html">
+  <meta property="og:title" content="Investment Choices | Global Equities, Bonds &amp; Funds — Novara Capital">
+  <meta property="og:description" content="Trade global and US equities, invest in Treasury Bills, Mutual Funds, and Real Estate Trusts. Diversify your portfolio with Novara Capital.">
+  <meta property="og:image" content="https://novaracapital.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Investment Choices | Global Equities, Bonds &amp; Funds — Novara Capital">
+  <meta name="twitter:description" content="Trade global and US equities, invest in Treasury Bills, Mutual Funds, and Real Estate Trusts. Diversify your portfolio with Novara Capital.">
+  <title>Investment Choices &amp; Asset Classes | Novara Capital</title>
+  <meta name="description" content="Invest in Global equities, US stocks, Government Treasury Bills, curated Mutual Funds, and Real Estate Trust notes.">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="investments.css">
+</head>
+<body>
+
+  <!-- Top Real-Time Market Ticker -->
+  <div class="ticker-bar">
+    <div class="ticker-track">
+      <div class="ticker-item"><span class="ticker-symbol">S&P 500</span> <span class="ticker-price">104,562.40</span> <span class="ticker-change up">+1.84%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$650.00</span> <span class="ticker-change up">+2.15%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">MTNN</span> <span class="ticker-price">$235.50</span> <span class="ticker-change up">+0.85%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">CBN T-BILLS</span> <span class="ticker-price">16.80%</span> <span class="ticker-change up">+0.25%</span></div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <div class="nav-wrapper">
+        <a href="../index/index.html" class="brand-logo">
+          <div class="brand-icon">
+            <img src="../favicon.svg" alt="Novara Capital Logo" style="width: 100%; height: 100%; object-fit: contain;">
+          </div>
+          <div class="brand-name">NOVARA <span>CAPITAL</span></div>
+        </a>
+
+        <ul class="nav-menu">
+          <li class="nav-item"><a href="../about/about.html" class="nav-link">Our Story</a></li>
+          <li class="nav-item"><a href="../accounts/accounts.html" class="nav-link">Save &amp; Invest</a></li>
+          <li class="nav-item"><a href="../investments/investments.html" class="nav-link active">Investments</a></li>
+          <li class="nav-item"><a href="../academy/academy.html" class="nav-link">Financial Academy</a></li>
+          <li class="nav-item"><a href="../security/security.html" class="nav-link">Security</a></li>
+          <li class="nav-item"><a href="dashboard.html" class="nav-link" style="color: #0E5E3A; font-weight: 700;">Platform Demo</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <a href="index.html#signin" class="btn-sign-in">Sign In</a>
+          <a href="index.html#signup" class="btn-get-started">Open Account</a>
+          <div class="mobile-toggle" aria-label="Toggle navigation menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-drawer">
+    <div class="mobile-drawer-header">
+      <div class="brand-name">NOVARA <span>CAPITAL</span></div>
+      <button class="drawer-close" style="font-size: 1.5rem;">&times;</button>
+    </div>
+    <ul class="mobile-drawer-links">
+      <li><a href="../index/index.html">Home</a></li>
+      <li><a href="../about/about.html">Our Story</a></li>
+      <li><a href="../accounts/accounts.html">Save &amp; Invest Accounts</a></li>
+      <li><a href="../investments/investments.html">Investment Choices</a></li>
+      <li><a href="../academy/academy.html">Financial Academy</a></li>
+      <li><a href="../pricing/pricing.html">Rates &amp; Fees</a></li>
+      <li><a href="../security/security.html">Security &amp; Regulation</a></li>
+      <li><a href="../index/dashboard.html">Client Web Platform</a></li>
+    </ul>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
+      <a href="#signin" class="btn-card-action" data-modal="signin" style="text-align: center;">Sign In</a>
+      <a href="#signup" class="btn-get-started" data-modal="signup" style="text-align: center;">Open Account</a>
+    </div>
+  </div>
+
+  <!-- Page Hero -->
+  <section class="page-hero">
+    <div class="container">
+      <h1 class="page-hero-title">Investment Choices</h1>
+      <p class="page-hero-desc">
+        Diversify across premier Global and international asset classes with institutional security and zero unnecessary intermediaries.
+      </p>
+    </div>
+  </section>
+
+  <!-- Asset Classes Grid -->
+  <section class="products-section">
+    <div class="container">
+      <div class="products-grid">
+        <!-- 1: Global Stocks -->
+        <div class="product-card" id="stocks">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+            </div>
+            <h3 class="product-title">Global Stocks (Global)</h3>
+            <div class="product-rate-badge"><span class="rate-num">+24.5%</span> <span class="rate-label">Historical 1-Yr Index Avg</span></div>
+            <p class="product-desc">
+              Own shares of Global Markets's most profitable banks, telecommunications giants, cement manufacturers, and consumer goods conglomerates.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Real-time direct Global order execution</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Automated cash dividend collection</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Zero account custody maintenance charges</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">View Global Equities</a>
+        </div>
+
+        <!-- 2: US Equities -->
+        <div class="product-card">
+          <div>
+            <div class="product-icon-wrap" style="background: var(--color-primary-navy); color: #fff;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <h3 class="product-title">Global US Equities</h3>
+            <div class="product-rate-badge"><span class="rate-num">5,000+</span> <span class="rate-label">Stocks &amp; ETFs Available</span></div>
+            <p class="product-desc">
+              Invest directly in global innovators: Apple, NVIDIA, Google, Tesla, Microsoft, and the S&amp;P 500 ETF in fractional shares starting at $1.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Fractional shares trading from $1</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>SIPC insurance up to $500,000</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Pre-market and after-hours execution</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">Explore US Stocks</a>
+        </div>
+
+        <!-- 3: Treasury Bills -->
+        <div class="product-card featured" id="tbills">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4"/></svg>
+            </div>
+            <h3 class="product-title">Treasury Bills &amp; Bonds</h3>
+            <div class="product-rate-badge"><span class="rate-num">16.8%</span> <span class="rate-label">p.a. Risk-Free Yield</span></div>
+            <p class="product-desc">
+              Sovereign debt notes backed by the full faith and credit of the US Treasury. 100% principal protection.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>100% Government sovereign guarantee</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>91, 182, and 364-day tenors</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Tax-exempt interest earnings</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">Buy Treasury Bills</a>
+        </div>
+
+        <!-- 4: Mutual Funds -->
+        <div class="product-card" id="mutual-funds">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+            </div>
+            <h3 class="product-title">Curated Mutual Funds</h3>
+            <div class="product-rate-badge"><span class="rate-num">14.2%</span> <span class="rate-label">Avg Return p.a.</span></div>
+            <p class="product-desc">
+              Professionally managed fund portfolios tailored for capital preservation, balanced equity growth, and ethical / Halal investing.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Money Market Funds</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Balanced Growth Funds</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Halal &amp; Shariah-Compliant Fund</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">Explore Funds</a>
+        </div>
+
+        <!-- 5: Dollar Vault -->
+        <div class="product-card" id="dollar-vault">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><path d="M12 14v2M10 15h4"/></svg>
+            </div>
+            <h3 class="product-title">Eurobonds &amp; Dollar Vault</h3>
+            <div class="product-rate-badge"><span class="rate-num">7.5%</span> <span class="rate-label">p.a. in US Dollars</span></div>
+            <p class="product-desc">
+              Earn reliable foreign currency income while protecting your purchasing power from local currency devaluation and inflation shocks.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Global Sovereign Eurobonds</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>US Treasury Bill ETFs</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Dollar cash deposits with quarterly yield</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">View Dollar Assets</a>
+        </div>
+
+        <!-- 6: Real Estate -->
+        <div class="product-card" id="real-estate">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"/></svg>
+            </div>
+            <h3 class="product-title">Real Estate Trust Notes</h3>
+            <div class="product-rate-badge"><span class="rate-num">18.5%</span> <span class="rate-label">Rental Yield + Appreciation</span></div>
+            <p class="product-desc">
+              Fractional ownership of vetted commercial and residential prime properties in New York, London, and Dubai. Receive bi-annual rental disbursements.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Backed by prime physical property deeds</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Bi-annual rental dividend distributions</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Minimum ticket: $50,000</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Minimum ticket: $50,000</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">View Real Estate Notes</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GLOBAL YIELD PROGRAM -->
+  <section class="vaultx-section" id="vaultx">
+    <div class="container">
+      <div class="vaultx-header">
+        <div class="vaultx-brand-title">
+          GLOBAL YIELD PROGRAM
+        </div>
+        <p class="vaultx-subtitle">High-Yield Program &bull; <span>Levels 1&ndash;10</span></p>
+      </div>
+
+      <div class="vaultx-dashboard-grid">
+        <!-- Left: Complete Levels 1-10 Matrix Table -->
+        <div class="vaultx-table-card">
+          <div class="table-responsive">
+          <table class="vaultx-table">
+            <thead>
+              <tr>
+                <th>LEVEL</th>
+                <th>PACKAGE ($)</th>
+                <th>WELCOME BONUS</th>
+                <th>DAILY EARNING</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="vaultx-row" data-level="1">
+                <td>1</td>
+                <td>$5,000</td>
+                <td>$250</td>
+                <td>$900</td>
+              </tr>
+              <tr class="vaultx-row" data-level="2">
+                <td>2</td>
+                <td>$15,000</td>
+                <td>$750</td>
+                <td>$2,700</td>
+              </tr>
+              <tr class="vaultx-row" data-level="3">
+                <td>3</td>
+                <td>$30,000</td>
+                <td>$1,500</td>
+                <td>$5,400</td>
+              </tr>
+              <tr class="vaultx-row active-tier" data-level="4">
+                <td>4</td>
+                <td>$50,000</td>
+                <td>$2,500</td>
+                <td>$9,000</td>
+              </tr>
+              <tr class="vaultx-row" data-level="5">
+                <td>5</td>
+                <td>$75,000</td>
+                <td>$3,750</td>
+                <td>$13,500</td>
+              </tr>
+              <tr class="vaultx-row" data-level="6">
+                <td>6</td>
+                <td>$100,000</td>
+                <td>$5,000</td>
+                <td>$18,000</td>
+              </tr>
+              <tr class="vaultx-row" data-level="7">
+                <td>7</td>
+                <td>$200,000</td>
+                <td>$10,000</td>
+                <td class="highlight-earning">$36,000</td>
+              </tr>
+              <tr class="vaultx-row" data-level="8">
+                <td>8</td>
+                <td>$350,000</td>
+                <td>$17,500</td>
+                <td class="highlight-earning">$63,000</td>
+              </tr>
+              <tr class="vaultx-row" data-level="9">
+                <td>9</td>
+                <td>$500,000</td>
+                <td>$25,000</td>
+                <td>$90,000</td>
+              </tr>
+              <tr class="vaultx-row" data-level="10">
+                <td>10</td>
+                <td>$1,000,000</td>
+                <td>$50,000</td>
+                <td>$180,000</td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <!-- Right: Interactive Yield Simulator Card -->
+        <div class="vaultx-simulator-card">
+          <div class="sim-tag"><span class="ember-dot"></span> LIVE YIELD CALCULATOR</div>
+          <h3>Tier Return Preview</h3>
+          
+          <div class="sim-metric-group">
+            <div class="sim-metric-label">Selected Tier</div>
+            <div class="sim-metric-value ember" id="simLevelDisplay">Level 4</div>
+          </div>
+
+          <div class="sim-metric-group">
+            <div class="sim-metric-label">Capital Package</div>
+            <div class="sim-metric-value" id="simPackageDisplay">$50,000</div>
+          </div>
+
+          <div class="sim-metric-group">
+            <div class="sim-metric-label">Instant Welcome Bonus</div>
+            <div class="sim-metric-value copper" id="simBonusDisplay">$2,500</div>
+          </div>
+
+          <div class="sim-metric-group">
+            <div class="sim-metric-label">Daily Credited Earning</div>
+            <div class="sim-metric-value ember" id="simDailyDisplay">$9,000</div>
+          </div>
+
+          <div class="sim-metric-group">
+            <div class="sim-metric-label">Estimated 30-Day Monthly Yield</div>
+            <div class="sim-metric-value" id="simMonthlyDisplay">$270,000</div>
+          </div>
+
+          <div class="sim-range-wrap">
+            <div class="sim-slider-label">
+              <span>Adjust Tier</span>
+              <strong id="sliderLevelLabel">Level 4</strong>
+            </div>
+            <input type="range" min="1" max="10" value="4" class="vault-slider" id="vaultTierSlider">
+          </div>
+
+          <button class="btn-vaultx-cta" id="btnJoinVaultX">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            Start Earning Today
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Market Screener Table -->
+  <section class="market-section" style="background: #FAF9F6;">
+    <div class="container">
+      <div class="section-header-center">
+        <span class="section-tag">LIVE MARKET SCREENER</span>
+        <h2 class="section-title">Top Performing Assets</h2>
+        <p class="section-subtitle">Filter assets by sector, dividend yield, and return trajectory.</p>
+      </div>
+
+      <div class="market-table-card">
+        <div class="table-responsive">
+        <table class="market-table">
+          <thead>
+            <tr>
+              <th>Asset &amp; Ticker</th>
+              <th>Sector</th>
+              <th>Current Price</th>
+              <th>Day Change</th>
+              <th>Dividend Yield</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>TSLA</strong> (Tesla Inc)</td>
+              <td>Technology</td>
+              <td>$235.50</td>
+              <td><span class="change-pill up">+0.85%</span></td>
+              <td>6.8%</td>
+              <td><a href="dashboard.html" class="btn-sign-in" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+            </tr>
+            <tr>
+              <td><strong>AAPL</strong> (Apple Inc)</td>
+              <td>Technology</td>
+              <td>$148.20</td>
+              <td><span class="change-pill up">+3.20%</span></td>
+              <td>7.2%</td>
+              <td><a href="dashboard.html" class="btn-sign-in" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+            </tr>
+            <tr>
+              <td><strong>MSFT</strong> (Microsoft Corp)</td>
+              <td>Technology</td>
+              <td>$340.00</td>
+              <td><span class="change-pill up">+1.50%</span></td>
+              <td>5.1%</td>
+              <td><a href="dashboard.html" class="btn-sign-in" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+            </tr>
+            <tr>
+              <td><strong>US-TB 364D</strong> (Treasury Bill)</td>
+              <td>Sovereign Debt</td>
+              <td>16.80%</td>
+              <td><span class="change-pill up">+0.25%</span></td>
+              <td>16.8%</td>
+              <td><a href="dashboard.html" class="btn-sign-in" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Invest</a></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+    <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top-grid">
+        <div class="footer-brand">
+          <h3>NOVARA CAPITAL</h3>
+          <p>
+            Secure, transparent, and accessible investment solutions engineered for long-term African wealth creation.
+          </p>
+          <div style="display: flex; gap: 16px; color: #FFFFFF; font-size: 0.82rem; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SEC-Compliant Trustees</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>GDPR Certified</span>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Save &amp; Invest</h4>
+          <ul class="footer-links">
+            <li><a href="../accounts/accounts.html#stash">Novara Stash (11.5%)</a></li>
+            <li><a href="../accounts/accounts.html#fixed-lock">Fixed Lock (16.8%)</a></li>
+            <li><a href="../accounts/accounts.html#goals">Goal Tracker</a></li>
+            <li><a href="../investments/investments.html#dollar-vault">Dollar Vault</a></li>
+            <li><a href="../pricing/pricing.html">Current Rates</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Investments</h4>
+          <ul class="footer-links">
+            <li><a href="../investments/investments.html#stocks">Global Stock Market</a></li>
+            <li><a href="../investments/investments.html#stocks">US Global Equities</a></li>
+            <li><a href="../investments/investments.html#tbills">Treasury Bills</a></li>
+            <li><a href="../investments/investments.html#mutual-funds">Mutual Funds</a></li>
+            <li><a href="../investments/investments.html#real-estate">Real Estate Trust</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Academy &amp; Tools</h4>
+          <ul class="footer-links">
+            <li><a href="../academy/academy.html">Financial Academy</a></li>
+            <li><a href="../academy/academy.html#calculator">Compound Calculator</a></li>
+            <li><a href="../academy/academy.html#guides">Beginner Guides</a></li>
+            <li><a href="#">Web Platform Demo</a></li>
+            <li><a href="../academy/academy.html#glossary">Market Glossary</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="#">Our Story</a></li>
+            <li><a href="../security/security.html">Security Architecture</a></li>
+            <li><a href="#">Leadership</a></li>
+            <li><a href="#">Contact Support</a></li>
+            <li><a href="#">Careers</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p style="text-align: center; margin-bottom: 12px;">
+          Novara Capital is an investment platform. All investments carry risk. Read disclosures <a href="../security/security.html">here</a>.
+        </p>
+        <p style="text-align: center; font-size: 0.75rem; color: #5B7068;">
+          Â© 2026 Novara Capital Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../app.js"></script>
+  <script src="investments.js" defer></script>
+</body>
+</html>
+
+
+
+
+
+
+

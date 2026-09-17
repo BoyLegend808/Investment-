@@ -1,0 +1,150 @@
+/* ==========================================================================
+   NOVARA CAPITAL - ACCOUNTS PAGE SPECIFIC STYLES
+   Ventriloc Warm Paper Editorial Observatory × Asymmetric Precision
+   ========================================================================== */
+
+.page-hero {
+  background: var(--bg-alt);
+  padding: 64px 0 52px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.page-hero-title {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 3.2rem;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.page-hero-desc {
+  max-width: 620px;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Account Product Cards with Ventriloc Asymmetry */
+.product-card {
+  border-radius: var(--radius-asymmetric) !important;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 36px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all var(--transition-fast);
+}
+
+.product-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-ember);
+  box-shadow: 0 12px 28px rgba(18, 19, 20, 0.05);
+}
+
+.product-card.featured {
+  border: 1px solid var(--color-ember);
+  background: #FFFDFB;
+  position: relative;
+}
+
+.product-card.featured::before {
+  content: 'HIGH DEMAND';
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-ember);
+  background: rgba(255, 85, 0, 0.08);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  letter-spacing: 0.06em;
+}
+
+.product-rate-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  background: var(--bg-surface);
+  padding: 6px 14px;
+  border-radius: var(--radius-sharp);
+  margin-bottom: 18px;
+}
+
+.rate-num {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--color-primary-navy);
+}
+
+.product-features-list {
+  list-style: none;
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.product-features-list li {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.btn-card-action {
+  width: 100%;
+  padding: 12px;
+  background: var(--text-primary);
+  color: #FFFFFF;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: center;
+  border-radius: var(--radius-sharp);
+  transition: all var(--transition-fast);
+  display: block;
+}
+
+.btn-card-action:hover {
+  background: var(--color-ember);
+  color: #FFFFFF;
+}
+
+/* Account Comparison Matrix */
+.comparison-section {
+  padding: 80px 0;
+  background: var(--bg-main);
+}
+
+.comparison-table-wrapper {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-asymmetric-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comparison-table th, .comparison-table td {
+  padding: 18px 24px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.92rem;
+}
+
+.comparison-table th {
+  background: var(--bg-surface);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}

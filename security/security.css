@@ -1,0 +1,45 @@
+/* ==========================================================================
+   NOVARA CAPITAL - SECURITY PAGE SPECIFIC STYLES
+   Ventriloc Trust Observatory × Institutional Precision
+   ========================================================================== */
+
+.security-hero {
+  background: var(--bg-alt);
+  padding: 64px 0 52px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.product-card {
+  border-radius: var(--radius-asymmetric) !important;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  padding: 32px 28px;
+  transition: all var(--transition-fast);
+}
+
+.product-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-ember);
+  box-shadow: 0 8px 24px rgba(18, 19, 20, 0.05);
+}
+
+.product-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sharp);
+  background: var(--bg-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  margin-bottom: 18px;
+}
+
+.security-trust-badge-strip {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}

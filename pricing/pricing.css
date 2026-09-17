@@ -1,0 +1,53 @@
+/* ==========================================================================
+   NOVARA CAPITAL - PRICING & RATES PAGE SPECIFIC STYLES
+   Ventriloc Editorial Rate Schedule
+   ========================================================================== */
+
+.pricing-hero {
+  background: var(--bg-alt);
+  padding: 64px 0 52px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.market-table-card {
+  border-radius: var(--radius-asymmetric) !important;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.market-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.market-table th {
+  background: var(--bg-surface);
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.market-table td {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.market-table tr:hover td {
+  background: var(--bg-ivory);
+}
+
+.rate-highlight {
+  color: var(--color-ember);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+}

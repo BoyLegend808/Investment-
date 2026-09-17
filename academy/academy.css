@@ -1,0 +1,130 @@
+/* ==========================================================================
+   NOVARA CAPITAL - ACADEMY PAGE SPECIFIC STYLES
+   Ventriloc Editorial Research Observatory
+   ========================================================================== */
+
+.academy-hero {
+  background: var(--bg-alt);
+  padding: 64px 0 52px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.academy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 28px;
+  margin-top: 40px;
+}
+
+/* Course Card with Ventriloc Signature Asymmetric Radii */
+.course-card {
+  border-radius: var(--radius-asymmetric) !important;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.course-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-ember);
+  box-shadow: 0 12px 28px rgba(18, 19, 20, 0.06);
+}
+
+.course-thumb {
+  height: 160px;
+  background: var(--bg-surface);
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.course-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.course-card:hover .course-img {
+  transform: scale(1.06);
+}
+
+.course-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(18, 19, 20, 0.75);
+  color: #FFFFFF;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  backdrop-filter: blur(6px);
+}
+
+.course-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex-grow: 1;
+}
+
+.course-title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.35;
+}
+
+.course-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-light);
+  padding-top: 14px;
+  margin-top: 18px;
+}
+
+/* Category Filter Bar */
+.filter-pills-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 32px 0 12px;
+}
+
+.filter-pill-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filter-pill-btn.active, .filter-pill-btn:hover {
+  background: var(--text-primary);
+  color: #FFFFFF;
+}
+
+.filter-pill-btn.active {
+  background: var(--color-ember);
+  border-color: var(--color-ember);
+}

@@ -1,0 +1,320 @@
+/* ==========================================================================
+   NOVARA CAPITAL - INVESTMENTS PAGE SPECIFIC STYLES
+   Ventriloc Editorial Precision × Slash Obsidian Midnight Luxury
+   ========================================================================== */
+
+/* Page Hero Overrides */
+.investments-hero {
+  padding: 64px 0 48px;
+  background: var(--bg-alt);
+  border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+}
+
+.investments-hero .hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 85, 0, 0.08);
+  border: 1px solid var(--border-ember);
+  color: var(--color-ember);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border-radius: var(--radius-pill);
+  margin-bottom: 20px;
+}
+
+.investments-hero h1 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 3.2rem;
+  line-height: 1.12;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.investments-hero p {
+  max-width: 640px;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   GLOBAL YIELD PROGRAM (REPLACES VAULTX)
+   ========================================================================== */
+
+.vaultx-section {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  padding: 80px 0 96px;
+  position: relative;
+  overflow: hidden;
+}
+
+.vaultx-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--color-accent-emerald), transparent);
+}
+
+.vaultx-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.vaultx-brand-title {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--color-primary-navy);
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vaultx-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vaultx-subtitle span {
+  color: var(--color-accent-emerald);
+  font-weight: 700;
+}
+
+/* VaultX Grid & Interactive Dashboard */
+.vaultx-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 36px;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .vaultx-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* VaultX Table Frame */
+.vaultx-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-asymmetric);
+  padding: 8px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.04);
+}
+
+.vaultx-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 4px;
+}
+
+.vaultx-table th {
+  padding: 16px 12px;
+  font-family: var(--font-heading);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  text-align: center;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.vaultx-table th:first-child {
+  text-align: left;
+  padding-left: 18px;
+}
+
+.vaultx-row {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  background: var(--bg-card);
+}
+
+.vaultx-row:hover, .vaultx-row.active-tier {
+  background: var(--color-accent-mint);
+}
+
+.vaultx-row.active-tier {
+  border-left: 3px solid var(--color-accent-emerald);
+}
+
+.vaultx-table td {
+  padding: 14px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.94rem;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 500;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.vaultx-table td:first-child {
+  text-align: left;
+  padding-left: 18px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-primary-navy);
+  font-size: 1rem;
+}
+
+.vaultx-table td.highlight-earning {
+  color: var(--color-accent-emerald);
+  font-weight: 700;
+}
+
+/* Tier Simulator Sidebar Card */
+.vaultx-simulator-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-asymmetric);
+  padding: 32px;
+  position: sticky;
+  top: 100px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+}
+
+.vaultx-simulator-card .sim-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--color-accent-emerald);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.vaultx-simulator-card h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  font-size: 1.8rem;
+  color: var(--text-primary);
+  margin-bottom: 24px;
+}
+
+.sim-metric-group {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sim-metric-label {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.sim-metric-value {
+  font-family: var(--font-mono);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sim-metric-value.ember {
+  color: var(--color-accent-emerald);
+}
+
+.sim-metric-value.copper {
+  color: var(--color-primary-navy);
+}
+
+.sim-range-wrap {
+  margin: 24px 0;
+}
+
+.sim-slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+  color: var(--text-dark-muted);
+}
+
+.sim-slider-label strong {
+  color: var(--color-primary-navy);
+}
+
+.vault-slider {
+  width: 100%;
+  height: 6px;
+  background: var(--border-light);
+  border-radius: var(--radius-pill);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.vault-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-accent-emerald);
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-vaultx-cta {
+  width: 100%;
+  padding: 16px;
+  background: var(--color-primary-navy);
+  color: #FFFFFF;
+  border: none;
+  border-radius: var(--radius-sharp);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all var(--transition-normal);
+  box-shadow: 0 8px 24px rgba(11, 37, 26, 0.2);
+}
+
+.btn-vaultx-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(11, 37, 26, 0.3);
+  background: var(--color-primary-green);
+}
+
+/* Asset Cards Ventriloc Asymmetric Styling */
+.product-card {
+  border-radius: var(--radius-asymmetric) !important;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  transition: all var(--transition-fast);
+}
+
+.product-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-ember);
+}

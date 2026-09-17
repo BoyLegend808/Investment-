@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+  <!-- Open Graph / Social Share -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://novaracapital.com/accounts/accounts.html">
+  <meta property="og:title" content="Save &amp; Invest Accounts | Novara Capital">
+  <meta property="og:description" content="Open a High-Yield Stash earning 11.5% APY, Fixed Lock at 16.8% p.a., or a Goal Tracker account. Zero hidden fees. Start with just .">
+  <meta property="og:image" content="https://novaracapital.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Save &amp; Invest Accounts | Novara Capital">
+  <meta name="twitter:description" content="Open a High-Yield Stash earning 11.5% APY, Fixed Lock at 16.8% p.a., or a Goal Tracker account. Zero hidden fees. Start with just .">
+  <title>Save &amp; Invest Accounts | Novara Capital</title>
+  <meta name="description" content="Explore high-yield savings, fixed lock deposits, goal-based accounts, and brokerage solutions with Novara Capital.">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="accounts.css">
+</head>
+<body>
+
+  <!-- Top Real-Time Market Ticker -->
+  <div class="ticker-bar">
+    <div class="ticker-track">
+      <div class="ticker-item"><span class="ticker-symbol">S&P 500</span> <span class="ticker-price">104,562.40</span> <span class="ticker-change up">+1.84%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$650.00</span> <span class="ticker-change up">+2.15%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">CBN T-BILLS</span> <span class="ticker-price">16.80%</span> <span class="ticker-change up">+0.25%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/NGN</span> <span class="ticker-price">$1,480.50</span> <span class="ticker-change down">-0.45%</span></div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <div class="nav-wrapper">
+        <a href="../index/index.html" class="brand-logo">
+          <div class="brand-icon">
+            <img src="../favicon.svg" alt="Novara Capital Logo" style="width: 100%; height: 100%; object-fit: contain;">
+          </div>
+          <div class="brand-name">NOVARA <span>CAPITAL</span></div>
+        </a>
+
+        <ul class="nav-menu">
+          <li class="nav-item"><a href="../about/about.html" class="nav-link">Our Story</a></li>
+          <li class="nav-item"><a href="../accounts/accounts.html" class="nav-link active">Save &amp; Invest</a></li>
+          <li class="nav-item"><a href="../investments/investments.html" class="nav-link">Investments</a></li>
+          <li class="nav-item"><a href="../academy/academy.html" class="nav-link">Financial Academy</a></li>
+          <li class="nav-item"><a href="../security/security.html" class="nav-link">Security</a></li>
+          <li class="nav-item"><a href="dashboard.html" class="nav-link" style="color: #0E5E3A; font-weight: 700;">Platform Demo</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <a href="index.html#signin" class="btn-sign-in">Sign In</a>
+          <a href="index.html#signup" class="btn-get-started">Open Account</a>
+          <div class="mobile-toggle" aria-label="Toggle navigation menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Drawer -->
+  <div class="mobile-drawer">
+    <div class="mobile-drawer-header">
+      <div class="brand-name">NOVARA <span>CAPITAL</span></div>
+      <button class="drawer-close" style="font-size: 1.5rem;">&times;</button>
+    </div>
+    <ul class="mobile-drawer-links">
+      <li><a href="../index/index.html">Home</a></li>
+      <li><a href="../about/about.html">Our Story</a></li>
+      <li><a href="../accounts/accounts.html">Save &amp; Invest Accounts</a></li>
+      <li><a href="../investments/investments.html">Investment Choices</a></li>
+      <li><a href="../academy/academy.html">Financial Academy</a></li>
+      <li><a href="../pricing/pricing.html">Rates &amp; Fees</a></li>
+      <li><a href="../security/security.html">Security &amp; Regulation</a></li>
+      <li><a href="../index/dashboard.html">Client Web Platform</a></li>
+    </ul>
+    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
+      <a href="#signin" class="btn-card-action" data-modal="signin" style="text-align: center;">Sign In</a>
+      <a href="#signup" class="btn-get-started" data-modal="signup" style="text-align: center;">Open Account</a>
+    </div>
+  </div>
+
+  <!-- Page Hero -->
+  <section class="page-hero">
+    <div class="container">
+      <h1 class="page-hero-title">Account Types &amp; Wealth Solutions</h1>
+      <p class="page-hero-desc">
+        Find an account tailored for virtually every financial milestone—from emergency liquidity and targeted goals to high-yield fixed terms and equities trading.
+      </p>
+    </div>
+  </section>
+
+  <!-- Accounts Detailed Breakdown -->
+  <section class="products-section">
+    <div class="container">
+      <div class="products-grid">
+        <!-- 1: Stash -->
+        <div class="product-card" id="stash">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+            </div>
+            <h3 class="product-title">Novara Stash</h3>
+            <div class="product-rate-badge"><span class="rate-num">11.5%</span> <span class="rate-label">APY Daily Accrual</span></div>
+            <p class="product-desc">
+              Your flexible everyday cash reserve. Earn interest calculated on your balance every 24 hours while retaining instant withdrawal access.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Instant zero-fee withdrawals anytime</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Automated daily interest credit</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Free virtual debit card for online transactions</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Minimum deposit: $1,000</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">Open Stash Account</a>
+        </div>
+
+        <!-- 2: Fixed Lock -->
+        <div class="product-card featured" id="fixed-lock">
+          <div>
+            <div class="product-icon-wrap" style="background: var(--color-primary-navy); color: #fff;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <h3 class="product-title">Novara Fixed Lock</h3>
+            <div class="product-rate-badge"><span class="rate-num">16.8%</span> <span class="rate-label">p.a. Fixed Returns</span></div>
+            <p class="product-desc">
+              Lock funds for 30, 90, 180, or 365 days. Lock in high guaranteed returns shielded from market rate reductions.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Choose upfront interest or maturity payout</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Higher yield tiers for longer tenors</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Automatic reinvestment option</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Minimum lock: $10,000</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">Start Fixed Lock</a>
+        </div>
+
+        <!-- 3: Goal Saver -->
+        <div class="product-card" id="goals">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+            <h3 class="product-title">Goal-Based Saver</h3>
+            <div class="product-rate-badge"><span class="rate-num">13.2%</span> <span class="rate-label">p.a. Target Saver</span></div>
+            <p class="product-desc">
+              Set customized targets for buying a home, wedding, vehicle, or business capital with automated weekly or monthly debit orders.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Interactive progress tracking meter</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Automated recurrent funding triggers</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Milestone reward bonuses</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Group target sharing with family/friends</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">Create a Goal</a>
+        </div>
+
+        <!-- 4: Brokerage -->
+        <div class="product-card" id="brokerage">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+            </div>
+            <h3 class="product-title">Self-Directed Brokerage</h3>
+            <div class="product-rate-badge"><span class="rate-num">0%</span> <span class="rate-label">Account Maintenance Fee</span></div>
+            <p class="product-desc">
+              Direct execution access to the Global Exchange (Global) and US markets (NYSE/NASDAQ) with institutional research tools.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Fractional shares trading from $1 or $500</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Real-time level 2 market data</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Automated dividend reinvestment plan</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Stop-loss and limit order types</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">Open Brokerage</a>
+        </div>
+
+        <!-- 5: Dollar Vault -->
+        <div class="product-card">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><path d="M12 14v2M10 15h4"/></svg>
+            </div>
+            <h3 class="product-title">Dollar Hedge Vault</h3>
+            <div class="product-rate-badge"><span class="rate-num">7.5%</span> <span class="rate-label">APY in US Dollars</span></div>
+            <p class="product-desc">
+              Shield your hard-earned wealth from local currency devaluation with US Dollar fixed income notes and sovereign Eurobonds.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Direct deposit via Dollars cards or Wire</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Returns paid directly in USD</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Backed by US Treasury debt obligations</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Minimum start: $50</li>
+            </ul>
+          </div>
+          <a href="../index/index.html#signup" class="btn-card-action">Open Dollar Vault</a>
+        </div>
+
+        <!-- 6: Kids & Trust -->
+        <div class="product-card">
+          <div>
+            <div class="product-icon-wrap">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            </div>
+            <h3 class="product-title">Novara Junior Trust</h3>
+            <div class="product-rate-badge"><span class="rate-num">14.0%</span> <span class="rate-label">p.a. Long-term Trust</span></div>
+            <p class="product-desc">
+              A legally structured custodial account designed to compound university tuition and generational assets for your children.
+            </p>
+            <ul class="product-features-list">
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Managed under licensed trustees</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Tax-advantaged wealth compounding</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Locked until beneficiary attains majority age</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Financial literacy app for teenagers</li>
+            </ul>
+          </div>
+          <a href="index.html#signup" class="btn-card-action">Set Up Child Trust</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Account Finder Quiz -->
+  <section class="calculator-section">
+    <div class="container">
+      <div class="section-header-center">
+        <span class="section-tag">ACCOUNT SELECTOR</span>
+        <h2 class="section-title">Which account matches your goal?</h2>
+        <p class="section-subtitle">Answer 2 simple questions to find your optimal wealth vehicle.</p>
+      </div>
+
+      <div class="calc-grid" style="max-width: 800px; margin: 0 auto; grid-template-columns: 1fr;">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div>
+            <label class="form-label">What is your primary investment objective?</label>
+            <select class="form-input" id="quiz-goal" style="padding: 14px;">
+              <option value="growth">Maximum Long-Term Capital Growth (Stocks &amp; Equities)</option>
+              <option value="fixed">High Guaranteed Safe Returns (16.8% Fixed Lock)</option>
+              <option value="target">Saving for a specific target like a House or Car (Goal Tracker)</option>
+              <option value="liquidity">Emergency Cash with Daily Interest (Novara Stash)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">When do you plan to access these funds?</label>
+            <select class="form-input" id="quiz-time" style="padding: 14px;">
+              <option>Anytime (Complete Daily Flexibility)</option>
+              <option>6 to 12 Months</option>
+              <option>1 to 3 Years</option>
+              <option>5+ Years (Generational)</option>
+            </select>
+          </div>
+          <a href="index.html#signup" class="btn-primary-hero" style="text-align: center; justify-content: center;">
+            Open Recommended Account
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+    <!-- ACCOUNT COMPARISON TABLE -->
+  <section class="account-comparison-section" style="padding: 80px 0; background: #FAF9F6; border-top: 1px solid #E5E7EB;">
+    <div class="container">
+      <div class="section-header-center">
+        <span class="section-tag">CHOOSE YOUR PATH</span>
+        <h2 class="section-title">Compare Account Types</h2>
+        <p class="section-subtitle">Find the perfect account structure for your capital.</p>
+      </div>
+      <div style="overflow-x: auto; margin-top: 40px; border-radius: 16px; border: 1px solid #E5E7EB; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+        <table style="width: 100%; min-width: 800px; border-collapse: collapse; text-align: left; background: #FFF;">
+          <thead style="background: #0B251A; color: #FFF;">
+            <tr>
+              <th style="padding: 20px; font-weight: 600;">Feature</th>
+              <th style="padding: 20px; font-weight: 600; border-left: 1px solid rgba(255,255,255,0.1);">Novara Stash</th>
+              <th style="padding: 20px; font-weight: 600; border-left: 1px solid rgba(255,255,255,0.1);">Fixed Lock</th>
+              <th style="padding: 20px; font-weight: 600; border-left: 1px solid rgba(255,255,255,0.1);">Dollar Vault</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #E5E7EB;">
+              <td style="padding: 20px; font-weight: 500;">Annual Yield (Up to)</td>
+              <td style="padding: 20px; color: #10B981; font-weight: 700; border-left: 1px solid #E5E7EB;">11.5%</td>
+              <td style="padding: 20px; color: #10B981; font-weight: 700; border-left: 1px solid #E5E7EB;">16.8%</td>
+              <td style="padding: 20px; color: #10B981; font-weight: 700; border-left: 1px solid #E5E7EB;">7.5% (USD)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #E5E7EB;">
+              <td style="padding: 20px; font-weight: 500;">Withdrawal Access</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;">Instant (24/7)</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;">At Maturity</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;">Quarterly / At Maturity</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #E5E7EB;">
+              <td style="padding: 20px; font-weight: 500;">Capital Protection</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;">FDIC Insured</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;">Bank Guarantee</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;">Sovereign Backed</td>
+            </tr>
+            <tr>
+              <td style="padding: 20px; font-weight: 500;">Minimum Deposit</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;">$1,000</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;">$50,000</td>
+              <td style="padding: 20px; border-left: 1px solid #E5E7EB;"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top-grid">
+        <div class="footer-brand">
+          <h3>NOVARA CAPITAL</h3>
+          <p>
+            Secure, transparent, and accessible investment solutions engineered for long-term African wealth creation.
+          </p>
+          <div style="display: flex; gap: 16px; color: #FFFFFF; font-size: 0.82rem; align-items: center;">
+            <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SEC-Compliant Trustees</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>GDPR Certified</span>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Save &amp; Invest</h4>
+          <ul class="footer-links">
+            <li><a href="../accounts/accounts.html#stash">Novara Stash (11.5%)</a></li>
+            <li><a href="../accounts/accounts.html#fixed-lock">Fixed Lock (16.8%)</a></li>
+            <li><a href="../accounts/accounts.html#goals">Goal Tracker</a></li>
+            <li><a href="../investments/investments.html#dollar-vault">Dollar Vault</a></li>
+            <li><a href="../pricing/pricing.html">Current Rates</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Investments</h4>
+          <ul class="footer-links">
+            <li><a href="../investments/investments.html#stocks">Global Stock Market</a></li>
+            <li><a href="../investments/investments.html#stocks">US Global Equities</a></li>
+            <li><a href="../investments/investments.html#tbills">Treasury Bills</a></li>
+            <li><a href="../investments/investments.html#mutual-funds">Mutual Funds</a></li>
+            <li><a href="../investments/investments.html#real-estate">Real Estate Trust</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Academy &amp; Tools</h4>
+          <ul class="footer-links">
+            <li><a href="../academy/academy.html">Financial Academy</a></li>
+            <li><a href="../academy/academy.html#calculator">Compound Calculator</a></li>
+            <li><a href="../academy/academy.html#guides">Beginner Guides</a></li>
+            <li><a href="#">Web Platform Demo</a></li>
+            <li><a href="../academy/academy.html#glossary">Market Glossary</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Company</h4>
+          <ul class="footer-links">
+            <li><a href="#">Our Story</a></li>
+            <li><a href="../security/security.html">Security Architecture</a></li>
+            <li><a href="#">Leadership</a></li>
+            <li><a href="#">Contact Support</a></li>
+            <li><a href="#">Careers</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p style="text-align: center; margin-bottom: 12px;">
+          Novara Capital is an investment platform. All investments carry risk. Read disclosures <a href="../security/security.html">here</a>.
+        </p>
+        <p style="text-align: center; font-size: 0.75rem; color: #5B7068;">
+          © 2026 Novara Capital Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="../app.js"></script>
+  <script src="accounts.js" defer></script>
+</body>
+</html>
+
+
+
+
+
+
+
+
