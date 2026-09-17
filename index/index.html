@@ -995,32 +995,56 @@
         </div>
       </div>
       <div style="flex: 1; position: relative; min-width: 300px; display: flex; justify-content: center;">
-        <div style="width: 260px; height: 520px; background: #FFFFFF; border-radius: 40px; border: 8px solid #1B382B; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden; position: relative;">
-          <!-- Mock App Screen -->
-          <div style="padding: 24px 16px; background: #FAF8F5; height: 100%; color: #111827;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-              <div style="font-weight: 700; font-size: 1.1rem;">Hi, Amina</div>
-              <div style="width: 32px; height: 32px; background: #10B981; border-radius: 50%; color: #FFF; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">AB</div>
-            </div>
-            <div style="background: #0E5E3A; border-radius: 16px; padding: 20px; color: #FFF; margin-bottom: 24px;">
-              <div style="font-size: 0.8rem; opacity: 0.9; margin-bottom: 8px;">Total Balance</div>
-              <div style="font-size: 1.8rem; font-weight: 700;">$2,450,000</div>
-              <div style="font-size: 0.85rem; margin-top: 12px; color: #34D399;">+$12,450 Today</div>
-            </div>
-            <div style="font-weight: 600; margin-bottom: 12px;">Recent Activity</div>
-            <div style="background: #FFF; border-radius: 12px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div>
-                <div style="font-weight: 600; font-size: 0.9rem;">Auto-Save (Home)</div>
-                <div style="font-size: 0.75rem; color: #6B7280;">Today, 9:00 AM</div>
+        <div class="mock-phone-container">
+          <div class="mock-phone">
+            <div class="mock-screen">
+              <!-- App Header -->
+              <div class="mock-header">
+                <div class="mock-greeting">Hi, Amina</div>
+                <div class="mock-avatar">AB</div>
               </div>
-              <div style="font-weight: 600; font-size: 0.9rem;">+$50,000</div>
-            </div>
-            <div style="background: #FFF; border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-              <div>
-                <div style="font-weight: 600; font-size: 0.9rem;">Dividend (MTNN)</div>
-                <div style="font-size: 0.75rem; color: #6B7280;">Yesterday, 2:30 PM</div>
+              
+              <!-- App Body -->
+              <div class="mock-body">
+                <div class="mock-balance-card">
+                  <div class="mock-balance-label">Total Balance</div>
+                  <div class="mock-balance-amount">$2,450,000</div>
+                  <div class="mock-balance-change">$12,450 Today</div>
+                </div>
+                
+                <div class="mock-section-title">Recent Activity</div>
+                
+                <div class="mock-activity-item">
+                  <div style="display: flex; align-items: center;">
+                    <div class="mock-activity-icon icon-save">✓</div>
+                    <div class="mock-activity-details">
+                      <div class="mock-activity-title">Auto-Save (Home)</div>
+                      <div class="mock-activity-time">Today, 9:00 AM</div>
+                    </div>
+                  </div>
+                  <div class="mock-activity-amount">+$50,000</div>
+                </div>
+                
+                <div class="mock-activity-item">
+                  <div style="display: flex; align-items: center;">
+                    <div class="mock-activity-icon icon-dividend">📈</div>
+                    <div class="mock-activity-details">
+                      <div class="mock-activity-title">Dividend (MTNN)</div>
+                      <div class="mock-activity-time">Yesterday, 2:30 PM</div>
+                    </div>
+                  </div>
+                  <div class="mock-activity-amount">+$4,250</div>
+                </div>
               </div>
-              <div style="font-weight: 600; font-size: 0.9rem; color: #10B981;">+$4,250</div>
+
+              <!-- Tab Bar -->
+              <div class="mock-tab-bar">
+                <div class="mock-tab-icon active"></div>
+                <div class="mock-tab-icon"></div>
+                <div class="mock-tab-icon"></div>
+                <div class="mock-tab-icon"></div>
+              </div>
+
             </div>
           </div>
         </div>

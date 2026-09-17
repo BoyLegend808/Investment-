@@ -473,3 +473,42 @@ function showToast(message, type = 'success', duration = 4000) {
   }, duration);
 }
 
+/* Global Scroll Animations & Lazy Loading Enhancements */
+document.addEventListener('DOMContentLoaded', () => {
+  // Intersection Observer for .fade-up, .fade-in, and .animate-on-scroll elements
+  const scrollElements = document.querySelectorAll('.fade-up, .fade-in, .animate-on-scroll, .feature-card, .course-card');
+  
+  if ('IntersectionObserver' in window && scrollElements.length > 0) {
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px 0px -50px 0px',
+      threshold: 0.15
+    };
+
+    const scrollObserver = new IntersectionObserver((entries, observer) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view', 'animated');
+          scrollObserver.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    scrollElements.forEach(el => scrollObserver.observe(el));
+  } else {
+    // Fallback for browsers without IntersectionObserver
+    scrollElements.forEach(el => el.classList.add('in-view', 'animated'));
+  }
+
+  // Ensure lazy loading and async decoding on all images for maximum speed
+  document.querySelectorAll('img').forEach(img => {
+    if (!img.hasAttribute('loading')) {
+      img.setAttribute('loading', 'lazy');
+    }
+    if (!img.hasAttribute('decoding')) {
+      img.setAttribute('decoding', 'async');
+    }
+  });
+});
+
+
