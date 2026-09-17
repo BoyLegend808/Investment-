@@ -133,7 +133,7 @@ function initCalculator() {
   recalculate();
 }
 
-/* Market ESTchlist Tabs */
+/* MARKET WATCHlist Tabs */
 function initMarketTabs() {
   const tabs = document.querySelectorAll('.market-tab-btn');
   const rows = document.querySelectorAll('.market-row');
@@ -369,7 +369,7 @@ function renderTickerData(data, tickerTrack) {
     <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">$${ethPrice}</span> <span class="ticker-change ${ethChange >= 0 ? 'up' : 'down'}">${ethChange >= 0 ? '+' : ''}${ethChange.toFixed(2)}%</span></div>
     <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span> <span class="ticker-price">&#8364;${usdEur.toFixed(4)}</span> <span class="ticker-change up">Live</span></div>
     <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span> <span class="ticker-price">&#163;${usdGbp.toFixed(4)}</span> <span class="ticker-change up">Live</span></div>
-    <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$185.00</span> <span class="ticker-change up">+2.15%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.00</span> <span class="ticker-change up">+2.15%</span></div>
   `;
 
   // Duplicate content for seamless infinite scroll

@@ -23,8 +23,8 @@ if (Test-Path $path) {
           <tbody>
             <tr style="border-bottom: 1px solid #E5E7EB;">
               <td style="padding: 20px; font-weight: 500;">Annual Yield (Up to)</td>
-              <td style="padding: 20px; color: #10B981; font-weight: 700; border-left: 1px solid #E5E7EB;">11.5%</td>
-              <td style="padding: 20px; color: #10B981; font-weight: 700; border-left: 1px solid #E5E7EB;">16.8%</td>
+              <td style="padding: 20px; color: #10B981; font-weight: 700; border-left: 1px solid #E5E7EB;">4.2%</td>
+              <td style="padding: 20px; color: #10B981; font-weight: 700; border-left: 1px solid #E5E7EB;">5.5%</td>
               <td style="padding: 20px; color: #10B981; font-weight: 700; border-left: 1px solid #E5E7EB;">7.5% (USD)</td>
             </tr>
             <tr style="border-bottom: 1px solid #E5E7EB;">

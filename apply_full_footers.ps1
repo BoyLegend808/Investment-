@@ -24,8 +24,8 @@ $fullFooter = @"
         <div class="footer-col">
           <h4>Save &amp; Invest</h4>
           <ul class="footer-links">
-            <li><a href="../accounts/accounts.html#stash">Novara Stash (11.5%)</a></li>
-            <li><a href="../accounts/accounts.html#fixed-lock">Fixed Lock (16.8%)</a></li>
+            <li><a href="../accounts/accounts.html#stash">Novara Stash (4.2%)</a></li>
+            <li><a href="../accounts/accounts.html#fixed-lock">Fixed Lock (5.5%)</a></li>
             <li><a href="../accounts/accounts.html#goals">Goal Tracker</a></li>
             <li><a href="../investments/investments.html#dollar-vault">Dollar Vault</a></li>
             <li><a href="../pricing/pricing.html">Current Rates</a></li>

@@ -1,6 +1,6 @@
 /**
  * Novara Capital - Index (Home) Page Specific Logic
- * Powers the compound interest simulator, market ESTchlist filter, and FAQ accordion.
+ * Powers the compound interest simulator, MARKET WATCHlist filter, and FAQ accordion.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -68,7 +68,7 @@ function initCompoundCalculator() {
   recalculate();
 }
 
-/* Market ESTchlist Tabs */
+/* MARKET WATCHlist Tabs */
 function initMarketTabs() {
   const tabs = document.querySelectorAll('.market-tab-btn');
   const rows = document.querySelectorAll('.market-row');
