@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Novara Capital - Investments & VaultX Yield Calculator
  * Real-world tier data matching Levels 1 - 10
  */
@@ -58,17 +58,13 @@ function showToast(message, type = 'success', duration = 4000) {
   }, duration);
 }
 
-const VAULTX_TIERS = [
-  { level: 1, package: 5000, bonus: 250, daily: 900 },
-  { level: 2, package: 15000, bonus: 750, daily: 2700 },
-  { level: 3, package: 30000, bonus: 1500, daily: 5400 },
-  { level: 4, package: 50000, bonus: 2500, daily: 9000 },
-  { level: 5, package: 75000, bonus: 3750, daily: 13500 },
-  { level: 6, package: 100000, bonus: 5000, daily: 18000 },
-  { level: 7, package: 200000, bonus: 10000, daily: 36000 },
-  { level: 8, package: 350000, bonus: 17500, daily: 63000 },
-  { level: 9, package: 500000, bonus: 25000, daily: 90000 },
-  { level: 10, package: 1000000, bonus: 50000, daily: 180000 }
+const PORTFOLIO_TIERS = [
+  { level: 1, name: "Conservative Growth", package: 1000, targetApy: "4.5%", annualYield: 45, allocation: "Short-Term Treasuries & Money Market" },
+  { level: 2, name: "Balanced Asset Allocation", package: 5000, targetApy: "6.2%", annualYield: 310, allocation: "60% Blue-Chip Equities / 40% Bonds" },
+  { level: 3, name: "Global Equity Index", package: 15000, targetApy: "7.8%", annualYield: 1170, allocation: "Global S&P 500 & Tech ETFs" },
+  { level: 4, name: "Diversified Wealth Portfolio", package: 30000, targetApy: "8.5%", annualYield: 2550, allocation: "Equities, REITs & Corporate Debt" },
+  { level: 5, name: "Private Wealth Preferred", package: 50000, targetApy: "9.6%", annualYield: 4800, allocation: "Custom Multi-Asset Strategy" },
+  { level: 6, name: "Institutional Private Tier", package: 100000, targetApy: "10.8%", annualYield: 10800, allocation: "Direct Equities & Private Credit" }
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -83,17 +79,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const ctaBtn = document.getElementById('btnJoinVaultX');
 
   function updateTier(levelNum) {
-    const tier = VAULTX_TIERS.find(t => t.level === levelNum) || VAULTX_TIERS[0];
+    const tier = PORTFOLIO_TIERS.find(t => t.level === levelNum) || PORTFOLIO_TIERS[0];
     
     if (tierSlider) tierSlider.value = tier.level;
-    if (sliderLevelLabel) sliderLevelLabel.textContent = `Level ${tier.level}`;
-    if (simLevelDisplay) simLevelDisplay.textContent = `Level ${tier.level}`;
+    if (sliderLevelLabel) sliderLevelLabel.textContent = `Tier ${tier.level}`;
+    if (simLevelDisplay) simLevelDisplay.textContent = tier.name;
     if (simPackageDisplay) simPackageDisplay.textContent = `$${tier.package.toLocaleString()}`;
-    if (simBonusDisplay) simBonusDisplay.textContent = `$${tier.bonus.toLocaleString()}`;
-    if (simDailyDisplay) simDailyDisplay.textContent = `$${tier.daily.toLocaleString()}`;
-    
-    const monthly = tier.daily * 30;
-    if (simMonthlyDisplay) simMonthlyDisplay.textContent = `$${monthly.toLocaleString()}`;
+    if (simBonusDisplay) simBonusDisplay.textContent = tier.targetApy;
+    if (simDailyDisplay) simDailyDisplay.textContent = `$${tier.annualYield.toLocaleString()}`;
+    if (simMonthlyDisplay) simMonthlyDisplay.textContent = tier.allocation;
 
     // Highlight corresponding row
     rows.forEach(row => {
@@ -125,14 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (ctaBtn) {
     ctaBtn.addEventListener('click', () => {
       const activeTier = tierSlider ? tierSlider.value : '1';
-      showToast(`Activating VaultX Tier Level ${activeTier}. Redirecting to secure verification...`, 'success');
+      showToast(`Selecting Portfolio Tier ${activeTier}. Redirecting to account registration...`, 'success');
       setTimeout(() => {
         window.location.href = '../accounts/accounts.html?tier=' + activeTier;
       }, 1500);
     });
   }
 
-  // Default to Level 4
-  updateTier(4);
+  // Default to Tier 2
+  updateTier(2);
 });
+
 

@@ -357,24 +357,27 @@ async function initLiveTickerUpdate() {
 }
 
 function renderTickerData(data, tickerTrack) {
-  const btcPrice = data.btc.price.toLocaleString('en-US');
-  const btcChange = data.btc.change || 0;
-  const ethPrice = data.eth.price.toLocaleString('en-US');
-  const ethChange = data.eth.change || 0;
-  const usdEur = data.eur || 0.8693;
-  const usdGbp = data.gbp || 0.7449;
+  const btcPrice = data.btc ? data.btc.price.toLocaleString('en-US') : '76,520';
+  const btcChange = data.btc ? data.btc.change : 1.20;
+  const ethPrice = data.eth ? data.eth.price.toLocaleString('en-US') : '2,432';
+  const ethChange = data.eth ? data.eth.change : 1.58;
+  const usdEur = data.eur || 0.9150;
+  const usdGbp = data.gbp || 0.7850;
 
   let itemsHtml = `
+    <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span> <span class="ticker-price">5,620.10</span> <span class="ticker-change up">+0.68%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.40</span> <span class="ticker-change up">+1.25%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">$415.20</span> <span class="ticker-change up">+1.10%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$235.50</span> <span class="ticker-change up">+0.85%</span></div>
     <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span> <span class="ticker-price">$${btcPrice}</span> <span class="ticker-change ${btcChange >= 0 ? 'up' : 'down'}">${btcChange >= 0 ? '+' : ''}${btcChange.toFixed(2)}%</span></div>
     <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">$${ethPrice}</span> <span class="ticker-change ${ethChange >= 0 ? 'up' : 'down'}">${ethChange >= 0 ? '+' : ''}${ethChange.toFixed(2)}%</span></div>
     <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span> <span class="ticker-price">&#8364;${usdEur.toFixed(4)}</span> <span class="ticker-change up">Live</span></div>
     <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span> <span class="ticker-price">&#163;${usdGbp.toFixed(4)}</span> <span class="ticker-change up">Live</span></div>
-    <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.00</span> <span class="ticker-change up">+2.15%</span></div>
   `;
 
   // Duplicate content for seamless infinite scroll
   let fullHtml = "";
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 6; i++) {
     fullHtml += itemsHtml;
   }
   tickerTrack.innerHTML = fullHtml;
