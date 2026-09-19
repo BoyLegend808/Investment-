@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Crest Wealth - VENTRILOC + SLASH HYBRID DESIGN SYSTEM
    Editorial Data Observatory on Warm Paper Ã— Midnight Luxury
    ========================================================================== */
@@ -393,14 +393,14 @@ button {
   display: flex;
   flex-direction: column;
   line-height: 1.05;
-  font-size: 1.15rem;
+  font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .brand-name span {
-  font-size: 0.72rem;
+  font-size: 0.95rem;
   letter-spacing: 0.22em;
   color: var(--color-primary-green);
   font-weight: 700;
