@@ -104,6 +104,7 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -1144,10 +1145,12 @@ button {
   background: #E5E7EB;
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .custom-range::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -2058,8 +2061,18 @@ button {
 }
 
 @media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
   .nav-menu, .nav-actions .btn-sign-in {
     display: none;
+  }
+  
+  .nav-actions .btn-get-started {
+    padding: 8px 14px;
+    font-size: 0.85rem;
   }
   
   .mobile-toggle {

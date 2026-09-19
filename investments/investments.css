@@ -267,10 +267,12 @@
   border-radius: var(--radius-pill);
   outline: none;
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .vault-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
+  appearance: none;
   width: 22px;
   height: 22px;
   border-radius: 50%;
