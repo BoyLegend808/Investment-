@@ -1,5 +1,5 @@
-/**
- * Novara Capital - Rates & Pricing Page Logic
+﻿/**
+ * Crest Wealth - Rates & Pricing Page Logic
  * Rate comparison highlights and interactive savings calculator.
  */
 
@@ -11,3 +11,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+

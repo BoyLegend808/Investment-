@@ -1,5 +1,5 @@
-/**
- * Novara Capital - Core Application Scripts & Interactions
+﻿/**
+ * Crest Wealth - Core Application Scripts & Interactions
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -326,7 +326,7 @@ async function initLiveTickerUpdate() {
 
   try {
     // Check cache first (5-minute cache)
-    const cacheKey = 'novara_ticker_data';
+    const cacheKey = 'Crest_ticker_data';
     const cachedData = localStorage.getItem(cacheKey);
     const cacheTime = localStorage.getItem(cacheKey + '_time');
     const now = Date.now();
@@ -410,7 +410,7 @@ async function initLiveTickerUpdate() {
     console.error("Failed to fetch ticker data", error);
     
     // Fallback to cached data if available
-    const cachedData = localStorage.getItem('novara_ticker_data');
+    const cachedData = localStorage.getItem('Crest_ticker_data');
     if (cachedData) {
       try {
         const data = JSON.parse(cachedData);
@@ -476,7 +476,7 @@ function initDashboardSimulator() {
       const toast = document.getElementById('trade-toast');
       
       if (toast) {
-        toast.textContent = `Order executed successfully: ₦${parseFloat(amount).toLocaleString()} of ${ticker}`;
+        toast.textContent = `Order executed successfully: â‚¦${parseFloat(amount).toLocaleString()} of ${ticker}`;
         toast.style.display = 'block';
         setTimeout(() => {
           toast.style.display = 'none';
@@ -595,5 +595,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
 
 

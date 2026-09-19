@@ -1,5 +1,5 @@
-/**
- * Novara Capital - Client-Side Authentication Guard
+﻿/**
+ * Crest Wealth - Client-Side Authentication Guard
  * Place this script in the <head> of protected pages to prevent unauthorized access.
  */
 (function() {
@@ -19,3 +19,4 @@
     window.location.replace(homePath + '?loginRequired=true&redirect=' + encodeURIComponent(window.location.href));
   }
 })();
+

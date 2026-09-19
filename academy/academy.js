@@ -1,5 +1,5 @@
-/**
- * Novara Capital - Financial Academy Logic
+﻿/**
+ * Crest Wealth - Financial Academy Logic
  * Course preview modal, track filtering, and progress tracking.
  */
 
@@ -13,3 +13,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+

@@ -1,5 +1,5 @@
-/**
- * Novara Capital - Accounts Page Logic
+﻿/**
+ * Crest Wealth - Accounts Page Logic
  * Handles account query parameters, interactive product filter, and quick opening.
  */
 
@@ -91,7 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const card = btn.closest('.product-card');
       const title = card ? card.querySelector('.product-title').textContent : 'Investment Account';
-      showToast(`Opening verification for ${title}. Connecting to Novara Identity Custody...`, 'success');
+      showToast(`Opening verification for ${title}. Connecting to Crest Identity Custody...`, 'success');
     });
   });
 });
+

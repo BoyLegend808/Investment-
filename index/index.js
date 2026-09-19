@@ -1,5 +1,5 @@
-/**
- * Novara Capital - Index (Home) Page Specific Logic
+﻿/**
+ * Crest Wealth - Index (Home) Page Specific Logic
  * Powers the compound interest simulator, MARKET WATCHlist filter, and FAQ accordion.
  */
 
@@ -89,4 +89,5 @@ function initMarketTabs() {
     });
   });
 }
+
 

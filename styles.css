@@ -1,6 +1,6 @@
-/* ==========================================================================
-   NOVARA CAPITAL - VENTRILOC + SLASH HYBRID DESIGN SYSTEM
-   Editorial Data Observatory on Warm Paper × Midnight Luxury
+﻿/* ==========================================================================
+   Crest Wealth - VENTRILOC + SLASH HYBRID DESIGN SYSTEM
+   Editorial Data Observatory on Warm Paper Ã— Midnight Luxury
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -859,7 +859,7 @@ button {
   transition: width 1s ease-out;
 }
 
-/* Floating Card 2: Novara Portfolio (Bottom-Right) */
+/* Floating Card 2: Crest Portfolio (Bottom-Right) */
 .floating-badge-portfolio {
   position: absolute;
   bottom: -24px;
@@ -990,7 +990,7 @@ button {
   align-items: stretch;
 }
 
-/* 3 Rounded Cards — one consistent style */
+/* 3 Rounded Cards â€” one consistent style */
 .feature-card {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
@@ -2342,7 +2342,7 @@ button {
   gap: 5px;
 }
 .mock-balance-change::before {
-  content: '▲';
+  content: 'â–²';
   font-size: 0.7rem;
 }
 
@@ -2408,3 +2408,4 @@ button {
 .mock-tab-icon.active {
   background: #10B981;
 }
+

@@ -1,7 +1,8 @@
-User-agent: *
+﻿User-agent: *
 Allow: /
 Disallow: /dashboard.html
 Disallow: /admin/
 Disallow: /api/
 
-Sitemap: https://novaracapital.com/sitemap.xml
+Sitemap: https://crestwealth.com/sitemap.xml
+

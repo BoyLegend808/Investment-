@@ -1,5 +1,5 @@
-/**
- * Novara Capital - Investments & VaultX Yield Calculator
+﻿/**
+ * Crest Wealth - Investments & VaultX Yield Calculator
  * Real-world tier data matching Levels 1 - 10
  */
 
@@ -129,5 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Default to Tier 2
   updateTier(2);
 });
+
 
 
