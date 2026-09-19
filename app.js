@@ -193,6 +193,21 @@ function initModals() {
     document.body.style.overflow = '';
   }
 
+  // Intercept clicks on auth-required links
+  const authLinks = document.querySelectorAll('.auth-required');
+  authLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      if (isAuthenticated !== 'true') {
+        e.preventDefault();
+        openModal(signinModal);
+        if (typeof showToast === 'function') {
+          showToast('Please log in or register to access this feature.', 'warning', 3500);
+        }
+      }
+    });
+  });
+
   signinTriggers.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -235,12 +250,21 @@ function initModals() {
       btn.disabled = true;
       btn.textContent = 'Authenticating...';
       setTimeout(() => {
-        btn.textContent = 'Redirecting to Demo...';
+        btn.textContent = 'Redirecting...';
+        localStorage.setItem('isAuthenticated', 'true'); // Simulate Auth State
         if (typeof showToast === 'function') {
-          showToast('Demo Mode: Logging into mock dashboard', 'info', 3000);
+          showToast('Authentication successful!', 'success', 3000);
         }
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirect = urlParams.get('redirect');
+          if (redirect) {
+            window.location.href = redirect;
+          } else {
+            // Determine correct relative path to dashboard
+            const depth = window.location.pathname.split('/').length - 1;
+            window.location.href = depth > 1 ? '../dashboard.html' : 'dashboard.html';
+          }
         }, 1500);
       }, 800);
     });
@@ -260,14 +284,35 @@ function initModals() {
       btn.textContent = 'Creating Account...';
       setTimeout(() => {
         btn.textContent = 'Account Created!';
+        localStorage.setItem('isAuthenticated', 'true'); // Simulate Auth State
         if (typeof showToast === 'function') {
-          showToast('Demo Mode: Account simulated successfully', 'success', 3000);
+          showToast('Account created successfully!', 'success', 3000);
         }
         setTimeout(() => {
-          window.location.href = 'dashboard.html';
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirect = urlParams.get('redirect');
+          if (redirect) {
+            window.location.href = redirect;
+          } else {
+            // Determine correct relative path to dashboard
+            const depth = window.location.pathname.split('/').length - 1;
+            window.location.href = depth > 1 ? '../dashboard.html' : 'dashboard.html';
+          }
         }, 1500);
       }, 900);
     });
+  }
+
+  // Check URL params for login required (e.g. redirected by auth-guard.js)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('loginRequired') === 'true') {
+    // Open modal slightly delayed so user sees homepage first
+    setTimeout(() => {
+      openModal(signinModal);
+      if (typeof showToast === 'function') {
+        showToast('Please log in to view the requested page.', 'warning', 4000);
+      }
+    }, 500);
   }
 }
 

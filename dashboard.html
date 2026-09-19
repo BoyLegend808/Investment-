@@ -108,6 +108,7 @@
       border-color: var(--color-primary-navy);
     }
   </style>
+  <script src="auth-guard.js"></script>
 </head>
 <body>
   <!-- Ticker Bar -->
@@ -161,8 +162,8 @@
         <p>Here's your portfolio overview and investment performance.</p>
       </div>
       <div class="quick-actions">
-        <a href="accounts/accounts.html" class="action-btn action-btn-primary">Open New Account</a>
-        <a href="investments/investments.html" class="action-btn action-btn-secondary">Explore Investments</a>
+        <a href="accounts/accounts.html" class="action-btn action-btn-primary auth-required">Open New Account</a>
+        <a href="investments/investments.html" class="action-btn action-btn-secondary auth-required">Explore Investments</a>
       </div>
     </div>
 
@@ -195,8 +196,8 @@
         Explore our high-yield savings accounts, global equities, and investment products to maximize your returns.
       </p>
       <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
-        <a href="accounts/accounts.html" class="btn-get-started">View Account Options</a>
-        <a href="academy/academy.html" class="btn-sharp-ghost">Learn Investing</a>
+        <a href="accounts/accounts.html" class="btn-get-started auth-required">View Account Options</a>
+        <a href="academy/academy.html" class="btn-sharp-ghost auth-required">Learn Investing</a>
       </div>
     </div>
   </div>
@@ -204,3 +205,5 @@
   <script src="app.js"></script>
 </body>
 </html>
+
+

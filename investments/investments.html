@@ -19,6 +19,7 @@
   <meta name="description" content="Invest in Global equities, US stocks, Government Treasury Bills, curated Mutual Funds, and Real Estate Trust notes.">
   <link rel="stylesheet" href="../styles.css">
   <link rel="stylesheet" href="investments.css">
+  <script src="../auth-guard.js"></script>
 </head>
 <body>
 
@@ -52,11 +53,11 @@
 
         <ul class="nav-menu">
           <li class="nav-item"><a href="../about/about.html" class="nav-link">Our Story</a></li>
-          <li class="nav-item"><a href="../accounts/accounts.html" class="nav-link">Save &amp; Invest</a></li>
-          <li class="nav-item"><a href="../investments/investments.html" class="nav-link active">Investments</a></li>
-          <li class="nav-item"><a href="../academy/academy.html" class="nav-link">Financial Academy</a></li>
+          <li class="nav-item"><a href="../accounts/accounts.html" class="nav-link auth-required">Save &amp; Invest</a></li>
+          <li class="nav-item"><a href="../investments/investments.html" class="nav-link active auth-required">Investments</a></li>
+          <li class="nav-item"><a href="../academy/academy.html" class="nav-link auth-required">Financial Academy</a></li>
           <li class="nav-item"><a href="../security/security.html" class="nav-link">Security</a></li>
-          <li class="nav-item"><a href="dashboard.html" class="nav-link" style="color: #0E5E3A; font-weight: 700;">Platform Demo</a></li>
+          <li class="nav-item"><a href="dashboard.html" class="nav-link auth-required" style="color: #0E5E3A; font-weight: 700;">Platform Demo</a></li>
         </ul>
 
         <div class="nav-actions">
@@ -81,12 +82,12 @@
     <ul class="mobile-drawer-links">
       <li><a href="../index/index.html">Home</a></li>
       <li><a href="../about/about.html">Our Story</a></li>
-      <li><a href="../accounts/accounts.html">Save &amp; Invest Accounts</a></li>
-      <li><a href="../investments/investments.html">Investment Choices</a></li>
-      <li><a href="../academy/academy.html">Financial Academy</a></li>
+      <li><a class="auth-required" href="../accounts/accounts.html">Save &amp; Invest Accounts</a></li>
+      <li><a class="auth-required" href="../investments/investments.html">Investment Choices</a></li>
+      <li><a class="auth-required" href="../academy/academy.html">Financial Academy</a></li>
       <li><a href="../pricing/pricing.html">Rates &amp; Fees</a></li>
       <li><a href="../security/security.html">Security &amp; Regulation</a></li>
-      <li><a href="../index/dashboard.html">Client Web Platform</a></li>
+      <li><a class="auth-required" href="../index/dashboard.html">Client Web Platform</a></li>
     </ul>
     <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
       <a href="#signin" class="btn-card-action" data-modal="signin" style="text-align: center;">Sign In</a>
@@ -373,7 +374,7 @@
               <td>$235.50</td>
               <td><span class="change-pill up">+0.85%</span></td>
               <td>6.8%</td>
-              <td><a href="dashboard.html" class="btn-sign-in" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+              <td><a href="dashboard.html" class="btn-sign-in auth-required" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
             </tr>
             <tr>
               <td><strong>AAPL</strong> (Apple Inc)</td>
@@ -381,7 +382,7 @@
               <td>$148.20</td>
               <td><span class="change-pill up">+3.20%</span></td>
               <td>7.2%</td>
-              <td><a href="dashboard.html" class="btn-sign-in" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+              <td><a href="dashboard.html" class="btn-sign-in auth-required" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
             </tr>
             <tr>
               <td><strong>MSFT</strong> (Microsoft Corp)</td>
@@ -389,7 +390,7 @@
               <td>$340.00</td>
               <td><span class="change-pill up">+1.50%</span></td>
               <td>5.1%</td>
-              <td><a href="dashboard.html" class="btn-sign-in" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+              <td><a href="dashboard.html" class="btn-sign-in auth-required" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
             </tr>
             <tr>
               <td><strong>US-TB 364D</strong> (Treasury Bill)</td>
@@ -397,7 +398,7 @@
               <td>5.50%</td>
               <td><span class="change-pill up">+0.25%</span></td>
               <td>5.5%</td>
-              <td><a href="dashboard.html" class="btn-sign-in" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Invest</a></td>
+              <td><a href="dashboard.html" class="btn-sign-in auth-required" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Invest</a></td>
             </tr>
           </tbody>
         </table>
@@ -446,7 +447,7 @@
         <div class="footer-col">
           <h4>Academy &amp; Tools</h4>
           <ul class="footer-links">
-            <li><a href="../academy/academy.html">Financial Academy</a></li>
+            <li><a class="auth-required" href="../academy/academy.html">Financial Academy</a></li>
             <li><a href="../academy/academy.html#calculator">Compound Calculator</a></li>
             <li><a href="../academy/academy.html#guides">Beginner Guides</a></li>
             <li><a href="#">Web Platform Demo</a></li>
@@ -481,6 +482,8 @@
   <script src="investments.js" defer></script>
 </body>
 </html>
+
+
 
 
 
