@@ -310,6 +310,36 @@ async function initLiveTickerUpdate() {
     const usdEur = fxData.rates.EUR;
     const usdGbp = fxData.rates.GBP;
 
+    // 3. Fetch Stocks from Alpha Vantage (SPY, AAPL, MSFT, TSLA)
+    const apiKey = 'QLX2KJ0DDBB1RUST';
+    const symbols = ['SPY', 'AAPL', 'MSFT', 'TSLA'];
+    const stockData = {};
+    
+    // Fetch concurrently, wrapped in try-catch to avoid breaking the ticker if rate limited
+    try {
+      const stockPromises = symbols.map(async sym => {
+        const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${sym}&apikey=${apiKey}`);
+        if (!res.ok) return null;
+        const json = await res.json();
+        // Fallback or error responses from Alpha Vantage won't contain "Global Quote"
+        if (json["Global Quote"] && json["Global Quote"]["05. price"]) {
+          return {
+            symbol: sym,
+            price: parseFloat(json["Global Quote"]["05. price"]),
+            change: parseFloat(json["Global Quote"]["10. change percent"].replace('%',''))
+          };
+        }
+        return null;
+      });
+      
+      const results = await Promise.all(stockPromises);
+      results.forEach(res => {
+        if (res) stockData[res.symbol] = res;
+      });
+    } catch (e) {
+      console.warn('Alpha Vantage fetch failed:', e);
+    }
+
     // Build ticker data object
     const tickerData = {
       btc: {
@@ -321,7 +351,8 @@ async function initLiveTickerUpdate() {
         change: cryptoData.ethereum?.usd_24h_change || 0
       },
       eur: usdEur,
-      gbp: usdGbp
+      gbp: usdGbp,
+      stocks: stockData
     };
 
     // Cache the data
@@ -364,11 +395,17 @@ function renderTickerData(data, tickerTrack) {
   const usdEur = data.eur || 0.9150;
   const usdGbp = data.gbp || 0.7850;
 
+  // Dynamic stock values with static fallbacks (in case of rate limit)
+  const spy = data.stocks?.SPY || { price: 5620.10, change: 0.68 };
+  const aapl = data.stocks?.AAPL || { price: 228.40, change: 1.25 };
+  const msft = data.stocks?.MSFT || { price: 415.20, change: 1.10 };
+  const tsla = data.stocks?.TSLA || { price: 235.50, change: 0.85 };
+
   let itemsHtml = `
-    <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span> <span class="ticker-price">5,620.10</span> <span class="ticker-change up">+0.68%</span></div>
-    <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.40</span> <span class="ticker-change up">+1.25%</span></div>
-    <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">$415.20</span> <span class="ticker-change up">+1.10%</span></div>
-    <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$235.50</span> <span class="ticker-change up">+0.85%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span> <span class="ticker-price">${spy.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> <span class="ticker-change ${spy.change >= 0 ? 'up' : 'down'}">${spy.change >= 0 ? '+' : ''}${spy.change.toFixed(2)}%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$${aapl.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> <span class="ticker-change ${aapl.change >= 0 ? 'up' : 'down'}">${aapl.change >= 0 ? '+' : ''}${aapl.change.toFixed(2)}%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">$${msft.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> <span class="ticker-change ${msft.change >= 0 ? 'up' : 'down'}">${msft.change >= 0 ? '+' : ''}${msft.change.toFixed(2)}%</span></div>
+    <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$${tsla.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> <span class="ticker-change ${tsla.change >= 0 ? 'up' : 'down'}">${tsla.change >= 0 ? '+' : ''}${tsla.change.toFixed(2)}%</span></div>
     <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span> <span class="ticker-price">$${btcPrice}</span> <span class="ticker-change ${btcChange >= 0 ? 'up' : 'down'}">${btcChange >= 0 ? '+' : ''}${btcChange.toFixed(2)}%</span></div>
     <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">$${ethPrice}</span> <span class="ticker-change ${ethChange >= 0 ? 'up' : 'down'}">${ethChange >= 0 ? '+' : ''}${ethChange.toFixed(2)}%</span></div>
     <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span> <span class="ticker-price">&#8364;${usdEur.toFixed(4)}</span> <span class="ticker-change up">Live</span></div>
