@@ -246,31 +246,48 @@ function crestRedirectToDashboard(isSubdir) {
 
 // =============================================================================
 // NAVBAR AUTHENTICATION STATE UPDATE
-// Automatically update navbar buttons to point to the dashboard if logged in
+// 2 Nav States:
+// - Unauthenticated (Not Logged In): Hide Client Dashboard nav link, hide Log In button, keep Get Started
+// - Authenticated (Logged In): Show Client Dashboard nav link, change Get Started to Client Dashboard link
 // =============================================================================
 document.addEventListener('DOMContentLoaded', async () => {
   const isAuth = await crestIsAuthenticated();
-  if (isAuth) {
-    // Find signin and signup buttons
-    const signinBtns = document.querySelectorAll('a[href="#signin"], a[data-modal="signin"]');
-    const signupBtns = document.querySelectorAll('a[href="#signup"], a[data-modal="signup"]');
-    
-    signinBtns.forEach(btn => {
-      if (btn.classList.contains('btn-sign-in')) {
-        btn.textContent = 'Dashboard';
-        btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(); };
-        btn.removeAttribute('data-modal');
-        btn.href = '#';
-      } else {
-        btn.style.display = 'none'; // Hide generic signin links like footer if logged in
-      }
-    });
+  
+  // Client Dashboard links in top nav & drawers
+  const dashboardNavLinks = document.querySelectorAll('a[href*="dashboard.html"], a.nav-link-ember');
+  // Log In buttons on nav
+  const signinNavBtns = document.querySelectorAll('a.btn-sign-in, a[href="#signin"], a[data-modal="signin"]');
+  // Get Started / Open Account buttons on nav
+  const signupNavBtns = document.querySelectorAll('a.btn-get-started, a[href="#signup"], a[data-modal="signup"]');
 
-    signupBtns.forEach(btn => {
-      btn.textContent = 'Go to Dashboard';
-      btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(); };
+  // Always hide standalone Log In buttons on the header nav per design request
+  signinNavBtns.forEach(btn => {
+    btn.style.display = 'none';
+  });
+
+  if (isAuth) {
+    // LOGGED IN NAV STATE
+    dashboardNavLinks.forEach(link => {
+      link.style.display = '';
+    });
+    signupNavBtns.forEach(btn => {
+      btn.textContent = 'Client Dashboard';
       btn.removeAttribute('data-modal');
       btn.href = '#';
+      btn.onclick = (e) => {
+        e.preventDefault();
+        crestRedirectToDashboard();
+      };
+    });
+  } else {
+    // NOT LOGGED IN NAV STATE
+    dashboardNavLinks.forEach(link => {
+      link.style.display = 'none';
+    });
+    signupNavBtns.forEach(btn => {
+      btn.textContent = 'Get Started';
+      btn.setAttribute('data-modal', 'signup');
+      btn.href = '#signup';
     });
   }
 });

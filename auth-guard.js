@@ -176,44 +176,19 @@
   document.head.appendChild(style);
 
   // ── HTML ────────────────────────────────────────────────────────────────────
+  // HTML
   const overlay = document.createElement('div');
   overlay.id = 'crest-auth-overlay';
   overlay.innerHTML = `
     <div id="crest-auth-box">
-      <button id="crest-auth-close" title="Close">&times;</button>
       <div id="crest-auth-header">
-        <h3>Login Required</h3>
-        <p>Please log in or create a free account to continue.</p>
+        <h3>Create Your Account</h3>
+        <p>Start building your wealth portfolio with Crest Wealth.</p>
       </div>
       <div id="crest-auth-body">
-        <div id="crest-auth-tabs">
-          <button class="crest-tab-btn active" data-tab="login">Log In</button>
-          <button class="crest-tab-btn" data-tab="signup">Create Account</button>
-        </div>
-
-        <!-- LOGIN PANEL -->
-        <div class="crest-tab-panel active" id="crest-panel-login">
-          <form id="crest-form-login" novalidate>
-            <div class="crest-form-group">
-              <label class="crest-form-label">Email Address</label>
-              <input type="email" class="crest-form-input" id="crest-login-email" placeholder="yourname@email.com" required>
-            </div>
-            <div class="crest-form-group">
-              <label class="crest-form-label">Password</label>
-              <input type="password" class="crest-form-input" id="crest-login-pass" placeholder="••••••••" required minlength="6">
-            </div>
-            <button type="submit" id="crest-auth-submit">Log In to Crest Wealth</button>
-            <button type="button" id="crest-demo-btn" style="width:100%;padding:10px;background:transparent;color:#059669;border:1.5px dashed #059669;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;margin-top:10px;transition:background 0.2s;">
-              Continue as Demo / Guest Investor &rarr;
-            </button>
-          </form>
-          <div id="crest-auth-footer">
-            No account? <a id="crest-switch-signup">Open one free →</a>
-          </div>
-        </div>
 
         <!-- SIGNUP PANEL -->
-        <div class="crest-tab-panel" id="crest-panel-signup">
+        <div class="crest-tab-panel active" id="crest-panel-signup">
           <form id="crest-form-signup" novalidate>
             <div class="crest-form-group">
               <label class="crest-form-label">Full Name</label>
@@ -223,24 +198,24 @@
               <label class="crest-form-label">Email Address</label>
               <input type="email" class="crest-form-input" id="crest-signup-email" placeholder="babatunde@example.com" required>
             </div>
-            <div class="crest-form-group">
+            <div class="crest-form-group" style="position: relative;">
               <label class="crest-form-label">Password</label>
-              <input type="password" class="crest-form-input" id="crest-signup-pass" placeholder="••••••••" required minlength="6">
+              <input type="password" class="crest-form-input" id="crest-signup-pass" placeholder="Minimum 6 characters" required minlength="6" autocomplete="new-password" style="padding-right: 42px;">
+              <button type="button" onclick="togglePasswordVisibility('crest-signup-pass', this)" style="position: absolute; right: 12px; top: 32px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
             <button type="submit" id="crest-signup-submit">
               Create Free Account
             </button>
+            <button type="button" id="crest-demo-btn" style="width:100%;padding:10px;background:transparent;color:#059669;border:1.5px dashed #059669;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;margin-top:12px;transition:background 0.2s;">
+              Continue as Demo / Guest Investor &rarr;
+            </button>
           </form>
-          <div id="crest-auth-footer">
-            Have an account? <a id="crest-switch-login">Log in →</a>
-          </div>
         </div>
 
       </div>
     </div>
     <div id="crest-auth-toast"></div>
   `;
-
   document.body.appendChild(overlay);
   document.body.style.overflow = 'hidden';
 
@@ -283,11 +258,11 @@
   }
 
   // ── Events ───────────────────────────────────────────────────────────────────
-  document.getElementById('crest-auth-close').addEventListener('click', closeOverlay);
+  var closeBtn = document.getElementById('crest-auth-close'); if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeOverlay(); });
 
-  document.getElementById('crest-switch-signup').addEventListener('click', () => switchTab('signup'));
-  document.getElementById('crest-switch-login').addEventListener('click', () => switchTab('login'));
+  var switchSignup = document.getElementById('crest-switch-signup'); if (switchSignup) switchSignup.addEventListener('click', () => switchTab('signup'));
+  var switchLogin = document.getElementById('crest-switch-login'); if (switchLogin) switchLogin.addEventListener('click', () => switchTab('login'));
 
   var demoBtn = document.getElementById('crest-demo-btn');
   if (demoBtn) {
@@ -304,7 +279,7 @@
   });
 
   // Login form submit
-  document.getElementById('crest-form-login').addEventListener('submit', async function(e) {
+  var formLogin = document.getElementById('crest-form-login'); if (formLogin) formLogin.addEventListener('submit', async function(e) {
     e.preventDefault();
     const email = document.getElementById('crest-login-email').value.trim();
     const pass  = document.getElementById('crest-login-pass').value;
