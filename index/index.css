@@ -2800,13 +2800,19 @@ button {
 
   .floating-badge-goal {
     top: 5%;
-    right: -10%;
+    right: -5%;
   }
 
   .floating-badge-portfolio {
-    bottom: 15%;
-    left: -15%;
+    bottom: -5%;
+    left: auto;
+    right: 0%;
   }
 }
+
+
+
+
+
 
 
