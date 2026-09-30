@@ -2792,9 +2792,21 @@ button {
 
   /* Hides the absolute-positioned goal tracker and portfolio badges on 
      compact screens so they do not overlap the central photographs. */
-  .floating-badge-goal,
+    .floating-badge-goal,
   .floating-badge-portfolio {
-    display: none !important;
+    transform: scale(0.65);
+    z-index: 10;
+  }
+
+  .floating-badge-goal {
+    top: 5%;
+    right: -10%;
+  }
+
+  .floating-badge-portfolio {
+    bottom: 15%;
+    left: -15%;
   }
 }
+
 
