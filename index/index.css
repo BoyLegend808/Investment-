@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    Crest Wealth - VENTRILOC + SLASH HYBRID DESIGN SYSTEM
    Editorial Data Observatory on Warm Paper Ã— Midnight Luxury
    ========================================================================== */
@@ -1843,16 +1843,17 @@ button {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(7, 30, 20, 0.7);
+  background: rgba(7, 30, 20, 0.75);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
-  align-items: center;
+  align-items: center; /* Aligns container vertically */
   justify-content: center;
   z-index: 9999;
   opacity: 0;
   visibility: hidden;
   transition: all var(--transition-normal);
-  padding: 20px;
+  padding: 16px; /* Prevents modal from touching screen edges on mobile */
 }
 
 .modal-backdrop.active {
@@ -1863,10 +1864,13 @@ button {
 .modal-container {
   background: #FFFFFF;
   border-radius: var(--radius-xl);
-  max-width: 520px;
+  max-width: 480px;
   width: 100%;
+  max-height: calc(100vh - 32px); /* Prevents the modal from exceeding the screen height */
   box-shadow: var(--shadow-xl);
   position: relative;
+  display: flex;
+  flex-direction: column; /* Splits modal into rigid header and scrollable body */
   overflow: hidden;
   transform: translateY(20px) scale(0.98);
   transition: all var(--transition-normal);
@@ -1878,8 +1882,8 @@ button {
 
 .modal-close {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 16px;
+  right: 16px;
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -1899,44 +1903,51 @@ button {
 }
 
 .modal-header {
-  padding: 32px 32px 16px 32px;
+  padding: 24px 24px 14px 24px;
+  border-bottom: 1px solid var(--border-light); /* Visual separation from form */
+  flex-shrink: 0; /* Prevents the header from compressing */
 }
 
 .modal-header h3 {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: 1.35rem; /* Scaled down slightly for mobile screens */
   font-weight: 800;
   color: var(--color-primary-navy);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .modal-header p {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .modal-body {
-  padding: 32px; /* Fixed: changed from calc(...) */
+  padding: 20px 24px 24px 24px; /* Normalized padding */
+  overflow-y: auto; /* Enables vertical scrolling ONLY inside the form container */
+  flex-grow: 1; /* Takes up all remaining vertical space inside the modal container */
+  -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on mobile browsers */
 }
 
+/* Compact form spacing optimized for mobile views */
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
 }
 
 .form-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .form-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px; /* Compact inputs for S20 FE aspect ratios */
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   transition: border-color var(--transition-fast);
 }
 
@@ -1947,13 +1958,14 @@ button {
 
 .btn-form-submit {
   width: 100%;
-  padding: 14px;
+  padding: 12px;
   border-radius: var(--radius-sm);
   background: var(--color-primary-navy);
   color: #FFFFFF;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.95rem;
   transition: all var(--transition-fast);
+  margin-top: 8px;
 }
 
 .btn-form-submit:hover {
