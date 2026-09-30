@@ -1,11 +1,11 @@
-﻿/**
- * Crest Wealth - Client-Side Authentication Guard (Supabase Edition)
+/**
+ * Crest Wealth - Client-Side Authentication Guard
  */
 (async function () {
   // Hide body to prevent flash of protected content while checking auth
   document.documentElement.style.visibility = 'hidden';
 
-  // Wait for Supabase to initialize (it's initialized on DOMContentLoaded in supabase.js)
+  // Wait for Supabase to initialize
   while (!window.supabaseClient) {
     await new Promise(r => setTimeout(r, 50));
   }
@@ -18,7 +18,7 @@
     return;
   }
 
-  // Not logged in, show overlay but reveal body underneath so the overlay works
+  // Not logged in, show overlay
   document.documentElement.style.visibility = '';
 
   // ── Styles ──────────────────────────────────────────────────────────────────
@@ -27,193 +27,295 @@
     #crest-auth-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(7, 30, 20, 0.75);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background: rgba(15, 23, 42, 0.85); /* Dark slate backdrop */
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: center;
-      z-index: 99999;
-      animation: crestFadeIn 0.25s ease;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      padding: 16px 12px;
+      z-index: 999999;
+      animation: crestFadeIn 0.3s ease;
+      padding: 20px;
       box-sizing: border-box;
     }
-    @media (min-height: 680px) {
-      #crest-auth-overlay { align-items: center; }
-    }
     @keyframes crestFadeIn {
-      from { opacity: 0; }
-      to   { opacity: 1; }
+      from { opacity: 0; backdrop-filter: blur(0px); }
+      to   { opacity: 1; backdrop-filter: blur(12px); }
     }
     #crest-auth-box {
       background: #ffffff;
-      border-radius: 20px;
-      max-width: 480px;
+      border-radius: 24px;
+      max-width: 440px;
       width: 100%;
       margin: auto;
-      max-height: calc(100dvh - 24px);
-      max-height: calc(100vh - 24px);
+      max-height: calc(100dvh - 40px);
       display: flex;
       flex-direction: column;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
       overflow: hidden;
-      animation: crestSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: crestSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
     }
     @keyframes crestSlideUp {
-      from { transform: translateY(40px) scale(0.95); opacity: 0; }
+      from { transform: translateY(30px) scale(0.97); opacity: 0; }
       to   { transform: translateY(0) scale(1);       opacity: 1; }
     }
+    
+    /* Close Button (X) */
     #crest-auth-close {
       position: absolute;
-      top: 14px; right: 14px;
-      width: 36px; height: 36px;
+      top: 20px;
+      right: 20px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      border: none;
+      border: 1px solid #e2e8f0;
       background: #ffffff;
       cursor: pointer;
-      font-size: 1.25rem;
-      font-weight: 700;
-      line-height: 36px;
-      text-align: center;
-      color: #064E3B;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
       z-index: 30;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-      transition: transform 0.2s, background 0.2s;
+      transition: all 0.2s ease;
     }
-    #crest-auth-close:hover { transform: scale(1.08); background: #f8fafc; }
+    #crest-auth-close svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2.5;
+    }
+    #crest-auth-close:hover { 
+      background: #f1f5f9;
+      color: #0f172a;
+      transform: rotate(90deg);
+    }
+
     #crest-auth-header {
-      background: linear-gradient(135deg, #064E3B 0%, #059669 100%);
-      padding: 24px 24px 18px 24px;
-      color: #fff;
-      position: relative;
-      flex-shrink: 0;
+      padding: 32px 32px 24px 32px;
+      background: #ffffff;
+      text-align: left;
     }
     #crest-auth-header h3 {
-      margin: 0 0 6px;
-      font-size: 1.35rem;
-      font-weight: 700;
-      padding-right: 36px;
+      margin: 0 0 8px;
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
     }
     #crest-auth-header p {
       margin: 0;
-      opacity: 0.85;
-      font-size: 0.85rem;
-    }
-    #crest-auth-body {
-      padding: 20px 24px 24px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      max-height: calc(100dvh - 110px);
-      max-height: calc(100vh - 110px);
+      color: #64748b;
+      font-size: 0.95rem;
+      line-height: 1.5;
     }
 
-    .crest-form-group { margin-bottom: 18px; }
-    .crest-form-label {
-      display: block;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #334155;
-      margin-bottom: 6px;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
+    #crest-auth-body {
+      padding: 0 32px 32px 32px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      /* Scrollbar hiding */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
     }
-    .crest-form-input {
-      width: 100%;
-      padding: 12px 16px;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s;
-      box-sizing: border-box;
-      background: #f8fafc;
-      color: #1e293b;
+    #crest-auth-body::-webkit-scrollbar {
+      display: none;
     }
-    .crest-form-input:focus { border-color: #059669; background: #fff; }
-    #crest-auth-submit, #crest-signup-submit {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #064E3B, #059669);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.15s;
-      margin-top: 6px;
-    }
-    #crest-auth-submit:hover, #crest-signup-submit:hover { opacity: 0.92; transform: translateY(-1px); }
-    #crest-auth-submit:disabled, #crest-signup-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-    #crest-auth-footer {
-      text-align: center;
-      font-size: 0.85rem;
-      color: #64748b;
-      margin-top: 16px;
-    }
-    #crest-auth-footer a { color: #059669; font-weight: 700; cursor: pointer; text-decoration: none; }
-    #crest-auth-toast {
-      position: fixed;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e293b;
-      color: #fff;
-      padding: 12px 24px;
-      border-radius: 50px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      z-index: 100000;
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-    }
-    #crest-auth-toast.show { opacity: 1; }
+
+    /* Tabs */
     #crest-auth-tabs {
       display: flex;
-      gap: 0;
-      margin-bottom: 24px;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1.5px solid #e2e8f0;
+      gap: 8px;
+      margin-bottom: 28px;
+      background: #f1f5f9;
+      padding: 6px;
+      border-radius: 14px;
     }
     .crest-tab-btn {
       flex: 1;
-      padding: 10px;
+      padding: 12px;
       border: none;
-      background: #f8fafc;
-      font-size: 0.9rem;
+      background: transparent;
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
       color: #64748b;
-      transition: background 0.2s, color 0.2s;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+    }
+    .crest-tab-btn:hover {
+      color: #0f172a;
     }
     .crest-tab-btn.active {
-      background: #064E3B;
-      color: #fff;
+      background: #ffffff;
+      color: #059669; /* Brand color */
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
-    .crest-tab-panel { display: none; }
+    .crest-tab-panel { display: none; animation: fadeInTab 0.3s ease; }
     .crest-tab-panel.active { display: block; }
+    @keyframes fadeInTab {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Forms */
+    .crest-form-group { margin-bottom: 20px; }
+    .crest-form-label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+    .crest-form-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.2s;
+      box-sizing: border-box;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: inherit;
+    }
+    .crest-form-input::placeholder { color: #94a3b8; }
+    .crest-form-input:focus { 
+      border-color: #059669; 
+      box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.1);
+    }
+
+    /* Buttons */
+    .crest-submit-btn {
+      width: 100%;
+      padding: 16px;
+      background: #059669;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+    }
+    .crest-submit-btn:hover { 
+      background: #047857; 
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
+    }
+    .crest-submit-btn:active {
+      transform: translateY(0);
+    }
+    .crest-submit-btn:disabled { 
+      background: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed; 
+      transform: none; 
+    }
+    
+    .crest-demo-btn {
+      width: 100%;
+      padding: 14px;
+      background: #f8fafc;
+      color: #475569;
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: all 0.2s;
+    }
+    .crest-demo-btn:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+      color: #0f172a;
+    }
+
+    /* Footer text */
+    .crest-auth-footer {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #64748b;
+      margin-top: 24px;
+    }
+    .crest-auth-footer a { 
+      color: #059669; 
+      font-weight: 700; 
+      cursor: pointer; 
+      text-decoration: none;
+      margin-left: 4px;
+    }
+    .crest-auth-footer a:hover { text-decoration: underline; }
+
+    /* Toast */
+    #crest-auth-toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #0f172a;
+      color: #fff;
+      padding: 14px 28px;
+      border-radius: 100px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      z-index: 100000;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    #crest-auth-toast.show { 
+      opacity: 1; 
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Mobile specifics */
+    @media (max-width: 480px) {
+      #crest-auth-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+      #crest-auth-box {
+        border-radius: 28px 28px 0 0;
+        max-height: 95dvh;
+      }
+      #crest-auth-header {
+        padding: 28px 24px 20px 24px;
+      }
+      #crest-auth-body {
+        padding: 0 24px 28px 24px;
+      }
+      #crest-auth-close {
+        top: 16px;
+        right: 16px;
+        width: 36px;
+        height: 36px;
+      }
+    }
   `;
   document.head.appendChild(style);
 
   // ── HTML ────────────────────────────────────────────────────────────────────
-  // HTML
   const overlay = document.createElement('div');
   overlay.id = 'crest-auth-overlay';
-  overlay.innerHTML = `
+  overlay.innerHTML = \`
     <div id="crest-auth-box">
-      <button id="crest-auth-close" title="Close">&times;</button>
+      <button id="crest-auth-close" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      
       <div id="crest-auth-header">
-        <h3>Account Portal</h3>
-        <p>Log in or create a free account to access your portfolio.</p>
+        <h3 id="crest-header-title">Create Account</h3>
+        <p id="crest-header-desc">Join Crest Wealth and start investing.</p>
       </div>
+      
       <div id="crest-auth-body">
         <div id="crest-auth-tabs">
-          <button class="crest-tab-btn active" data-tab="signup">Create Account</button>
+          <button class="crest-tab-btn active" data-tab="signup">Sign Up</button>
           <button class="crest-tab-btn" data-tab="login">Log In</button>
         </div>
 
@@ -222,26 +324,28 @@
           <form id="crest-form-signup" novalidate>
             <div class="crest-form-group">
               <label class="crest-form-label">Full Name</label>
-              <input type="text" class="crest-form-input" id="crest-signup-name" placeholder="e.g. Babatunde Adeyemi" required>
+              <input type="text" class="crest-form-input" id="crest-signup-name" placeholder="John Doe" required>
             </div>
             <div class="crest-form-group">
               <label class="crest-form-label">Email Address</label>
-              <input type="email" class="crest-form-input" id="crest-signup-email" placeholder="babatunde@example.com" required>
+              <input type="email" class="crest-form-input" id="crest-signup-email" placeholder="john@example.com" required>
             </div>
             <div class="crest-form-group" style="position: relative;">
               <label class="crest-form-label">Password</label>
-              <input type="password" class="crest-form-input" id="crest-signup-pass" placeholder="Minimum 6 characters" required minlength="6" autocomplete="new-password" style="padding-right: 42px;">
-              <button type="button" onclick="togglePasswordVisibility('crest-signup-pass', this)" style="position: absolute; right: 12px; top: 32px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <input type="password" class="crest-form-input" id="crest-signup-pass" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" style="padding-right: 48px;">
+              <button type="button" onclick="togglePasswordVisibility('crest-signup-pass', this)" style="position: absolute; right: 14px; top: 37px; background: none; border: none; cursor: pointer; color: #94a3b8;" aria-label="Toggle visibility">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
             </div>
-            <button type="submit" id="crest-signup-submit">
-              Create Free Account
+            <button type="submit" class="crest-submit-btn" id="crest-signup-submit">
+              Create Account
             </button>
-            <button type="button" id="crest-demo-btn" style="width:100%;padding:10px;background:transparent;color:#059669;border:1.5px dashed #059669;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;margin-top:12px;transition:background 0.2s;">
-              Continue as Demo / Guest Investor &rarr;
+            <button type="button" class="crest-demo-btn" id="crest-demo-btn">
+              Explore Demo Dashboard
             </button>
           </form>
-          <div id="crest-auth-footer" style="margin-top: 14px; text-align: center; font-size: 0.88rem; color: #64748b;">
-            Have an account? <a id="crest-switch-login" style="color: #059669; font-weight: 600; cursor: pointer;">Log in &rarr;</a>
+          <div class="crest-auth-footer">
+            Already have an account? <a class="crest-switch-login">Log in</a>
           </div>
         </div>
 
@@ -250,26 +354,45 @@
           <form id="crest-form-login" novalidate>
             <div class="crest-form-group">
               <label class="crest-form-label">Email Address</label>
-              <input type="email" class="crest-form-input" id="crest-login-email" placeholder="yourname@email.com" required>
+              <input type="email" class="crest-form-input" id="crest-login-email" placeholder="john@example.com" required>
             </div>
             <div class="crest-form-group" style="position: relative;">
               <label class="crest-form-label">Password</label>
-              <input type="password" class="crest-form-input" id="crest-login-pass" placeholder="••••••••" required minlength="6" autocomplete="current-password" style="padding-right: 42px;">
-              <button type="button" onclick="togglePasswordVisibility('crest-login-pass', this)" style="position: absolute; right: 12px; top: 32px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              <input type="password" class="crest-form-input" id="crest-login-pass" placeholder="••••••••" required minlength="6" autocomplete="current-password" style="padding-right: 48px;">
+              <button type="button" onclick="togglePasswordVisibility('crest-login-pass', this)" style="position: absolute; right: 14px; top: 37px; background: none; border: none; cursor: pointer; color: #94a3b8;" aria-label="Toggle visibility">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
             </div>
-            <button type="submit" id="crest-auth-submit">Log In to Crest Wealth</button>
+            <button type="submit" class="crest-submit-btn" id="crest-auth-submit">
+              Log In
+            </button>
           </form>
-          <div id="crest-auth-footer" style="margin-top: 14px; text-align: center; font-size: 0.88rem; color: #64748b;">
-            No account? <a id="crest-switch-signup" style="color: #059669; font-weight: 600; cursor: pointer;">Open one free &rarr;</a>
+          <div class="crest-auth-footer">
+            Don't have an account? <a class="crest-switch-signup">Create one</a>
           </div>
         </div>
 
       </div>
     </div>
     <div id="crest-auth-toast"></div>
-  `;
+  \`;
   document.body.appendChild(overlay);
   document.body.style.overflow = 'hidden';
+
+  // Make togglePasswordVisibility available globally if it isn't
+  if (typeof window.togglePasswordVisibility !== 'function') {
+    window.togglePasswordVisibility = function(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22"/></svg>';
+      } else {
+        input.type = 'password';
+        btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      }
+    };
+  }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   function showToast(msg) {
@@ -281,18 +404,29 @@
 
   function closeOverlay() {
     overlay.style.opacity = '0';
-    overlay.style.transition = 'opacity 0.2s';
+    overlay.style.pointerEvents = 'none';
     setTimeout(() => {
-      overlay.remove();
-      style.remove();
+      if (overlay.parentNode) overlay.remove();
+      if (style.parentNode) style.remove();
       document.body.style.overflow = '';
-    }, 220);
+    }, 300);
   }
 
   function switchTab(tab) {
     document.querySelectorAll('.crest-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.getElementById('crest-panel-login').classList.toggle('active', tab === 'login');
     document.getElementById('crest-panel-signup').classList.toggle('active', tab === 'signup');
+    
+    // Update headers
+    const title = document.getElementById('crest-header-title');
+    const desc = document.getElementById('crest-header-desc');
+    if (tab === 'login') {
+      title.textContent = 'Welcome Back';
+      desc.textContent = 'Log in to access your portfolio.';
+    } else {
+      title.textContent = 'Create Account';
+      desc.textContent = 'Join Crest Wealth and start investing.';
+    }
   }
 
   function redirectAfterAuth() {
@@ -306,15 +440,19 @@
                      path.includes('/about/') || path.includes('/careers/') ||
                      path.includes('/support/') || path.includes('/legal/');
       window.location.href = isSubDir ? '../dashboard/dashboard.html' : 'dashboard/dashboard.html';
-    }, 900);
+    }, 800);
   }
 
   // ── Events ───────────────────────────────────────────────────────────────────
-  var closeBtn = document.getElementById('crest-auth-close'); if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeOverlay(); });
+  var closeBtn = document.getElementById('crest-auth-close'); 
+  if (closeBtn) closeBtn.addEventListener('click', closeOverlay);
+  
+  overlay.addEventListener('click', e => { 
+    if (e.target === overlay) closeOverlay(); 
+  });
 
-  var switchSignup = document.getElementById('crest-switch-signup'); if (switchSignup) switchSignup.addEventListener('click', () => switchTab('signup'));
-  var switchLogin = document.getElementById('crest-switch-login'); if (switchLogin) switchLogin.addEventListener('click', () => switchTab('login'));
+  document.querySelectorAll('.crest-switch-signup').forEach(el => el.addEventListener('click', () => switchTab('signup')));
+  document.querySelectorAll('.crest-switch-login').forEach(el => el.addEventListener('click', () => switchTab('login')));
 
   var demoBtn = document.getElementById('crest-demo-btn');
   if (demoBtn) {
@@ -331,54 +469,75 @@
   });
 
   // Login form submit
-  var formLogin = document.getElementById('crest-form-login'); if (formLogin) formLogin.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const email = document.getElementById('crest-login-email').value.trim();
-    const pass  = document.getElementById('crest-login-pass').value;
-    if (!email || !pass) { showToast('Please fill in all fields.'); return; }
-    
-    const btn = document.getElementById('crest-auth-submit');
-    btn.disabled = true;
-    btn.textContent = 'Authenticating...';
+  var formLogin = document.getElementById('crest-form-login'); 
+  if (formLogin) {
+    formLogin.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('crest-login-email').value.trim();
+      const pass  = document.getElementById('crest-login-pass').value;
+      if (!email || !pass) { showToast('Please fill in all fields.'); return; }
+      
+      const btn = document.getElementById('crest-auth-submit');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Authenticating...';
 
-    const res = typeof crestSignIn === 'function' ? await crestSignIn(email, pass) : { success: true };
-
-    if (!res.success) {
-      showToast(res.error);
-      btn.disabled = false;
-      btn.textContent = 'Log In to Crest Wealth';
-    } else {
-      redirectAfterAuth();
-    }
-  });
+      try {
+        const res = typeof crestSignIn === 'function' ? await crestSignIn(email, pass) : { success: true };
+        if (!res.success) {
+          showToast(res.error || 'Login failed.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        } else {
+          redirectAfterAuth();
+        }
+      } catch (err) {
+        showToast(err.message || 'An error occurred.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+  }
 
   // Signup form submit
-  document.getElementById('crest-form-signup').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const name  = document.getElementById('crest-signup-name').value.trim();
-    const email = document.getElementById('crest-signup-email').value.trim();
-    const pass = document.getElementById('crest-signup-pass').value;
-    if (!name || !email || !pass) { showToast('Please fill in all fields.'); return; }
-    
-    const btn = document.getElementById('crest-signup-submit');
-    btn.disabled = true;
-    btn.textContent = 'Creating Account...';
+  var formSignup = document.getElementById('crest-form-signup');
+  if (formSignup) {
+    formSignup.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const name  = document.getElementById('crest-signup-name').value.trim();
+      const email = document.getElementById('crest-signup-email').value.trim();
+      const pass = document.getElementById('crest-signup-pass').value;
+      if (!name || !email || !pass) { showToast('Please fill in all fields.'); return; }
+      
+      const btn = document.getElementById('crest-signup-submit');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Creating Account...';
 
-    const res = typeof crestSignUp === 'function' ? await crestSignUp(email, pass, name) : { success: true };
-
-    if (!res.success) {
-      showToast(res.error);
-      btn.disabled = false;
-      btn.textContent = 'Create Free Account';
-    } else {
-      showToast('Account created! Opening your dashboard...');
-      setTimeout(redirectAfterAuth, 800);
-    }
-  });
+      try {
+        const res = typeof crestSignUp === 'function' ? await crestSignUp(email, pass, name) : { success: true };
+        if (!res.success) {
+          showToast(res.error || 'Signup failed.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        } else {
+          showToast('Account created! Opening your dashboard...');
+          setTimeout(redirectAfterAuth, 800);
+        }
+      } catch (err) {
+        showToast(err.message || 'An error occurred.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+  }
 
   // Keyboard: Escape to close
   document.addEventListener('keydown', function escHandler(e) {
-    if (e.key === 'Escape') { closeOverlay(); document.removeEventListener('keydown', escHandler); }
+    if (e.key === 'Escape') { 
+      closeOverlay(); 
+      document.removeEventListener('keydown', escHandler); 
+    }
   });
 
 })();
