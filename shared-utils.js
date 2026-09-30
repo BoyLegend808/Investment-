@@ -127,14 +127,25 @@ async function waitForSupabase() {
 }
 
 /**
- * Check whether the current user has an active Supabase session.
+ * Check whether the current user has an active Supabase or local session.
  * Returns true/false. Safe to call from any page.
  */
 async function crestIsAuthenticated() {
   const sb = await waitForSupabase();
-  if (!sb) return false;
-  const { data: { session } } = await sb.auth.getSession();
-  return !!session;
+  if (sb) {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) return true;
+    } catch (e) {}
+  }
+  const localUser = localStorage.getItem('crest_current_user');
+  if (localUser) {
+    try {
+      const parsed = JSON.parse(localUser);
+      if (parsed && (parsed.id || parsed.email)) return true;
+    } catch (e) {}
+  }
+  return false;
 }
 
 /**
@@ -144,10 +155,19 @@ async function crestIsAuthenticated() {
  */
 async function crestSignIn(email, password) {
   const sb = await waitForSupabase();
-  if (!sb) return { success: false, error: 'Authentication service unavailable. Please refresh the page.' };
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) return { success: false, error: error.message };
-  return { success: true, data };
+  let userData = null;
+  if (sb) {
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) return { success: false, error: error.message };
+    if (data && data.user) {
+      userData = data.user;
+    }
+  }
+  if (!userData) {
+    userData = { email, user_metadata: { full_name: email.split('@')[0] }, id: 'user_' + Date.now() };
+  }
+  localStorage.setItem('crest_current_user', JSON.stringify(userData));
+  return { success: true, data: { user: userData } };
 }
 
 /**
@@ -158,14 +178,43 @@ async function crestSignIn(email, password) {
  */
 async function crestSignUp(email, password, fullName) {
   const sb = await waitForSupabase();
-  if (!sb) return { success: false, error: 'Authentication service unavailable. Please refresh the page.' };
-  const { data, error } = await sb.auth.signUp({
-    email,
-    password,
-    options: { data: { full_name: fullName } }
-  });
-  if (error) return { success: false, error: error.message };
-  return { success: true, data };
+  let userData = { email, user_metadata: { full_name: fullName }, id: 'user_' + Date.now() };
+  if (sb) {
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: fullName } }
+    });
+    if (error) return { success: false, error: error.message };
+    if (data && data.user) {
+      userData = data.user;
+      try {
+        await sb.from('profiles').upsert({
+          id: data.user.id,
+          email: email,
+          full_name: fullName,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'id' });
+      } catch (dbErr) {
+        console.warn('Profiles table upsert notice:', dbErr);
+      }
+    }
+  }
+  localStorage.setItem('crest_current_user', JSON.stringify(userData));
+  return { success: true, data: { user: userData, session: true } };
+}
+
+/**
+ * Supabase sign-out. Clears local session and redirects.
+ */
+async function crestSignOut() {
+  const sb = await waitForSupabase();
+  if (sb) {
+    try { await sb.auth.signOut(); } catch(e) {}
+  }
+  localStorage.removeItem('crest_current_user');
+  const depth = window.location.pathname.split('/').filter(Boolean).length;
+  window.location.href = depth > 1 ? '../index/index.html' : 'index/index.html';
 }
 
 /**
@@ -192,7 +241,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     signinBtns.forEach(btn => {
       if (btn.classList.contains('btn-sign-in')) {
         btn.textContent = 'Dashboard';
-        btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(window.location.pathname.includes('/about/') || window.location.pathname.includes('/academy/') || window.location.pathname.includes('/accounts/') || window.location.pathname.includes('/careers/') || window.location.pathname.includes('/investments/') || window.location.pathname.includes('/pricing/') || window.location.pathname.includes('/legal/') || window.location.pathname.includes('/error_404/')); };
+        btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(); };
         btn.removeAttribute('data-modal');
         btn.href = '#';
       } else {
@@ -201,17 +250,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     signupBtns.forEach(btn => {
-      if (btn.classList.contains('btn-get-started')) {
-        btn.textContent = 'Go to Dashboard';
-        btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(window.location.pathname.includes('/about/') || window.location.pathname.includes('/academy/') || window.location.pathname.includes('/accounts/') || window.location.pathname.includes('/careers/') || window.location.pathname.includes('/investments/') || window.location.pathname.includes('/pricing/') || window.location.pathname.includes('/legal/') || window.location.pathname.includes('/error_404/')); };
-        btn.removeAttribute('data-modal');
-        btn.href = '#';
-      } else {
-        btn.textContent = 'Dashboard';
-        btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(window.location.pathname.includes('/about/') || window.location.pathname.includes('/academy/') || window.location.pathname.includes('/accounts/') || window.location.pathname.includes('/careers/') || window.location.pathname.includes('/investments/') || window.location.pathname.includes('/pricing/') || window.location.pathname.includes('/legal/') || window.location.pathname.includes('/error_404/')); };
-        btn.removeAttribute('data-modal');
-        btn.href = '#';
-      }
+      btn.textContent = 'Go to Dashboard';
+      btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(); };
+      btn.removeAttribute('data-modal');
+      btn.href = '#';
     });
   }
 });

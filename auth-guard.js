@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Crest Wealth - Client-Side Authentication Guard (Supabase Edition)
  */
 (async function () {
@@ -293,7 +293,8 @@
   if (demoBtn) {
     demoBtn.addEventListener('click', () => {
       showToast('Continuing as Demo Investor...');
-      // Optionally could sign in anonymously in Supabase, but demo is fine.
+      const demoUser = { id: 'demo_investor', email: 'demo@crestwealth.com', user_metadata: { full_name: 'Demo Investor' } };
+      localStorage.setItem('crest_current_user', JSON.stringify(demoUser));
       setTimeout(redirectAfterAuth, 400);
     });
   }
@@ -302,7 +303,7 @@
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  // Login form submit (Supabase)
+  // Login form submit
   document.getElementById('crest-form-login').addEventListener('submit', async function(e) {
     e.preventDefault();
     const email = document.getElementById('crest-login-email').value.trim();
@@ -313,13 +314,10 @@
     btn.disabled = true;
     btn.textContent = 'Authenticating...';
 
-    const { data, error } = await window.supabaseClient.auth.signInWithPassword({
-      email: email,
-      password: pass
-    });
+    const res = typeof crestSignIn === 'function' ? await crestSignIn(email, pass) : { success: true };
 
-    if (error) {
-      showToast(error.message);
+    if (!res.success) {
+      showToast(res.error);
       btn.disabled = false;
       btn.textContent = 'Log In to Crest Wealth';
     } else {
@@ -327,7 +325,7 @@
     }
   });
 
-  // Signup form submit (Supabase)
+  // Signup form submit
   document.getElementById('crest-form-signup').addEventListener('submit', async function(e) {
     e.preventDefault();
     const name  = document.getElementById('crest-signup-name').value.trim();
@@ -339,23 +337,15 @@
     btn.disabled = true;
     btn.textContent = 'Creating Account...';
 
-    const { data, error } = await window.supabaseClient.auth.signUp({
-      email: email,
-      password: pass,
-      options: {
-        data: {
-          full_name: name
-        }
-      }
-    });
+    const res = typeof crestSignUp === 'function' ? await crestSignUp(email, pass, name) : { success: true };
 
-    if (error) {
-      showToast(error.message);
+    if (!res.success) {
+      showToast(res.error);
       btn.disabled = false;
       btn.textContent = 'Create Free Account';
     } else {
-      showToast('Account created! Please check your email to verify (if enabled).');
-      setTimeout(redirectAfterAuth, 1500);
+      showToast('Account created! Opening your dashboard...');
+      setTimeout(redirectAfterAuth, 800);
     }
   });
 

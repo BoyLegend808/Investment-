@@ -1,4 +1,4 @@
-// Migrate old localStorage keys (Novara branding -> Crest Wealth branding)
+﻿// Migrate old localStorage keys (Novara branding -> Crest Wealth branding)
 (function migrateStorage() {
   var migrations = [
     ['novara_tasks_config','crest_tasks_config'],
@@ -16,29 +16,133 @@
   } catch (e) { /* ignore storage errors */ }
 })();
 
-// Hide content and verify real Supabase session before showing dashboard
+// Helper for unified localStorage access (crest_* with novara_* fallback)
+function getCrestStorage(key, defaultVal) {
+  try {
+    var val = localStorage.getItem('crest_' + key);
+    if (val !== null) return val;
+    var oldVal = localStorage.getItem('novara_' + key);
+    if (oldVal !== null) return oldVal;
+  } catch (e) {}
+  return defaultVal;
+}
+
+function setCrestStorage(key, val) {
+  try {
+    var strVal = typeof val === 'string' ? val : JSON.stringify(val);
+    localStorage.setItem('crest_' + key, strVal);
+    localStorage.setItem('novara_' + key, strVal);
+  } catch (e) {}
+}
+
+// Hide content and verify auth before showing dashboard
 document.documentElement.style.visibility = 'hidden';
 (async function supabaseAuthGuard() {
-  // Wait for supabaseClient to be ready (initialized by supabase.js)
-  let waited = 0;
-  while (!window.supabaseClient && waited < 3000) {
+  var waited = 0;
+  var session = null;
+  while (!window.supabaseClient && waited < 2000) {
     await new Promise(r => setTimeout(r, 50));
     waited += 50;
   }
-  if (!window.supabaseClient) {
-    // Supabase didn't load – hard redirect to safety
-    window.location.href = '../index/index.html';
+  if (window.supabaseClient) {
+    try {
+      const { data } = await window.supabaseClient.auth.getSession();
+      session = data ? data.session : null;
+    } catch (e) {}
+  }
+  
+  var localUserRaw = localStorage.getItem('crest_current_user');
+  var localUser = null;
+  if (localUserRaw) {
+    try { localUser = JSON.parse(localUserRaw); } catch (e) {}
+  }
+
+  if (!session && !localUser) {
+    window.location.href = '../index/index.html#signin';
     return;
   }
-  const { data: { session } } = await window.supabaseClient.auth.getSession();
-  if (!session) {
-    window.location.href = '../index/index.html';
-    return;
-  }
-  // Store user info for use elsewhere in the dashboard
-  window.crestUser = session.user;
+
+  window.crestUser = session ? session.user : localUser;
   document.documentElement.style.visibility = '';
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { initDashboardUserProfile(); });
+  } else {
+    setTimeout(function() { initDashboardUserProfile(); }, 50);
+  }
 })();
+
+async function initDashboardUserProfile() {
+  var user = window.crestUser;
+  if (!user) {
+    var raw = localStorage.getItem('crest_current_user');
+    if (raw) {
+      try { user = JSON.parse(raw); } catch (e) {}
+    }
+  }
+  if (!user) return;
+  window.crestUser = user;
+
+  var fullName = (user.user_metadata && user.user_metadata.full_name) ||
+                 (user.user_metadata && user.user_metadata.name) ||
+                 user.full_name ||
+                 (user.email ? user.email.split('@')[0] : 'Valued Investor');
+  var email = user.email || 'investor@crestwealth.com';
+
+  if (window.supabaseClient && user.id && typeof user.id === 'string' && !user.id.startsWith('demo_')) {
+    try {
+      const { data: dbProfile } = await window.supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (dbProfile) {
+        if (dbProfile.full_name) fullName = dbProfile.full_name;
+        if (dbProfile.email) email = dbProfile.email;
+        if (dbProfile.cash_balance !== undefined && dbProfile.cash_balance !== null) {
+          var b = parseFloat(dbProfile.cash_balance);
+          if (!isNaN(b) && typeof S !== 'undefined') {
+            S.cashBalance = b;
+            saveUserBalance();
+            updateBalanceDisplays();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Crest] Supabase profile sync:', err);
+    }
+  }
+
+  var parts = fullName.trim().split(/\s+/);
+  var initials = 'CW';
+  if (parts.length >= 2) {
+    initials = (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  } else if (parts.length === 1 && parts[0].length > 0) {
+    initials = parts[0].slice(0, 2).toUpperCase();
+  }
+
+  var sidebarName = document.querySelector('.sidebar-user-name');
+  if (sidebarName) sidebarName.textContent = fullName;
+
+  document.querySelectorAll('.sidebar-user-avatar, .topbar-avatar, .avatar-lg').forEach(function(el) {
+    el.textContent = initials;
+  });
+
+  var depAcctName = document.getElementById('depAcctName');
+  if (depAcctName) depAcctName.textContent = 'Crest Wealth / ' + fullName;
+
+  var settingsView = document.getElementById('view-settings');
+  if (settingsView) {
+    var textInputs = settingsView.querySelectorAll('input[type="text"]');
+    if (textInputs.length >= 2) {
+      textInputs[0].value = parts[0] || fullName;
+      textInputs[1].value = parts.slice(1).join(' ') || '';
+    }
+    var emailInput = settingsView.querySelector('input[type="email"]');
+    if (emailInput) emailInput.value = email;
+  }
+}
 
 /* ============================================================
    NOVARA CAPITAL — USER DASHBOARD JS
@@ -171,7 +275,7 @@ var QUIZ_DATA = [
 function loadTasksState() {
   var config = null;
   try {
-    var raw = localStorage.getItem('novara_tasks_config');
+    var raw = getCrestStorage('tasks_config', null);
     if (raw) config = JSON.parse(raw);
   } catch(e) {}
 
@@ -182,7 +286,7 @@ function loadTasksState() {
 
   var userDone = {};
   try {
-    var uRaw = localStorage.getItem('novara_user_tasks');
+    var uRaw = getCrestStorage('user_tasks', null);
     if (uRaw) userDone = JSON.parse(uRaw);
   } catch(e) {}
 
@@ -212,13 +316,13 @@ function saveUserTasksState() {
     state[t.id] = { done: t.done, inputDoneVal: t.inputDoneVal || '' };
   });
   try {
-    localStorage.setItem('novara_user_tasks', JSON.stringify(state));
+    setCrestStorage('user_tasks', state);
   } catch(e) {}
 }
 
 function loadUserBalance() {
   try {
-    var saved = localStorage.getItem('novara_user_balance');
+    var saved = getCrestStorage('user_balance', null);
     if (saved !== null) {
       var num = parseFloat(saved);
       if (!isNaN(num)) return num;
@@ -229,7 +333,7 @@ function loadUserBalance() {
 
 function saveUserBalance() {
   try {
-    localStorage.setItem('novara_user_balance', S.cashBalance.toString());
+    setCrestStorage('user_balance', S.cashBalance.toString());
   } catch(e) {}
 }
 
@@ -1041,10 +1145,10 @@ function submitDeposit() {
 
   var existingDep = [];
   try {
-    existingDep = JSON.parse(localStorage.getItem('novara_deposits') || '[]');
+    var depRaw = getCrestStorage('deposits', null); existingDep = depRaw ? JSON.parse(depRaw) : [];
   } catch(e) {}
   existingDep.unshift(newDep);
-  localStorage.setItem('novara_deposits', JSON.stringify(existingDep));
+  setCrestStorage('deposits', existingDep);
 
   // Add row to user activity table
   prependUserTxn(newDep.date, 'Deposit Initiated — ' + planName, 'Deposit', '+₦' + amt.toLocaleString('en-NG'), 'Pending Confirmation');
@@ -1069,7 +1173,7 @@ var STREAK_DAYS = [
 function getDailyStreakData() {
   var defaultData = { day: 1, claimedToday: false, lastClaimDate: '' };
   try {
-    var raw = localStorage.getItem('novara_daily_streak');
+    var raw = getCrestStorage('daily_streak', null);
     if (raw) return JSON.parse(raw);
   } catch(e) {}
   return defaultData;
@@ -1077,7 +1181,7 @@ function getDailyStreakData() {
 
 function saveDailyStreakData(data) {
   try {
-    localStorage.setItem('novara_daily_streak', JSON.stringify(data));
+    setCrestStorage('daily_streak', data);
   } catch(e) {}
 }
 
@@ -1248,10 +1352,10 @@ function submitWithdrawal() {
 
   var existingWd = [];
   try {
-    existingWd = JSON.parse(localStorage.getItem('novara_withdrawals') || '[]');
+    var wdRaw = getCrestStorage('withdrawals', null); existingWd = wdRaw ? JSON.parse(wdRaw) : [];
   } catch(e) {}
   existingWd.unshift(newWd);
-  localStorage.setItem('novara_withdrawals', JSON.stringify(existingWd));
+  setCrestStorage('withdrawals', existingWd);
 
   // Deduct local balance
   S.cashBalance -= amt;
@@ -1275,7 +1379,7 @@ function submitWithdrawal() {
 function updateWithdrawalTimeline() {
   var withdrawals = [];
   try {
-    withdrawals = JSON.parse(localStorage.getItem('novara_withdrawals') || '[]');
+    var wdRaw2 = getCrestStorage('withdrawals', null); withdrawals = wdRaw2 ? JSON.parse(wdRaw2) : [];
   } catch(e) {}
 
   var latest = withdrawals[0];
@@ -1394,15 +1498,15 @@ window.addEventListener('resize', function() {
 
 // Real-time synchronization when Admin modifies tasks, deposits, or withdrawals
 window.addEventListener('storage', function(e) {
-  if (e.key === 'novara_tasks_config' || e.key === 'novara_user_tasks') {
+  if (e.key === 'crest_tasks_config' || e.key === 'crest_user_tasks' || e.key === 'novara_tasks_config' || e.key === 'novara_user_tasks') {
     S.tasks = loadTasksState();
     refreshTaskUI();
   }
-  if (e.key === 'novara_user_balance') {
+  if (e.key === 'crest_user_balance' || e.key === 'novara_user_balance') {
     S.cashBalance = loadUserBalance();
     updateBalanceDisplays();
   }
-  if (e.key === 'novara_withdrawals') {
+  if (e.key === 'crest_withdrawals' || e.key === 'novara_withdrawals') {
     updateWithdrawalTimeline();
   }
 });
@@ -1443,8 +1547,38 @@ function initSettingsInteractions() {
   // Profile save button
   var saveBtn = document.querySelector('#view-settings button.btn-primary');
   if (saveBtn) {
-    saveBtn.addEventListener('click', function(e) {
+    saveBtn.addEventListener('click', async function(e) {
       e.preventDefault();
+      var settingsView = document.getElementById('view-settings');
+      if (settingsView) {
+        var textInputs = settingsView.querySelectorAll('input[type="text"]');
+        var emailInput = settingsView.querySelector('input[type="email"]');
+        var first = textInputs[0] ? textInputs[0].value.trim() : '';
+        var last = textInputs[1] ? textInputs[1].value.trim() : '';
+        var email = emailInput ? emailInput.value.trim() : '';
+        var full = (first + ' ' + last).trim();
+
+        if (full && window.crestUser) {
+          if (!window.crestUser.user_metadata) window.crestUser.user_metadata = {};
+          window.crestUser.user_metadata.full_name = full;
+          window.crestUser.email = email || window.crestUser.email;
+          localStorage.setItem('crest_current_user', JSON.stringify(window.crestUser));
+
+          if (window.supabaseClient && window.crestUser.id && !window.crestUser.id.startsWith('demo_')) {
+            try {
+              await window.supabaseClient.from('profiles').upsert({
+                id: window.crestUser.id,
+                full_name: full,
+                email: email,
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'id' });
+            } catch (err) {
+              console.warn('[Crest] Profile save DB sync:', err);
+            }
+          }
+          initDashboardUserProfile();
+        }
+      }
       toast('Profile changes saved successfully!', 'emerald');
     });
   }
@@ -1464,7 +1598,7 @@ function initSettingsInteractions() {
       if (label.includes('PIN')) {
         var newPin = prompt('Enter your new 4-digit withdrawal PIN:');
         if (newPin && /^\d{4}$/.test(newPin.trim())) {
-          localStorage.setItem('novara_wd_pin', newPin.trim());
+          setCrestStorage('wd_pin', newPin.trim());
           toast('Withdrawal PIN updated successfully!', 'emerald');
         } else if (newPin !== null) {
           toast('PIN must be exactly 4 numeric digits.', 'warn');
