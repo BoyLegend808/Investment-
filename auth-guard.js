@@ -29,11 +29,19 @@
       inset: 0;
       background: rgba(7, 30, 20, 0.75);
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
       z-index: 99999;
       animation: crestFadeIn 0.25s ease;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 12px;
+      box-sizing: border-box;
+    }
+    @media (min-height: 680px) {
+      #crest-auth-overlay { align-items: center; }
     }
     @keyframes crestFadeIn {
       from { opacity: 0; }
@@ -43,7 +51,12 @@
       background: #ffffff;
       border-radius: 20px;
       max-width: 480px;
-      width: calc(100% - 32px);
+      width: 100%;
+      margin: auto;
+      max-height: calc(100dvh - 24px);
+      max-height: calc(100vh - 24px);
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 24px 64px rgba(0,0,0,0.35);
       overflow: hidden;
       animation: crestSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -55,36 +68,48 @@
     }
     #crest-auth-close {
       position: absolute;
-      top: 16px; right: 16px;
-      width: 34px; height: 34px;
+      top: 14px; right: 14px;
+      width: 36px; height: 36px;
       border-radius: 50%;
       border: none;
-      background: #f1f5f9;
+      background: #ffffff;
       cursor: pointer;
-      font-size: 1.1rem;
-      line-height: 34px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 36px;
       text-align: center;
-      color: #64748b;
-      z-index: 2;
-      transition: background 0.2s;
+      color: #064E3B;
+      z-index: 30;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      transition: transform 0.2s, background 0.2s;
     }
-    #crest-auth-close:hover { background: #e2e8f0; color: #1e293b; }
+    #crest-auth-close:hover { transform: scale(1.08); background: #f8fafc; }
     #crest-auth-header {
       background: linear-gradient(135deg, #064E3B 0%, #059669 100%);
-      padding: 36px 36px 28px;
+      padding: 24px 24px 18px 24px;
       color: #fff;
+      position: relative;
+      flex-shrink: 0;
     }
     #crest-auth-header h3 {
       margin: 0 0 6px;
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       font-weight: 700;
+      padding-right: 36px;
     }
     #crest-auth-header p {
       margin: 0;
-      opacity: 0.8;
-      font-size: 0.9rem;
+      opacity: 0.85;
+      font-size: 0.85rem;
     }
-    #crest-auth-body { padding: 28px 36px 32px; }
+    #crest-auth-body {
+      padding: 20px 24px 24px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      max-height: calc(100dvh - 110px);
+      max-height: calc(100vh - 110px);
+    }
+
     .crest-form-group { margin-bottom: 18px; }
     .crest-form-label {
       display: block;
