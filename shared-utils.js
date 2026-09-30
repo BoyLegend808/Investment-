@@ -260,15 +260,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Get Started / Open Account buttons on nav
   const signupNavBtns = document.querySelectorAll('a.btn-get-started, a[href="#signup"], a[data-modal="signup"]');
 
-  // Always hide standalone Log In buttons on the header nav per design request
-  signinNavBtns.forEach(btn => {
-    btn.style.display = 'none';
-  });
+  function loadAuthGuard(defaultTab) {
+    window.crestAuthDefaultTab = defaultTab;
+    const old = document.getElementById('crest-auth-guard-script');
+    if (old) old.remove();
+    
+    const depth = window.location.pathname.split('/').filter(Boolean).length;
+    const basePath = depth > 1 ? '../' : '';
+    const script = document.createElement('script');
+    script.id = 'crest-auth-guard-script';
+    script.src = basePath + 'auth-guard.js?t=' + Date.now();
+    document.head.appendChild(script);
+  }
 
   if (isAuth) {
     // LOGGED IN NAV STATE
     dashboardNavLinks.forEach(link => {
       link.style.display = '';
+    });
+    signinNavBtns.forEach(btn => {
+      btn.style.display = 'none';
     });
     signupNavBtns.forEach(btn => {
       btn.textContent = 'Client Dashboard';
@@ -284,10 +295,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     dashboardNavLinks.forEach(link => {
       link.style.display = 'none';
     });
+    signinNavBtns.forEach(btn => {
+      btn.style.display = ''; // Show the Log In button
+      btn.onclick = (e) => {
+        e.preventDefault();
+        loadAuthGuard('login');
+      };
+    });
     signupNavBtns.forEach(btn => {
       btn.textContent = 'Get Started';
-      btn.setAttribute('data-modal', 'signup');
-      btn.href = '#signup';
+      btn.removeAttribute('data-modal');
+      btn.href = '#';
+      btn.onclick = (e) => {
+        e.preventDefault();
+        loadAuthGuard('signup');
+      };
     });
   }
 });

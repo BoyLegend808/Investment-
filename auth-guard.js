@@ -468,6 +468,11 @@
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
+  // Default tab handling
+  if (window.crestAuthDefaultTab === 'login') {
+    switchTab('login');
+  }
+
   // Login form submit
   var formLogin = document.getElementById('crest-form-login'); 
   if (formLogin) {
