@@ -181,11 +181,16 @@
   overlay.id = 'crest-auth-overlay';
   overlay.innerHTML = `
     <div id="crest-auth-box">
+      <button id="crest-auth-close" title="Close">&times;</button>
       <div id="crest-auth-header">
-        <h3>Create Your Account</h3>
-        <p>Start building your wealth portfolio with Crest Wealth.</p>
+        <h3>Account Portal</h3>
+        <p>Log in or create a free account to access your portfolio.</p>
       </div>
       <div id="crest-auth-body">
+        <div id="crest-auth-tabs">
+          <button class="crest-tab-btn active" data-tab="signup">Create Account</button>
+          <button class="crest-tab-btn" data-tab="login">Log In</button>
+        </div>
 
         <!-- SIGNUP PANEL -->
         <div class="crest-tab-panel active" id="crest-panel-signup">
@@ -210,6 +215,28 @@
               Continue as Demo / Guest Investor &rarr;
             </button>
           </form>
+          <div id="crest-auth-footer" style="margin-top: 14px; text-align: center; font-size: 0.88rem; color: #64748b;">
+            Have an account? <a id="crest-switch-login" style="color: #059669; font-weight: 600; cursor: pointer;">Log in &rarr;</a>
+          </div>
+        </div>
+
+        <!-- LOGIN PANEL -->
+        <div class="crest-tab-panel" id="crest-panel-login">
+          <form id="crest-form-login" novalidate>
+            <div class="crest-form-group">
+              <label class="crest-form-label">Email Address</label>
+              <input type="email" class="crest-form-input" id="crest-login-email" placeholder="yourname@email.com" required>
+            </div>
+            <div class="crest-form-group" style="position: relative;">
+              <label class="crest-form-label">Password</label>
+              <input type="password" class="crest-form-input" id="crest-login-pass" placeholder="••••••••" required minlength="6" autocomplete="current-password" style="padding-right: 42px;">
+              <button type="button" onclick="togglePasswordVisibility('crest-login-pass', this)" style="position: absolute; right: 12px; top: 32px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            </div>
+            <button type="submit" id="crest-auth-submit">Log In to Crest Wealth</button>
+          </form>
+          <div id="crest-auth-footer" style="margin-top: 14px; text-align: center; font-size: 0.88rem; color: #64748b;">
+            No account? <a id="crest-switch-signup" style="color: #059669; font-weight: 600; cursor: pointer;">Open one free &rarr;</a>
+          </div>
         </div>
 
       </div>
