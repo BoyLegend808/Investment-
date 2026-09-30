@@ -279,8 +279,13 @@ function initModals() {
         return;
       }
       btn.textContent = 'Account Created!';
-      if (typeof showToast === 'function') showToast('Account created! Redirecting...', 'success', 3000);
-      setTimeout(() => crestRedirectToDashboard(), 1500);
+      if (!result.data.session) {
+        if (typeof showToast === 'function') showToast('Account created! Please check your email to verify your account.', 'success', 6000);
+        btn.textContent = 'Check your email';
+      } else {
+        if (typeof showToast === 'function') showToast('Account created! Redirecting...', 'success', 3000);
+        setTimeout(() => crestRedirectToDashboard(), 1500);
+      }
     });
   }
 
@@ -556,4 +561,5 @@ function initMarketTabs() {
 
 
 /* --- Inline JS --- */
+
 
