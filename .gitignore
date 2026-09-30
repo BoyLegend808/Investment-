@@ -1,2 +1,4 @@
 scratch/
 *.log
+# Developer scratch / WIP folder (never deploy)
+scratch/

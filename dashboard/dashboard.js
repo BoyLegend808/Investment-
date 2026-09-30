@@ -1,0 +1,1519 @@
+// Migrate old localStorage keys (Novara branding -> Crest Wealth branding)
+(function migrateStorage() {
+  var migrations = [
+    ['novara_tasks_config','crest_tasks_config'],
+    ['novara_user_tasks','crest_user_tasks'],
+    ['novara_user_balance','crest_user_balance'],
+    ['novara_deposits','crest_deposits'],
+    ['novara_daily_streak','crest_daily_streak'],
+    ['novara_withdrawals','crest_withdrawals'],
+  ];
+  try {
+    migrations.forEach(function(pair) {
+      var v = localStorage.getItem(pair[0]);
+      if (v && !localStorage.getItem(pair[1])) localStorage.setItem(pair[1], v);
+    });
+  } catch (e) { /* ignore storage errors */ }
+})();
+
+// Hide content and verify real Supabase session before showing dashboard
+document.documentElement.style.visibility = 'hidden';
+(async function supabaseAuthGuard() {
+  // Wait for supabaseClient to be ready (initialized by supabase.js)
+  let waited = 0;
+  while (!window.supabaseClient && waited < 3000) {
+    await new Promise(r => setTimeout(r, 50));
+    waited += 50;
+  }
+  if (!window.supabaseClient) {
+    // Supabase didn't load – hard redirect to safety
+    window.location.href = '../index/index.html';
+    return;
+  }
+  const { data: { session } } = await window.supabaseClient.auth.getSession();
+  if (!session) {
+    window.location.href = '../index/index.html';
+    return;
+  }
+  // Store user info for use elsewhere in the dashboard
+  window.crestUser = session.user;
+  document.documentElement.style.visibility = '';
+})();
+
+/* ============================================================
+   NOVARA CAPITAL — USER DASHBOARD JS
+   - SPA navigation with animated view transitions
+   - Task-based withdrawal gate (admin-configurable tasks)
+   - Investment IQ Quiz (5 questions, 70% pass)
+   - Market Timing Trading Mini-Game (play game task, 150+ pts)
+   - LocalStorage synchronization with Admin Portal
+   - Canvas sparkline + growth chart + donut chart
+   - Deposit return calculator & Withdrawal submission
+   ============================================================ */
+
+/* ── DEFAULT TASK CONFIG ─────────────────────────────────── */
+var DEFAULT_TASKS = [
+  {
+    id: 0, done: true,
+    icon: 'x', platform: 'X (Twitter)',
+    title: 'Follow Crest on X',
+    desc: 'Follow <strong>@CrestWealthNG</strong> and stay updated with daily market tips.',
+    steps: ['Search @CrestWealthNG on X', 'Click Follow on the profile', 'Enter your X username below'],
+    inputType: 'text', inputPlaceholder: 'Your @username',
+    inputDoneVal: '@adaeze_invests',
+    reward: '+₦2,000', rewardAmount: 2000,
+    url: 'https://x.com/CrestWealthNG', urlLabel: 'Open X Profile',
+    verificationType: 'social_handle'
+  },
+  {
+    id: 1, done: false,
+    icon: 'yt', platform: 'YouTube',
+    title: 'Subscribe on YouTube',
+    desc: 'Subscribe to <strong>Crest Wealth</strong> and watch at least one full video.',
+    steps: ['Open Crest Wealth YouTube channel', 'Click Subscribe', 'Watch any full video (5+ mins)', 'Paste your email below'],
+    inputType: 'email', inputPlaceholder: 'YouTube account email',
+    reward: '+₦3,000', rewardAmount: 3000,
+    url: 'https://youtube.com/@CrestWealth', urlLabel: 'Open YouTube Channel',
+    verificationType: 'social_handle'
+  },
+  {
+    id: 2, done: false,
+    icon: 'ig', platform: 'Instagram',
+    title: 'Comment on Our Post',
+    desc: 'Find the pinned post on <strong>@CrestWealthNG</strong> and leave a genuine comment.',
+    steps: ['Open @CrestWealthNG on Instagram', 'Find the pinned investment post', 'Leave a comment', 'Enter your username below'],
+    inputType: 'text', inputPlaceholder: 'Your Instagram username',
+    reward: '+₦1,500', rewardAmount: 1500,
+    url: 'https://instagram.com/CrestWealthNG', urlLabel: 'Open Instagram',
+    verificationType: 'social_handle'
+  },
+  {
+    id: 3, done: false,
+    icon: 'quiz', platform: 'Quiz',
+    title: 'Investment IQ Quiz',
+    desc: 'Answer 5 finance questions. Score <strong>70%+</strong> to pass and earn your bonus.',
+    steps: ['Read each question carefully', 'Select your answer', 'Score 70% or higher to complete'],
+    inputType: null,
+    reward: '+₦2,500', rewardAmount: 2500,
+    isQuiz: true,
+    verificationType: 'quiz'
+  },
+  {
+    id: 4, done: false,
+    icon: 'game', platform: 'Trading Mini-Game',
+    title: 'Market Timing Mini-Game',
+    desc: 'Play the trading simulator. Time your BUY & SELL orders to score <strong>150+ points</strong>.',
+    steps: ['Watch the live price ticks', 'Click BUY on dips & SELL on peaks', 'Achieve 150 points to complete'],
+    inputType: null,
+    reward: '+₦3,500', rewardAmount: 3500,
+    isGame: true,
+    verificationType: 'game'
+  },
+  {
+    id: 5, done: false,
+    icon: 'link', platform: 'VIP Referrals',
+    title: 'Invite 2 Friends to Crest',
+    desc: 'Share your personal referral link on WhatsApp. When 2 friends join and verify, earn <strong>₦5,000</strong> instant cash credit.',
+    steps: ['Click Share on WhatsApp below', 'Send your invitation to at least 2 friends or investment groups', 'Enter the phone numbers or names of your 2 invited friends'],
+    inputType: 'text', inputPlaceholder: 'Names or WhatsApp numbers of 2 friends',
+    reward: '+₦5,000', rewardAmount: 5000,
+    url: "https://api.whatsapp.com/send?text=Hey!%20I'm%20earning%20daily%20passive%20returns%20with%20Crest%20Wealth.%20Join%20with%20my%20VIP%20link%20to%20get%20%E2%82%A62%2C000%20welcome%20bonus%3A%20https%3A%2F%2Fcrestwealth.com%2Fref%2FADAEZE2026",
+    urlLabel: 'Share on WhatsApp',
+    verificationType: 'social_handle'
+  }
+];
+
+/* ── QUIZ DATA ──────────────────────────────────────── */
+var QUIZ_DATA = [
+  {
+    q: "Which exchange lists Nigerian blue-chip equities like GTCO and Dangote Cement?",
+    opts: ["Lagos Stock Exchange", "Nigerian Exchange Group (NGX)", "FMDQ Securities Exchange", "West Africa Capital Market"],
+    correct: 1,
+    why: "The Nigerian Exchange Group (NGX), formerly NSE, is Nigeria's primary equities market."
+  },
+  {
+    q: "What does '16.8% p.a.' mean on a fixed deposit?",
+    opts: ["You earn 16.8% of profits made annually", "The platform pays 16.8% of your principal per year", "You pay 16.8% tax annually", "16.8% is the total return over the entire term"],
+    correct: 1,
+    why: "'Per annum' means per year. 16.8% p.a. on N100,000 = N16,800 every 12 months."
+  },
+  {
+    q: "Which investment carries the lowest default risk in Nigeria?",
+    opts: ["Corporate bonds", "Real estate funds", "FGN Treasury Bills", "NGX penny stocks"],
+    correct: 2,
+    why: "Federal Government of Nigeria T-Bills are backed by the sovereign guarantee — the safest instrument."
+  },
+  {
+    q: "What is compound interest?",
+    opts: [
+      "Interest paid only on the original principal",
+      "Interest calculated on a flat monthly basis",
+      "Interest earned on both principal and previously earned interest",
+      "A type of tax charged on investment income"
+    ],
+    correct: 2,
+    why: "Compound interest earns interest on your interest — the foundation of long-term wealth building."
+  },
+  {
+    q: "Why is diversification important in investing?",
+    opts: [
+      "It guarantees the highest possible return",
+      "It reduces overall portfolio risk by spreading across assets",
+      "It avoids all regulatory requirements",
+      "It means only buying government assets"
+    ],
+    correct: 1,
+    why: "Diversification reduces volatility. Underperformance in one asset is offset by resilience in others."
+  }
+];
+
+/* ── STATE MANAGEMENT & PERSISTENCE ──────────────────── */
+function loadTasksState() {
+  var config = null;
+  try {
+    var raw = localStorage.getItem('novara_tasks_config');
+    if (raw) config = JSON.parse(raw);
+  } catch(e) {}
+
+  var activeTasks = (config && Array.isArray(config) && config.length > 0) ? config : DEFAULT_TASKS;
+
+  // Filter only active tasks if admin configured active flags
+  activeTasks = activeTasks.filter(function(t) { return t.active !== false; });
+
+  var userDone = {};
+  try {
+    var uRaw = localStorage.getItem('novara_user_tasks');
+    if (uRaw) userDone = JSON.parse(uRaw);
+  } catch(e) {}
+
+  return activeTasks.map(function(t) {
+    var copy = Object.assign({}, t);
+    if (typeof copy.rewardAmount !== 'number') {
+      var m = (copy.reward || '').replace(/[^0-9]/g, '');
+      copy.rewardAmount = m ? parseInt(m, 10) : 2000;
+    }
+    if (!copy.reward) {
+      copy.reward = '+₦' + copy.rewardAmount.toLocaleString('en-NG');
+    }
+    if (!copy.verificationType) {
+      copy.verificationType = copy.isQuiz ? 'quiz' : (copy.isGame ? 'game' : 'social_handle');
+    }
+    if (userDone[copy.id] !== undefined) {
+      copy.done = !!userDone[copy.id].done;
+      if (userDone[copy.id].inputDoneVal) copy.inputDoneVal = userDone[copy.id].inputDoneVal;
+    }
+    return copy;
+  });
+}
+
+function saveUserTasksState() {
+  var state = {};
+  S.tasks.forEach(function(t) {
+    state[t.id] = { done: t.done, inputDoneVal: t.inputDoneVal || '' };
+  });
+  try {
+    localStorage.setItem('novara_user_tasks', JSON.stringify(state));
+  } catch(e) {}
+}
+
+function loadUserBalance() {
+  try {
+    var saved = localStorage.getItem('novara_user_balance');
+    if (saved !== null) {
+      var num = parseFloat(saved);
+      if (!isNaN(num)) return num;
+    }
+  } catch(e) {}
+  return 84200;
+}
+
+function saveUserBalance() {
+  try {
+    localStorage.setItem('novara_user_balance', S.cashBalance.toString());
+  } catch(e) {}
+}
+
+function updateBalanceDisplays() {
+  var fmt2 = function(n) { return '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 2 }); };
+  var fmt0 = function(n) { return '₦' + Math.round(n).toLocaleString('en-NG'); };
+
+  // 1. Overview cash balance stat card
+  if ($('cashBalanceVal')) $('cashBalanceVal').textContent = fmt0(S.cashBalance);
+
+  // 2. Withdraw view available balance
+  document.querySelectorAll('.balance-display').forEach(function(el) {
+    el.textContent = fmt2(S.cashBalance);
+  });
+
+  // 3. Withdraw amount placeholder
+  var wdInput = $('withdrawAmount');
+  if (wdInput) wdInput.placeholder = 'Max ' + fmt0(S.cashBalance);
+
+  // 4. Portfolio values (Invested 976,800 + Accrued 187,500 = 1,164,300 + S.cashBalance)
+  var totalPortfolio = 1164300 + S.cashBalance;
+  if ($('topbarPortfolio')) $('topbarPortfolio').textContent = fmt0(totalPortfolio);
+  if ($('portfolioValue')) $('portfolioValue').textContent = fmt2(totalPortfolio);
+}
+
+function creditUserReward(amount, taskTitle) {
+  var amt = parseFloat(amount) || 0;
+  if (amt <= 0) return;
+  S.cashBalance += amt;
+  saveUserBalance();
+  updateBalanceDisplays();
+
+  // Add entry to user transactions table
+  var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  prependUserTxn(today, 'Task Reward — ' + (taskTitle || 'Prerequisite Complete'), 'Deposit', '+₦' + amt.toLocaleString('en-NG'), 'Completed');
+}
+
+var S = {
+  currentView: 'overview',
+  cashBalance: loadUserBalance(),
+  tasks: loadTasksState(),
+  quiz: { q: 0, score: 0, done: false, passed: false },
+  game: {
+    running: false,
+    score: 0,
+    price: 45.0,
+    history: [45.0, 45.4, 45.1, 45.6, 45.8, 45.2, 45.5, 46.0],
+    position: null, // { type: 'BUY', entry: 45.5 }
+    targetScore: 150,
+    timer: null
+  },
+  get tasksDone() { return this.tasks.filter(function(t) { return t.done; }).length; },
+  get allDone() { return this.tasks.length > 0 && this.tasks.every(function(t) { return t.done; }); }
+};
+
+/* ── DOM REF HELPER ────────────────────────────── */
+function $(id) { return document.getElementById(id); }
+
+/* ── NAVIGATION ─────────────────────────────────── */
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(function(v) {
+    v.classList.remove('active');
+    v.style.display = 'none';
+  });
+  document.querySelectorAll('.nav-link').forEach(function(n) {
+    n.classList.remove('active');
+  });
+
+  var el = $('view-' + name);
+  if (el) {
+    el.classList.add('active');
+    el.style.display = 'block';
+  }
+  var nav = document.querySelector('.nav-link[data-view="' + name + '"]');
+  if (nav) nav.classList.add('active');
+
+  document.querySelectorAll('.mbd-item').forEach(function(b) {
+    if (b.getAttribute('data-view') === name) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+
+  var titles = {
+    overview: 'Dashboard', portfolio: 'Portfolio',
+    transactions: 'Transactions', deposit: 'Deposit Funds',
+    withdraw: 'Withdraw', tasks: 'Tasks & Rewards',
+    referrals: 'Referrals', settings: 'Settings'
+  };
+  if ($('topbarTitle')) $('topbarTitle').textContent = titles[name] || name;
+  S.currentView = name;
+  closeSidebar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (name === 'overview') {
+    setTimeout(function() { drawSparkline(); drawGrowth(); drawDonut(); }, 60);
+    if (typeof updateWithdrawalTimeline === 'function') updateWithdrawalTimeline();
+  }
+  if (name === 'withdraw') {
+    if (typeof updateWithdrawalTimeline === 'function') updateWithdrawalTimeline();
+  }
+  if (name === 'tasks') {
+    initMiniGame();
+  }
+}
+
+/* ── MOBILE SIDEBAR ──────────────────────────────── */
+if ($('burgerBtn')) {
+  $('burgerBtn').addEventListener('click', function() {
+    $('sidebar').classList.toggle('open');
+    $('sidebarOverlay').classList.toggle('active');
+  });
+}
+if ($('sidebarOverlay')) {
+  $('sidebarOverlay').addEventListener('click', closeSidebar);
+}
+function closeSidebar() {
+  if ($('sidebar')) $('sidebar').classList.remove('open');
+  if ($('sidebarOverlay')) $('sidebarOverlay').classList.remove('active');
+}
+
+document.querySelectorAll('.nav-link[data-view]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    e.preventDefault();
+    switchView(a.dataset.view);
+  });
+});
+
+/* ── TASK SYSTEM ─────────────────────────────────── */
+function refreshTaskUI() {
+  var done = S.tasksDone;
+  var total = S.tasks.length;
+  var pct = total > 0 ? Math.round((done / total) * 100) : 100;
+  var remaining = total - done;
+
+  var fills = [$('tpbFill'), $('lockedProgFill')];
+  fills.forEach(function(f) { if (f) f.style.width = pct + '%'; });
+
+  if ($('tpbScore')) $('tpbScore').textContent = done + '/' + total;
+  if ($('tpbSub')) $('tpbSub').textContent = S.allDone
+    ? 'All tasks complete — Withdrawal unlocked!'
+    : remaining + ' task' + (remaining !== 1 ? 's' : '') + ' remaining';
+  if ($('lockedProgLabel')) $('lockedProgLabel').textContent = done + '/' + total;
+  if ($('noticeTaskCount')) $('noticeTaskCount').textContent = remaining + ' remaining';
+
+  var pip = $('navLockPip');
+  var badge = $('navTaskBadge');
+  if (pip) pip.style.display = S.allDone ? 'none' : 'block';
+  if (badge) {
+    badge.textContent = remaining;
+    badge.style.display = remaining > 0 ? 'flex' : 'none';
+  }
+  if ($('mbdTaskBadge')) {
+    $('mbdTaskBadge').textContent = remaining;
+    $('mbdTaskBadge').style.display = remaining > 0 ? 'inline-block' : 'none';
+  }
+
+  var notice = $('taskLockNotice');
+  if (notice) notice.style.display = S.allDone ? 'none' : 'flex';
+
+  var wdLocked = $('wdLocked');
+  var wdUnlocked = $('wdUnlocked');
+  if (wdLocked) wdLocked.style.display = S.allDone ? 'none' : 'block';
+  if (wdUnlocked) wdUnlocked.style.display = S.allDone ? 'block' : 'none';
+
+  var doneBanner = $('tasksDoneBanner');
+  if (doneBanner) doneBanner.style.display = S.allDone ? 'flex' : 'none';
+
+  renderLockedTasksList();
+  renderTasksGrid();
+}
+
+function renderLockedTasksList() {
+  var el = $('lockedTasksList');
+  if (!el) return;
+  el.innerHTML = S.tasks.map(function(t) {
+    return '<div class="locked-task-row">' +
+      '<div class="ltr-status ' + (t.done ? 'ltr-status--done' : 'ltr-status--pending') + '">' +
+      (t.done
+        ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'
+        : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+      ) +
+      '</div>' +
+      '<div><div class="ltr-name">' + t.title + '</div><div class="ltr-sub">' + t.platform + '</div></div>' +
+      '<span class="ltr-reward">' + t.reward + '</span>' +
+      '</div>';
+  }).join('');
+}
+
+function renderTasksGrid() {
+  var grid = $('tasksGrid');
+  if (!grid) return;
+  grid.innerHTML = S.tasks.map(function(t) { return renderTaskCard(t); }).join('');
+  // Re-bind mini-game if needed
+  if (!S.tasks.find(function(t) { return t.id === 4 && t.done; })) {
+    drawMiniGameCanvas();
+  }
+}
+
+var ICONS = {
+  x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.258 5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+  yt: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>',
+  ig: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/></svg>',
+  telegram: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>',
+  tiktok: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.52a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15.2a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V7.93a8.21 8.21 0 0 0 4.76 1.5V6.01c-.34 0-.68-.07-1-.2z"/></svg>',
+  discord: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>',
+  quiz: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>',
+  game: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 12h4m-2-2v4m7-2a1 1 0 1 0 2 0 1 1 0 0 0-2 0m4 0a1 1 0 1 0 2 0 1 1 0 0 0-2 0"/><rect x="2" y="6" width="20" height="12" rx="4"/></svg>',
+  link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
+};
+
+function renderTaskCard(t) {
+  var steps = t.steps ? t.steps.map(function(s) {
+    return '<div class="task-step' + (t.done ? ' task-step--done' : '') + '">' + s + '</div>';
+  }).join('') : '';
+
+  var rewardFormatted = t.reward || ('+₦' + (t.rewardAmount || 2000).toLocaleString('en-NG'));
+
+  var actionHtml = '';
+  if (t.done && !t.isQuiz && !t.isGame) {
+    actionHtml = '<div class="task-input-row">' +
+      '<input class="task-input task-input--done" value="' + (t.inputDoneVal || 'Verified') + '" readonly>' +
+      '<button class="task-btn task-btn--done" disabled><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Verified &amp; Paid</button>' +
+      '</div>';
+  } else if (!t.done && !t.isQuiz && !t.isGame) {
+    if (t.verificationType === 'instant') {
+      actionHtml = '<div class="task-input-row">' +
+        (t.url ? ('<a href="' + t.url + '" target="_blank" rel="noopener" class="task-ext-link" style="margin-bottom:0;flex:1;">' + (t.urlLabel || 'Open Link') +
+        ' <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg></a>') : '') +
+        '<button class="task-btn" onclick="verifyTask(' + t.id + ')">Confirm &amp; Claim <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>' +
+        '</div>';
+    } else {
+      actionHtml = '<div class="task-input-row">' +
+        '<input type="' + (t.inputType || 'text') + '" class="task-input" id="tinput-' + t.id + '" placeholder="' + (t.inputPlaceholder || 'Your answer') + '">' +
+        '<button class="task-btn" onclick="verifyTask(' + t.id + ')">Verify <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>' +
+        '</div>' +
+        (t.url ? ('<a href="' + t.url + '" target="_blank" rel="noopener" class="task-ext-link">' + (t.urlLabel || 'Open ' + t.platform) +
+        ' <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg></a>') : '');
+    }
+  } else if (t.isQuiz && !t.done) {
+    actionHtml = renderQuizHTML();
+  } else if (t.isQuiz && t.done) {
+    actionHtml = '<div class="quiz-feedback quiz-feedback--correct">Investment IQ Quiz Passed! ' + rewardFormatted + ' bonus credited.</div>';
+  } else if (t.isGame && !t.done) {
+    actionHtml = renderGameHTML();
+  } else if (t.isGame && t.done) {
+    actionHtml = '<div class="quiz-feedback quiz-feedback--correct">Market Sprint Completed! Target achieved and ' + rewardFormatted + ' credited.</div>';
+  }
+
+  var iconSvg = ICONS[t.icon] || ICONS.quiz;
+
+  return '<div class="task-card ' + (t.done ? 'task-card--done' : '') + ' ' + (t.isQuiz ? 'task-card--quiz' : '') + ' ' + (t.isGame ? 'task-card--game' : '') + '" id="tcard-' + t.id + '">' +
+    '<div class="task-card-top"><div class="task-icon task-icon--' + (t.icon || 'quiz') + '">' + iconSvg + '</div><span class="task-reward">' + rewardFormatted + '</span></div>' +
+    '<div class="task-title">' + t.title + '</div>' +
+    '<div class="task-desc">' + t.desc + '</div>' +
+    '<div class="task-steps">' + steps + '</div>' +
+    actionHtml +
+    '</div>';
+}
+
+function verifyTask(id) {
+  var task = S.tasks.find(function(item) { return item.id === id; });
+  if (!task) return;
+
+  var isInstant = task.verificationType === 'instant';
+  var inputVal = '';
+
+  if (!isInstant) {
+    var input = $('tinput-' + id);
+    if (!input || !input.value.trim()) {
+      toast('Please enter the required information first.', 'warn');
+      return;
+    }
+    inputVal = input.value.trim();
+  } else {
+    inputVal = 'Instant Verified';
+  }
+
+  var btn = document.querySelector('#tcard-' + id + ' .task-btn');
+  if (btn) { btn.textContent = 'Verifying...'; btn.disabled = true; }
+
+  setTimeout(function() {
+    task.done = true;
+    task.inputDoneVal = inputVal;
+    saveUserTasksState();
+
+    var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : (function() {
+      var m = (task.reward || '').replace(/[^0-9]/g, '');
+      return m ? parseInt(m, 10) : 2000;
+    })();
+
+    creditUserReward(rewardAmt, task.title);
+    refreshTaskUI();
+    toast('Task verified! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
+  }, 1200);
+}
+
+/* ── INVESTMENT IQ QUIZ ──────────────────────────────── */
+function renderQuizHTML() {
+  var q = QUIZ_DATA[S.quiz.q];
+  if (!q) return '';
+  return '<div class="quiz-wrap" id="quizWrap">' +
+    '<div class="quiz-meta"><span id="qNum">Question ' + (S.quiz.q + 1) + ' of ' + QUIZ_DATA.length + '</span>' +
+    '<span id="qScore">Score: ' + S.quiz.score + '/' + S.quiz.q + '</span></div>' +
+    '<div class="quiz-q" id="qText">' + q.q + '</div>' +
+    '<div class="quiz-opts" id="qOpts">' +
+    q.opts.map(function(o, i) { return '<button class="quiz-opt" onclick="answerQ(' + i + ')">' + o + '</button>'; }).join('') +
+    '</div><div id="qFeedback"></div></div>';
+}
+
+function answerQ(chosen) {
+  if (S.quiz.done) return;
+  var q = QUIZ_DATA[S.quiz.q];
+  var opts = document.querySelectorAll('.quiz-opt');
+  var fb = $('qFeedback');
+  var isRight = chosen === q.correct;
+
+  opts.forEach(function(o, i) {
+    o.disabled = true;
+    if (i === q.correct) o.classList.add('quiz-opt--correct');
+    else if (i === chosen && !isRight) o.classList.add('quiz-opt--wrong');
+  });
+
+  if (isRight) S.quiz.score++;
+  if (fb) {
+    fb.className = 'quiz-feedback quiz-feedback--' + (isRight ? 'correct' : 'wrong');
+    fb.textContent = q.why;
+  }
+
+  S.quiz.q++;
+
+  if (S.quiz.q < QUIZ_DATA.length) {
+    setTimeout(function() {
+      var card = $('tcard-3');
+      if (card) {
+        var wrapper = card.querySelector('.quiz-wrap');
+        if (wrapper) wrapper.outerHTML = renderQuizHTML();
+      }
+    }, 1700);
+  } else {
+    S.quiz.done = true;
+    var pct = Math.round((S.quiz.score / QUIZ_DATA.length) * 100);
+    S.quiz.passed = pct >= 70;
+    setTimeout(function() {
+      var card = $('tcard-3');
+      if (!card) return;
+      var wrap = card.querySelector('.quiz-wrap');
+      if (wrap) wrap.outerHTML = '<div class="quiz-wrap"><div class="quiz-feedback quiz-feedback--' + (S.quiz.passed ? 'correct' : 'wrong') + '" style="text-align:center;padding:16px;">' +
+        '<strong>' + (S.quiz.passed ? 'Passed!' : 'Not quite!') + '</strong><br>Score: ' + S.quiz.score + '/' + QUIZ_DATA.length + ' (' + pct + '%)<br>' +
+        (S.quiz.passed ? 'Task complete. +N2,500 Bonus earned!' : 'Score 70%+ required. <button class="task-btn" onclick="retryQuiz()" style="margin-top:10px;display:inline-flex;">Try Again</button>') +
+        '</div></div>';
+      if (S.quiz.passed) {
+        var task = S.tasks.find(function(t) { return t.id === 3; });
+        if (task) {
+          task.done = true;
+          saveUserTasksState();
+          var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : 2500;
+          creditUserReward(rewardAmt, task.title || 'Investment IQ Quiz');
+          refreshTaskUI();
+          toast('Investment IQ Quiz passed! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
+        }
+      }
+    }, 1700);
+  }
+}
+
+function retryQuiz() {
+  S.quiz = { q: 0, score: 0, done: false, passed: false };
+  var card = $('tcard-3');
+  if (card) {
+    var wrap = card.querySelector('.quiz-wrap');
+    if (wrap) wrap.outerHTML = renderQuizHTML();
+  }
+}
+
+/* ── MARKET SPRINT TRADING MINI-GAME ──────────────────── */
+function renderGameHTML() {
+  return '<div class="game-container" id="miniGameContainer">' +
+    '<div class="game-header-bar">' +
+      '<div class="game-ticker-label"><span class="game-ticker-live"></span> NGX:NOVARA-INDEX</div>' +
+      '<div class="game-score-badge" id="gameScoreLabel">Score: ' + S.game.score + ' / 150 pts</div>' +
+    '</div>' +
+    '<div class="game-canvas-wrap">' +
+      '<canvas id="gameCanvas" class="game-canvas"></canvas>' +
+    '</div>' +
+    '<div class="game-stat-bar">' +
+      '<span>Price: <strong id="gamePriceLabel">N' + S.game.price.toFixed(2) + '</strong></span>' +
+      '<span>Position: <strong id="gamePosLabel">' + (S.game.position ? S.game.position.type + ' @ N' + S.game.position.entry.toFixed(2) : 'NONE') + '</strong></span>' +
+    '</div>' +
+    '<div class="game-actions">' +
+      '<button class="game-btn-buy" id="btnGameBuy" onclick="gameTradeAction(\'BUY\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg> BUY DIP</button>' +
+      '<button class="game-btn-sell" id="btnGameSell" onclick="gameTradeAction(\'SELL\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg> SELL PEAK</button>' +
+    '</div>' +
+    '<div class="game-msg" id="gameMsg">Click BUY on low ticks, SELL when green to bank profits!</div>' +
+  '</div>';
+}
+
+function initMiniGame() {
+  if (S.game.timer) clearInterval(S.game.timer);
+  drawMiniGameCanvas();
+  S.game.timer = setInterval(function() {
+    var delta = (Math.random() - 0.48) * 0.9;
+    S.game.price = Math.max(38.0, Math.min(58.0, S.game.price + delta));
+    S.game.history.push(S.game.price);
+    if (S.game.history.length > 24) S.game.history.shift();
+
+    if ($('gamePriceLabel')) $('gamePriceLabel').textContent = 'N' + S.game.price.toFixed(2);
+    drawMiniGameCanvas();
+  }, 900);
+}
+
+function drawMiniGameCanvas() {
+  var canvas = $('gameCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width = canvas.offsetWidth || 300;
+  var h = canvas.height = canvas.offsetHeight || 110;
+  var data = S.game.history;
+  if (!data || data.length < 2) return;
+
+  var min = Math.min.apply(null, data) * 0.98;
+  var max = Math.max.apply(null, data) * 1.02;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Background grid
+  ctx.strokeStyle = '#14181E';
+  ctx.lineWidth = 1;
+  for (var y = 20; y < h; y += 25) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+  }
+
+  var xOf = function(i) { return (i / (data.length - 1)) * (w - 20) + 10; };
+  var yOf = function(v) { return h - 14 - ((v - min) / (max - min)) * (h - 28); };
+
+  // Gradient fill
+  var isRising = data[data.length - 1] >= data[data.length - 2];
+  var lineColor = isRising ? '#10B981' : '#EF4444';
+
+  var grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, isRising ? 'rgba(16, 185, 129, 0.22)' : 'rgba(239, 68, 68, 0.22)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(data[0]));
+  for (var i = 1; i < data.length; i++) {
+    var xc = (xOf(i - 1) + xOf(i)) / 2;
+    ctx.bezierCurveTo(xc, yOf(data[i - 1]), xc, yOf(data[i]), xOf(i), yOf(data[i]));
+  }
+  ctx.lineTo(xOf(data.length - 1), h);
+  ctx.lineTo(xOf(0), h);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Price stroke
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(data[0]));
+  for (i = 1; i < data.length; i++) {
+    xc = (xOf(i - 1) + xOf(i)) / 2;
+    ctx.bezierCurveTo(xc, yOf(data[i - 1]), xc, yOf(data[i]), xOf(i), yOf(data[i]));
+  }
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Active tip dot
+  var lx = xOf(data.length - 1), ly = yOf(data[data.length - 1]);
+  ctx.beginPath();
+  ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#F97316';
+  ctx.fill();
+}
+
+function gameTradeAction(action) {
+  var msg = $('gameMsg');
+  var scoreLbl = $('gameScoreLabel');
+  var posLbl = $('gamePosLabel');
+
+  if (action === 'BUY') {
+    if (S.game.position) {
+      if (msg) { msg.className = 'game-msg info'; msg.textContent = 'Already holding position! Click SELL to exit.'; }
+      return;
+    }
+    S.game.position = { type: 'BUY', entry: S.game.price };
+    if (posLbl) posLbl.textContent = 'LONG @ N' + S.game.price.toFixed(2);
+    if (msg) { msg.className = 'game-msg info'; msg.textContent = 'Bought at N' + S.game.price.toFixed(2) + '! Now wait for tick up to SELL.'; }
+  } else if (action === 'SELL') {
+    if (!S.game.position) {
+      if (msg) { msg.className = 'game-msg info'; msg.textContent = 'No position open! Click BUY DIP first.'; }
+      return;
+    }
+    var profit = S.game.price - S.game.position.entry;
+    var gainPts = Math.round(profit * 60);
+
+    if (gainPts > 0) {
+      S.game.score += gainPts;
+      if (msg) {
+        msg.className = 'game-msg win';
+        msg.textContent = 'Profit locked! +' + gainPts + ' pts (Sold @ N' + S.game.price.toFixed(2) + ')';
+      }
+    } else {
+      S.game.score = Math.max(0, S.game.score + gainPts);
+      if (msg) {
+        msg.className = 'game-msg loss';
+        msg.textContent = 'Loss taken (' + gainPts + ' pts). Try again!';
+      }
+    }
+    S.game.position = null;
+    if (posLbl) posLbl.textContent = 'NONE';
+    if (scoreLbl) scoreLbl.textContent = 'Score: ' + S.game.score + ' / 150 pts';
+
+    // Check Win Condition
+    if (S.game.score >= S.game.targetScore) {
+      clearInterval(S.game.timer);
+      var task = S.tasks.find(function(t) { return t.id === 4; });
+      if (task) {
+        task.done = true;
+        saveUserTasksState();
+        var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : 3500;
+        creditUserReward(rewardAmt, task.title || 'Market Timing Mini-Game');
+        refreshTaskUI();
+        toast('Market Sprint Complete! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
+      }
+    }
+  }
+}
+
+/* ── CHARTS ─────────────────────────────────────────── */
+function drawSparkline() {
+  var canvas = $('sparklineCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width = canvas.offsetWidth || 160;
+  var h = canvas.height = canvas.offsetHeight || 60;
+  var data = [820, 870, 900, 980, 1050, 1180, 1248];
+  var min = Math.min.apply(null, data) * 0.97;
+  var max = Math.max.apply(null, data) * 1.02;
+  var xOf = function(i) { return (i / (data.length - 1)) * w; };
+  var yOf = function(v) { return h - ((v - min) / (max - min)) * h; };
+  ctx.clearRect(0, 0, w, h);
+  var grad = ctx.createLinearGradient(0, 0, 0, h);
+  grad.addColorStop(0, 'rgba(16,185,129,0.25)');
+  grad.addColorStop(1, 'rgba(16,185,129,0)');
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(data[0]));
+  for (var i = 1; i < data.length; i++) {
+    var xc = (xOf(i - 1) + xOf(i)) / 2;
+    ctx.bezierCurveTo(xc, yOf(data[i - 1]), xc, yOf(data[i]), xOf(i), yOf(data[i]));
+  }
+  ctx.lineTo(xOf(data.length - 1), h);
+  ctx.lineTo(0, h);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(data[0]));
+  for (i = 1; i < data.length; i++) {
+    xc = (xOf(i - 1) + xOf(i)) / 2;
+    ctx.bezierCurveTo(xc, yOf(data[i - 1]), xc, yOf(data[i]), xOf(i), yOf(data[i]));
+  }
+  ctx.strokeStyle = '#10B981'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(xOf(data.length - 1), yOf(data[data.length - 1]), 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#F97316'; ctx.fill();
+}
+
+function drawGrowth() {
+  var canvas = $('growthChart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = canvas.width = canvas.offsetWidth;
+  var h = canvas.height = canvas.offsetHeight;
+  if (!w || !h) return;
+  var data = [820000, 880000, 910000, 970000, 1060000, 1190000, 1248500];
+  var labels = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Now'];
+  var min = Math.min.apply(null, data) * 0.94;
+  var max = Math.max.apply(null, data) * 1.03;
+  var pl = 56, pr = 16, pt = 16, pb = 36;
+  var cw = w - pl - pr, ch = h - pt - pb;
+  var xOf = function(i) { return pl + (i / (data.length - 1)) * cw; };
+  var yOf = function(v) { return pt + ch - ((v - min) / (max - min)) * ch; };
+  ctx.clearRect(0, 0, w, h);
+  ctx.strokeStyle = '#F3F4F6'; ctx.lineWidth = 1;
+  for (var i = 0; i <= 4; i++) {
+    var y = pt + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pl, y); ctx.lineTo(w - pr, y); ctx.stroke();
+  }
+  var grad = ctx.createLinearGradient(0, pt, 0, pt + ch);
+  grad.addColorStop(0, 'rgba(16,185,129,0.15)');
+  grad.addColorStop(1, 'rgba(16,185,129,0)');
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(data[0]));
+  for (i = 1; i < data.length; i++) {
+    var xc = (xOf(i - 1) + xOf(i)) / 2;
+    ctx.bezierCurveTo(xc, yOf(data[i - 1]), xc, yOf(data[i]), xOf(i), yOf(data[i]));
+  }
+  ctx.lineTo(xOf(data.length - 1), pt + ch);
+  ctx.lineTo(xOf(0), pt + ch);
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(data[0]));
+  for (i = 1; i < data.length; i++) {
+    xc = (xOf(i - 1) + xOf(i)) / 2;
+    ctx.bezierCurveTo(xc, yOf(data[i - 1]), xc, yOf(data[i]), xOf(i), yOf(data[i]));
+  }
+  ctx.strokeStyle = '#10B981'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#9CA3AF'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'center';
+  labels.forEach(function(l, i) { ctx.fillText(l, xOf(i), h - 8); });
+  ctx.textAlign = 'right';
+  ['N1.2M', 'N1.0M', 'N0.8M'].forEach(function(l, i) {
+    ctx.fillText(l, pl - 6, pt + (ch / 2.5) * i + 10);
+  });
+  var lx = xOf(data.length - 1), ly = yOf(data[data.length - 1]);
+  ctx.beginPath(); ctx.arc(lx, ly, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#F97316'; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+}
+
+function drawDonut() {
+  var canvas = $('donutChart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width = canvas.offsetWidth;
+  var H = canvas.height = canvas.offsetHeight;
+  if (!W || !H) return;
+  var cx = W / 2, cy = H / 2;
+  var r = Math.min(cx, cy) - 8;
+  var inner = r * 0.56;
+  var slices = [
+    { pct: 0.52, color: '#10B981' },
+    { pct: 0.28, color: '#0B251A' },
+    { pct: 0.14, color: '#F97316' },
+    { pct: 0.06, color: '#D1D5DB' }
+  ];
+  var angle = -Math.PI / 2;
+  slices.forEach(function(s) {
+    var end = angle + s.pct * 2 * Math.PI;
+    ctx.beginPath(); ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, angle, end);
+    ctx.closePath(); ctx.fillStyle = s.color; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+    angle = end;
+  });
+  ctx.beginPath(); ctx.arc(cx, cy, inner, 0, Math.PI * 2);
+  ctx.fillStyle = '#fff'; ctx.fill();
+  ctx.fillStyle = '#111827'; ctx.font = 'bold 13px Space Mono, monospace';
+  ctx.textAlign = 'center'; ctx.fillText('N976k', cx, cy - 4);
+  ctx.fillStyle = '#9CA3AF'; ctx.font = '10px Inter, sans-serif';
+  ctx.fillText('invested', cx, cy + 13);
+}
+
+/* Chart tabs */
+document.addEventListener('click', function(e) {
+  if (!e.target.matches('.tab')) return;
+  var group = e.target.closest('.tab-group');
+  if (group) group.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  e.target.classList.add('active');
+  drawGrowth();
+});
+
+/* ── DEPOSIT CALCULATOR & MULTI-BANK SELECTOR ───────── */
+var DEPOSIT_BANKS = {
+  opay: {
+    name: 'OPay Digital Services',
+    title: 'OPay Digital Services Dedicated Account',
+    acctNum: '8023456789',
+    acctName: 'Crest Wealth / Adaeze Okonkwo',
+    note: 'Transfer from your OPay or any Nigerian banking app. Verified within 2 minutes.'
+  },
+  palmpay: {
+    name: 'PalmPay Limited',
+    title: 'PalmPay Dedicated Virtual Account',
+    acctNum: '9012345678',
+    acctName: 'Crest Wealth / Adaeze Okonkwo',
+    note: 'Send exact amount via PalmPay or bank transfer. Instant auto-crediting.'
+  },
+  moniepoint: {
+    name: 'Moniepoint MFB',
+    title: 'Moniepoint MFB Dedicated Commercial Account',
+    acctNum: '5501234567',
+    acctName: 'Crest Wealth / Adaeze Okonkwo',
+    note: 'Instant NIP settlement supported. Use your full name as payment narration.'
+  },
+  kuda: {
+    name: 'Kuda Microfinance Bank',
+    title: 'Kuda Microfinance Bank Account',
+    acctNum: '2001234567',
+    acctName: 'Crest Wealth / Adaeze Okonkwo',
+    note: 'Transfer to Kuda account. Zero transfer fees across all banking channels.'
+  },
+  gtbank: {
+    name: 'Guaranty Trust Bank (GTBank)',
+    title: 'GTBank Dedicated Corporate Account',
+    acctNum: '0123456789',
+    acctName: 'Crest Wealth / Adaeze Okonkwo',
+    note: 'Transfer to this account from any banking app. Funds appear within 2 minutes.'
+  }
+};
+var currentDepositBank = 'opay';
+var depositReceiptData = null;
+
+function selectDepositBank(key) {
+  if (!DEPOSIT_BANKS[key]) return;
+  currentDepositBank = key;
+  document.querySelectorAll('.bank-chip').forEach(function(b) {
+    if (b.getAttribute('data-bank') === key) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+  var b = DEPOSIT_BANKS[key];
+  if ($('depBankTitle')) $('depBankTitle').textContent = b.title;
+  if ($('depAcctName')) $('depAcctName').textContent = b.acctName;
+  if ($('depAcctNum')) $('depAcctNum').textContent = b.acctNum;
+  if ($('depBankNote')) $('depBankNote').textContent = b.note;
+  toast('Switched to ' + b.name + ' dedicated virtual account');
+}
+
+function copyDepAccount() {
+  var b = DEPOSIT_BANKS[currentDepositBank];
+  if (!b) return;
+  navigator.clipboard.writeText(b.acctNum).then(function() {
+    toast(b.name + ' account number copied (' + b.acctNum + ')');
+  });
+}
+
+function handleReceiptUpload(e) {
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(evt) {
+    depositReceiptData = evt.target.result;
+    if ($('popPreviewImg')) $('popPreviewImg').src = depositReceiptData;
+    if ($('popFileName')) $('popFileName').textContent = file.name;
+    if ($('popPrompt')) $('popPrompt').style.display = 'none';
+    if ($('popPreview')) $('popPreview').style.display = 'flex';
+    toast('Transfer receipt screenshot attached: ' + file.name, 'emerald');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeReceipt(e) {
+  if (e) e.stopPropagation();
+  depositReceiptData = null;
+  if ($('popFileInput')) $('popFileInput').value = '';
+  if ($('popPrompt')) $('popPrompt').style.display = 'block';
+  if ($('popPreview')) $('popPreview').style.display = 'none';
+}
+
+var depositSecondsRemaining = 899;
+var depositTimerInterval = null;
+function startDepositSessionTimer() {
+  if (depositTimerInterval) clearInterval(depositTimerInterval);
+  depositTimerInterval = setInterval(function() {
+    depositSecondsRemaining--;
+    if (depositSecondsRemaining <= 0) depositSecondsRemaining = 900;
+    var m = Math.floor(depositSecondsRemaining / 60);
+    var s = depositSecondsRemaining % 60;
+    var str = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    if ($('depositTimer')) $('depositTimer').textContent = str;
+  }, 1000);
+}
+
+function calcReturns() {
+  var amtEl = $('depAmount');
+  var rateEl = document.querySelector('input[name="plan"]:checked');
+  var amt = parseFloat(amtEl ? amtEl.value : 0) || 0;
+  var rate = parseFloat(rateEl ? rateEl.value : 0.115) || 0.115;
+  var fmt = function(n) { return '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 2 }); };
+  if ($('previewAmt')) $('previewAmt').textContent = fmt(amt);
+  if ($('previewRate')) $('previewRate').textContent = (rate * 100).toFixed(1) + '% p.a.';
+  if ($('previewMon')) $('previewMon').textContent = fmt((amt * rate) / 12);
+  if ($('previewYr')) $('previewYr').textContent = fmt(amt * rate);
+}
+
+function setPick(n) {
+  var el = $('depAmount');
+  if (el) { el.value = n; calcReturns(); }
+}
+
+function submitDeposit() {
+  var amtEl = $('depAmount');
+  var amt = parseFloat(amtEl ? amtEl.value : 0);
+  if (!amt || amt < 500) { toast('Minimum deposit is ₦500', 'warn'); return; }
+
+  var refId = 'DEP-' + Math.floor(100000 + Math.random() * 900000);
+  var planEl = document.querySelector('input[name="plan"]:checked');
+  var planRate = planEl ? planEl.value : '0.115';
+  var planMap = {
+    '0.115': 'Crest Stash (11.5% p.a.)',
+    '0.142': 'Bronze Lock (14.2% p.a.)',
+    '0.168': 'Silver Growth (16.8% p.a.)',
+    '0.195': 'Gold Vault (19.5% p.a.)',
+    '0.240': 'VaultX VIP (24.0% p.a.)'
+  };
+  var planName = planMap[planRate] || 'Crest Stash (11.5%)';
+  var bInfo = DEPOSIT_BANKS[currentDepositBank] || DEPOSIT_BANKS.opay;
+
+  var newDep = {
+    id: refId,
+    user: 'Adaeze Okonkwo',
+    email: 'adaeze.okonkwo@email.com',
+    amount: amt,
+    plan: planName,
+    bank: bInfo.name,
+    acctNum: bInfo.acctNum,
+    receiptData: depositReceiptData,
+    method: 'BANK TRANSFER (' + bInfo.name.toUpperCase() + ')',
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    status: 'Pending Confirmation'
+  };
+
+  var existingDep = [];
+  try {
+    existingDep = JSON.parse(localStorage.getItem('novara_deposits') || '[]');
+  } catch(e) {}
+  existingDep.unshift(newDep);
+  localStorage.setItem('novara_deposits', JSON.stringify(existingDep));
+
+  // Add row to user activity table
+  prependUserTxn(newDep.date, 'Deposit Initiated — ' + planName, 'Deposit', '+₦' + amt.toLocaleString('en-NG'), 'Pending Confirmation');
+
+  toast('Deposit of ₦' + amt.toLocaleString('en-NG') + ' submitted (' + refId + ')! The Observatory has been notified for confirmation.', 'emerald');
+  if (amtEl) amtEl.value = '';
+  removeReceipt();
+  calcReturns();
+}
+
+/* ── DAILY LOGIN BONUS STREAK ────────────────────────── */
+var STREAK_DAYS = [
+  { day: 1, label: 'Day 1', reward: 200, rewardStr: '+₦200' },
+  { day: 2, label: 'Day 2', reward: 200, rewardStr: '+₦200' },
+  { day: 3, label: 'Day 3', reward: 200, rewardStr: '+₦200' },
+  { day: 4, label: 'Day 4', reward: 200, rewardStr: '+₦200' },
+  { day: 5, label: 'Day 5', reward: 200, rewardStr: '+₦200' },
+  { day: 6, label: 'Day 6', reward: 200, rewardStr: '+₦200' },
+  { day: 7, label: 'Day 7', reward: 1000, rewardStr: '+₦1,000' }
+];
+
+function getDailyStreakData() {
+  var defaultData = { day: 1, claimedToday: false, lastClaimDate: '' };
+  try {
+    var raw = localStorage.getItem('novara_daily_streak');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return defaultData;
+}
+
+function saveDailyStreakData(data) {
+  try {
+    localStorage.setItem('novara_daily_streak', JSON.stringify(data));
+  } catch(e) {}
+}
+
+function renderDailyStreak() {
+  var streak = getDailyStreakData();
+  var todayStr = new Date().toDateString();
+  if (streak.lastClaimDate !== todayStr) {
+    streak.claimedToday = false;
+  }
+
+  var track = $('streakDaysTrack');
+  if (track) {
+    track.innerHTML = STREAK_DAYS.map(function(item) {
+      var isDone = item.day < streak.day || (item.day === streak.day && streak.claimedToday);
+      var isToday = item.day === streak.day && !streak.claimedToday;
+      var cls = 'streak-day-item' + (isDone ? ' done' : '') + (isToday ? ' today' : '');
+      var statusTxt = isDone ? 'Claimed ✓' : (isToday ? 'Available' : 'Locked');
+      return '<div class="' + cls + '">' +
+        '<div class="sdi-day">' + item.label + '</div>' +
+        '<div class="sdi-reward">' + item.rewardStr + '</div>' +
+        '<div class="sdi-status">' + statusTxt + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  var btn = $('claimStreakBtn');
+  var btnTxt = $('claimStreakBtnText');
+  if (btn && btnTxt) {
+    if (streak.claimedToday) {
+      btn.className = 'btn-claim-streak claimed';
+      btn.disabled = true;
+      btnTxt.textContent = 'Day ' + streak.day + ' Claimed Today ✓';
+    } else {
+      btn.className = 'btn-claim-streak';
+      btn.disabled = false;
+      var curReward = STREAK_DAYS[streak.day - 1] ? STREAK_DAYS[streak.day - 1].rewardStr : '+₦200';
+      btnTxt.textContent = 'Claim Day ' + streak.day + ' (' + curReward + ')';
+    }
+  }
+}
+
+function claimDailyStreak() {
+  var streak = getDailyStreakData();
+  var todayStr = new Date().toDateString();
+  if (streak.claimedToday && streak.lastClaimDate === todayStr) {
+    toast('You have already claimed today\'s login bonus! Come back tomorrow.', 'info');
+    return;
+  }
+
+  var curReward = STREAK_DAYS[streak.day - 1] ? STREAK_DAYS[streak.day - 1].reward : 200;
+  creditUserReward(curReward, 'Daily Login Streak (Day ' + streak.day + ')');
+
+  streak.claimedToday = true;
+  streak.lastClaimDate = todayStr;
+  if (streak.day < 7) streak.day += 1;
+  else streak.day = 1; // resets after 7-day cycle
+  saveDailyStreakData(streak);
+  renderDailyStreak();
+
+  toast('Claimed Day bonus! +₦' + curReward.toLocaleString('en-NG') + ' added to your balance!', 'emerald');
+}
+
+/* ── 24-HOUR TASK CYCLE CLOCK ────────────────────────── */
+function startTaskCycleClock() {
+  function update() {
+    var now = new Date();
+    var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+    var diff = Math.floor((midnight - now) / 1000);
+    if (diff < 0) diff = 0;
+    var h = Math.floor(diff / 3600);
+    var m = Math.floor((diff % 3600) / 60);
+    var s = diff % 60;
+    var str = (h < 10 ? '0' + h : h) + 'h ' + (m < 10 ? '0' + m : m) + 'm ' + (s < 10 ? '0' + s : s) + 's';
+    if ($('taskCycleClock')) $('taskCycleClock').textContent = str;
+  }
+  update();
+  setInterval(update, 1000);
+}
+
+/* ── WITHDRAWAL & NUBAN AUTO-LOOKUP ──────────────────── */
+function handleBankChange() {
+  handleNubanInput();
+}
+
+var nubanLookupTimer = null;
+function handleNubanInput() {
+  var input = $('withdrawNuban');
+  var badge = $('nubanStatus');
+  if (!input || !badge) return;
+  var val = input.value.replace(/[^0-9]/g, '');
+  input.value = val;
+
+  clearTimeout(nubanLookupTimer);
+  if (val.length === 10) {
+    badge.innerHTML = '<span style="color:#D97706;">Resolving NUBAN via NIBSS...</span>';
+    badge.style.display = 'inline-flex';
+    nubanLookupTimer = setTimeout(function() {
+      badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> ADAEZE CHIDINMA OKONKWO (NIBSS Verified ✓)';
+      badge.style.display = 'inline-flex';
+    }, 450);
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function setWdPct(pct) {
+  var amt = Math.floor(S.cashBalance * pct);
+  if ($('withdrawAmount')) $('withdrawAmount').value = amt > 0 ? amt : '';
+  calcWdSummary();
+}
+
+function calcWdSummary() {
+  var amtEl = $('withdrawAmount');
+  var amt = parseFloat(amtEl ? amtEl.value : 0) || 0;
+  var fmt = function(n) { return '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 2 }); };
+  if ($('wdSumAmt')) $('wdSumAmt').textContent = fmt(amt);
+  if ($('wdSumReceive')) $('wdSumReceive').textContent = fmt(amt);
+}
+
+function submitWithdrawal() {
+  if (!S.allDone) {
+    toast('Withdrawal locked: Please complete all required tasks first.', 'warn');
+    switchView('tasks');
+    return;
+  }
+  var amtEl = $('withdrawAmount');
+  var pinEl = $('withdrawPin');
+  var nubanEl = $('withdrawNuban');
+  var amt = parseFloat(amtEl ? amtEl.value : 0);
+
+  if (!amt || amt <= 0) {
+    toast('Please enter a valid withdrawal amount.', 'warn');
+    return;
+  }
+  if (amt < 2000) {
+    toast('Minimum withdrawal threshold is ₦2,000.', 'warn');
+    return;
+  }
+  if (amt > S.cashBalance) {
+    toast('Amount exceeds available balance of ₦' + S.cashBalance.toLocaleString('en-NG'), 'warn');
+    return;
+  }
+  var nuban = nubanEl ? nubanEl.value.trim() : '0123456789';
+  if (nuban.length !== 10) {
+    toast('Please enter a valid 10-digit NUBAN account number.', 'warn');
+    return;
+  }
+  if (!pinEl || !pinEl.value || pinEl.value.length < 4) {
+    toast('Please enter your 4-digit security PIN.', 'warn');
+    return;
+  }
+
+  var refId = 'WD-' + Math.floor(100000 + Math.random() * 900000) + '-NGX';
+  var bankEl = $('withdrawBank');
+  var selectedBank = bankEl ? bankEl.value : 'GTBank';
+
+  var newWd = {
+    id: refId,
+    user: 'Adaeze Okonkwo',
+    email: 'adaeze.okonkwo@email.com',
+    amount: amt,
+    bank: selectedBank + ' — ' + nuban,
+    accountName: 'Adaeze Chidinma Okonkwo',
+    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    status: 'Pending Review',
+    tasksVerified: S.tasksDone + '/' + S.tasks.length + ' Complete'
+  };
+
+  var existingWd = [];
+  try {
+    existingWd = JSON.parse(localStorage.getItem('novara_withdrawals') || '[]');
+  } catch(e) {}
+  existingWd.unshift(newWd);
+  localStorage.setItem('novara_withdrawals', JSON.stringify(existingWd));
+
+  // Deduct local balance
+  S.cashBalance -= amt;
+  saveUserBalance();
+  updateBalanceDisplays();
+
+  // Prepend to transaction tables
+  prependUserTxn(newWd.date, 'Withdrawal Request (' + selectedBank + ')', 'Withdrawal', '-₦' + amt.toLocaleString('en-NG'), 'Pending Review');
+
+  toast('Withdrawal ' + refId + ' of ₦' + amt.toLocaleString('en-NG') + ' submitted! Instant NIBSS clearance in progress.', 'emerald');
+  if (amtEl) amtEl.value = '';
+  if (pinEl) pinEl.value = '';
+  calcWdSummary();
+  updateWithdrawalTimeline();
+
+  setTimeout(function() {
+    switchView('overview');
+  }, 1200);
+}
+
+function updateWithdrawalTimeline() {
+  var withdrawals = [];
+  try {
+    withdrawals = JSON.parse(localStorage.getItem('novara_withdrawals') || '[]');
+  } catch(e) {}
+
+  var latest = withdrawals[0];
+  var overviewCard = $('overviewWdTimeline');
+  var wdCard = $('wdTimelineCard');
+  var rejOverview = $('rejectionNotice');
+  var rejWd = $('wdRejectionBanner');
+
+  if (!latest) {
+    if (overviewCard) overviewCard.style.display = 'none';
+    if (wdCard) wdCard.style.display = 'none';
+    if (rejOverview) rejOverview.style.display = 'none';
+    if (rejWd) rejWd.style.display = 'none';
+    return;
+  }
+
+  if (latest.status === 'Rejected') {
+    var reason = latest.rejectionReason || 'Task compliance verification incomplete. Please review required steps and retry.';
+    if (rejOverview) {
+      $('rejectionNoticeText').textContent = 'Withdrawal ' + latest.id + ' rejected: ' + reason;
+      rejOverview.style.display = 'flex';
+    }
+    if (rejWd) {
+      $('wdRejectionBannerText').textContent = 'Withdrawal ' + latest.id + ' rejected: ' + reason;
+      rejWd.style.display = 'flex';
+    }
+    if (overviewCard) overviewCard.style.display = 'none';
+    if (wdCard) wdCard.style.display = 'none';
+    return;
+  } else {
+    if (rejOverview) rejOverview.style.display = 'none';
+    if (rejWd) rejWd.style.display = 'none';
+  }
+
+  // Pending Review or Approved & Paid
+  if (overviewCard) overviewCard.style.display = 'block';
+  if (wdCard) wdCard.style.display = 'block';
+
+  if ($('overviewWdId')) $('overviewWdId').textContent = 'Tracking ' + latest.id + ' • ₦' + parseFloat(latest.amount).toLocaleString('en-NG');
+  if ($('wdTimelineId')) $('wdTimelineId').textContent = 'Tracking ' + latest.id + ' • ₦' + parseFloat(latest.amount).toLocaleString('en-NG');
+
+  var isApproved = latest.status === 'Approved & Paid';
+  var badgeHtml = isApproved ? 'Settled & Paid' : 'Processing (Review)';
+  var badgeCls = isApproved ? 'badge badge--done' : 'badge badge--pending';
+
+  if ($('overviewWdBadge')) { $('overviewWdBadge').textContent = badgeHtml; $('overviewWdBadge').className = badgeCls; }
+  if ($('wdTimelineBadge')) { $('wdTimelineBadge').textContent = badgeHtml; $('wdTimelineBadge').className = badgeCls; }
+
+  // Steps
+  var step2 = $('stepTaskGate');
+  var step3 = $('stepTreasury');
+  var step4 = $('stepDispatched');
+  var wdStep2 = $('wdStep2');
+  var wdStep3 = $('wdStep3');
+  var wdStep4 = $('wdStep4');
+
+  if (isApproved) {
+    [step2, wdStep2].forEach(function(el) { if (el) { el.className = 't-step t-step--done'; el.querySelector('.t-circle').innerHTML = '✓'; } });
+    [step3, wdStep3].forEach(function(el) { if (el) { el.className = 't-step t-step--done'; el.querySelector('.t-circle').innerHTML = '✓'; } });
+    [step4, wdStep4].forEach(function(el) { if (el) { el.className = 't-step t-step--done'; el.querySelector('.t-circle').innerHTML = '✓'; } });
+  } else {
+    [step2, wdStep2].forEach(function(el) { if (el) { el.className = 't-step t-step--active'; el.querySelector('.t-circle').innerHTML = '2'; } });
+    [step3, wdStep3].forEach(function(el) { if (el) { el.className = 't-step'; el.querySelector('.t-circle').innerHTML = '3'; } });
+    [step4, wdStep4].forEach(function(el) { if (el) { el.className = 't-step'; el.querySelector('.t-circle').innerHTML = '4'; } });
+  }
+}
+
+/* ── CONCIERGE WIDGET ────────────────────────────────── */
+function toggleConcierge(force) {
+  var menu = $('conciergeMenu');
+  if (!menu) return;
+  if (typeof force === 'boolean') {
+    if (force) menu.classList.add('open');
+    else menu.classList.remove('open');
+  } else {
+    menu.classList.toggle('open');
+  }
+}
+
+function prependUserTxn(date, desc, type, amt, status) {
+  var tbody = document.querySelector('#txnTable tbody');
+  if (tbody) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + date + '</td>' +
+      '<td>' + desc + '</td>' +
+      '<td><span class="type-tag type-tag--' + (type === 'Deposit' ? 'deposit' : 'withdraw') + '">' + type + '</span></td>' +
+      '<td class="' + (amt.startsWith('+') ? 'credit' : '') + '">' + amt + '</td>' +
+      '<td><span class="badge badge--' + (status === 'Completed' ? 'done' : 'warn') + '">' + status + '</span></td>';
+    tbody.insertBefore(tr, tbody.firstChild);
+  }
+}
+
+/* ── COPY HELPER ────────────────────────────────────── */
+function doCopy(text, msg) {
+  navigator.clipboard.writeText(text).then(function() { toast(msg || 'Copied!'); });
+}
+
+/* ── TOAST ──────────────────────────────────────────── */
+function toast(msg, type) {
+  var el = $('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' toast--' + type : '');
+  setTimeout(function() { el.classList.remove('show'); }, 3400);
+}
+
+/* ── RESIZE & RE-SYNC ───────────────────────────────── */
+var resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    if (S.currentView === 'overview') { drawSparkline(); drawGrowth(); drawDonut(); }
+    if (S.currentView === 'tasks') { drawMiniGameCanvas(); }
+  }, 200);
+});
+
+// Real-time synchronization when Admin modifies tasks, deposits, or withdrawals
+window.addEventListener('storage', function(e) {
+  if (e.key === 'novara_tasks_config' || e.key === 'novara_user_tasks') {
+    S.tasks = loadTasksState();
+    refreshTaskUI();
+  }
+  if (e.key === 'novara_user_balance') {
+    S.cashBalance = loadUserBalance();
+    updateBalanceDisplays();
+  }
+  if (e.key === 'novara_withdrawals') {
+    updateWithdrawalTimeline();
+  }
+});
+
+/* ── TRANSACTIONS SEARCH & FILTER ───────────────────── */
+function initTxnFiltering() {
+  var sInput = $('txnSearch');
+  var fSelect = $('txnFilter');
+  if (!sInput && !fSelect) return;
+
+  function filterRows() {
+    var query = sInput ? sInput.value.toLowerCase().trim() : '';
+    var filterType = fSelect ? fSelect.value : 'All';
+    var rows = document.querySelectorAll('#txnTable tbody tr');
+
+    rows.forEach(function(row) {
+      var text = row.textContent.toLowerCase();
+      var typeEl = row.querySelector('.type-tag');
+      var typeText = typeEl ? typeEl.textContent.trim() : '';
+
+      var matchesSearch = !query || text.includes(query);
+      var matchesType = (filterType === 'All') ||
+                        (filterType === 'Deposits' && typeText === 'Deposit') ||
+                        (filterType === 'Withdrawals' && typeText === 'Withdrawal') ||
+                        (filterType === 'Interest' && typeText === 'Interest') ||
+                        (filterType === 'Trades' && typeText === 'Trade');
+
+      row.style.display = (matchesSearch && matchesType) ? '' : 'none';
+    });
+  }
+
+  if (sInput) sInput.addEventListener('input', filterRows);
+  if (fSelect) fSelect.addEventListener('change', filterRows);
+}
+
+/* ── SETTINGS & SIGN OUT HANDLERS ───────────────────── */
+function initSettingsInteractions() {
+  // Profile save button
+  var saveBtn = document.querySelector('#view-settings button.btn-primary');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      toast('Profile changes saved successfully!', 'emerald');
+    });
+  }
+
+  // Change photo button
+  var photoBtn = document.querySelector('#view-settings .avatar-row button');
+  if (photoBtn) {
+    photoBtn.addEventListener('click', function() {
+      toast('Select a new avatar (JPG/PNG, max 2MB)', 'info');
+    });
+  }
+
+  // Security action buttons (PIN, 2FA, Password)
+  document.querySelectorAll('#view-settings .setting-row button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var label = this.closest('.setting-row').querySelector('strong').textContent;
+      if (label.includes('PIN')) {
+        var newPin = prompt('Enter your new 4-digit withdrawal PIN:');
+        if (newPin && /^\d{4}$/.test(newPin.trim())) {
+          localStorage.setItem('novara_wd_pin', newPin.trim());
+          toast('Withdrawal PIN updated successfully!', 'emerald');
+        } else if (newPin !== null) {
+          toast('PIN must be exactly 4 numeric digits.', 'warn');
+        }
+      } else if (label.includes('Two-Factor')) {
+        toast('Two-Factor Authentication configuration link sent to your email.', 'info');
+      } else {
+        toast('Password reset link sent to your registered email.', 'info');
+      }
+    });
+  });
+
+  // Add Bank Account button in settings
+  var addBankBtn = document.querySelector('#view-settings .bank-account-row ~ button');
+  if (addBankBtn) {
+    addBankBtn.addEventListener('click', function() {
+      switchView('withdraw');
+      toast('Configure your settlement bank in the withdrawal desk.', 'info');
+    });
+  }
+
+  // Sign out buttons – uses Supabase to properly invalidate the session
+  document.querySelectorAll('.sidebar-exit-group a, a#signOutBtn').forEach(function(el) {
+    if (el.textContent.includes('Sign Out')) {
+      el.addEventListener('click', async function(e) {
+        e.preventDefault();
+        toast('Signing out of Crest Wealth...', 'info');
+        if (window.supabaseClient) {
+          await window.supabaseClient.auth.signOut();
+        }
+        setTimeout(function() {
+          window.location.href = '../index/index.html';
+        }, 500);
+      });
+    }
+  });
+}
+
+/* ── INITIALIZATION ──────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  switchView('overview');
+  updateBalanceDisplays();
+  refreshTaskUI();
+  renderDailyStreak();
+  startDepositSessionTimer();
+  startTaskCycleClock();
+  updateWithdrawalTimeline();
+  initTxnFiltering();
+  initSettingsInteractions();
+  setTimeout(function() { drawSparkline(); drawGrowth(); drawDonut(); }, 120);
+});
+

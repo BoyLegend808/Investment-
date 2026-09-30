@@ -1,6 +1,13 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Security Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com">
+  <meta http-equiv="X-XSS-Protection" content="1 https://panxaqueawnqrebikwvb.supabase.co; mode=block">
+  <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- Favicon -->
@@ -9,17 +16,23 @@
   <!-- Open Graph / Social Share -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://crestwealth.com/investments/investments.html">
-  <meta property="og:title" content="Investment Choices | Global Equities, Bonds &amp; Funds Ã¢â‚¬â€ Crest Wealth">
+  <meta property="og:title" content="Investment Choices | Global Equities, Bonds &amp; Funds � Crest Wealth">
   <meta property="og:description" content="Trade global and US equities, invest in Treasury Bills, Mutual Funds, and Real Estate Trusts. Diversify your portfolio with Crest Wealth.">
-  <meta property="og:image" content="https://crestwealth.com/og-image.png">
+  <meta property="og:image" content="https://crestwealth.com/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Investment Choices | Global Equities, Bonds &amp; Funds Ã¢â‚¬â€ Crest Wealth">
+  <meta name="twitter:title" content="Investment Choices | Global Equities, Bonds &amp; Funds � Crest Wealth">
   <meta name="twitter:description" content="Trade global and US equities, invest in Treasury Bills, Mutual Funds, and Real Estate Trusts. Diversify your portfolio with Crest Wealth.">
   <title>Investment Choices &amp; Asset Classes | Crest Wealth</title>
+  <link rel="canonical" href="https://crestwealth.com/investments/investments.html">
+
   <meta name="description" content="Invest in Global equities, US stocks, Government Treasury Bills, curated Mutual Funds, and Real Estate Trust notes.">
-  <link rel="stylesheet" href="../styles.css">
+  
   <link rel="stylesheet" href="investments.css">
-  <script src="../auth-guard.js"></script>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase.js"></script>
+  <script src="../shared-utils.js" defer></script>
 </head>
 <body>
 
@@ -27,11 +40,11 @@
   <div class="ticker-bar">
         <div class="ticker-track">
       <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span> <span class="ticker-price">5,620.10</span> <span class="ticker-change up">+0.68%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">.40</span> <span class="ticker-change up">+1.25%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">.20</span> <span class="ticker-change up">+1.10%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">.50</span> <span class="ticker-change up">+0.85%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span> <span class="ticker-price">,520.00</span> <span class="ticker-change up">+1.20%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">,432.00</span> <span class="ticker-change up">+1.58%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.40</span> <span class="ticker-change up">+1.25%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">$415.20</span> <span class="ticker-change up">+1.10%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$235.50</span> <span class="ticker-change up">+0.85%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span> <span class="ticker-price">$76,520.00</span> <span class="ticker-change up">+1.20%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">$2,432.00</span> <span class="ticker-change up">+1.58%</span></div>
       <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span> <span class="ticker-price">&#8364;0.9150</span> <span class="ticker-change up">+0.10%</span></div>
       <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span> <span class="ticker-price">&#163;0.7850</span> <span class="ticker-change up">+0.15%</span></div>
       <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.00</span> <span class="ticker-change up">+2.15%</span></div>
@@ -46,7 +59,7 @@
       <div class="nav-wrapper">
         <a href="../index/index.html" class="brand-logo">
           <div class="brand-icon">
-            <img src="../favicon.svg" alt="Crest Wealth Logo" style="width: 100%; height: 100%; object-fit: contain;">
+            <img src="../favicon.svg" alt="Crest Wealth Logo" loading="lazy" style="width: 100%; height: 100%; object-fit: contain;">
           </div>
           <div class="brand-name">Crest <span>WEALTH</span></div>
         </a>
@@ -57,12 +70,12 @@
           <li class="nav-item"><a href="../investments/investments.html" class="nav-link active auth-required">Investments</a></li>
           <li class="nav-item"><a href="../academy/academy.html" class="nav-link auth-required">Financial Academy</a></li>
           <li class="nav-item"><a href="../security/security.html" class="nav-link">Security</a></li>
-          <li class="nav-item"><a href="dashboard.html" class="nav-link auth-required" style="color: #0E5E3A; font-weight: 700;">Platform Demo</a></li>
+          <li class="nav-item"><a href="../dashboard/dashboard.html" class="nav-link nav-link-ember auth-required">Client Dashboard</a></li>
         </ul>
 
         <div class="nav-actions">
-          <a href="index.html#signin" class="btn-sign-in">Sign In</a>
-          <a href="index.html#signup" class="btn-get-started">Open Account</a>
+          <a href="../dashboard/dashboard.html" class="btn-sign-in">Sign In</a>
+          <a href="../dashboard/dashboard.html" class="btn-get-started">Open Account</a>
           <div class="mobile-toggle" aria-label="Toggle navigation menu">
             <span></span>
             <span></span>
@@ -77,7 +90,7 @@
   <div class="mobile-drawer">
     <div class="mobile-drawer-header">
       <div class="brand-name">Crest <span>WEALTH</span></div>
-      <button class="drawer-close" style="font-size: 1.5rem;">&times;</button>
+      <button class="drawer-close" aria-label="Close drawer">�</button>
     </div>
     <ul class="mobile-drawer-links">
       <li><a href="../index/index.html">Home</a></li>
@@ -87,11 +100,11 @@
       <li><a class="auth-required" href="../academy/academy.html">Financial Academy</a></li>
       <li><a href="../pricing/pricing.html">Rates &amp; Fees</a></li>
       <li><a href="../security/security.html">Security &amp; Regulation</a></li>
-      <li><a class="auth-required" href="../index/dashboard.html">Client Web Platform</a></li>
+      <li><a href="../dashboard/dashboard.html" class="u-text-ember-bold">Client Dashboard</a></li>
     </ul>
     <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
-      <a href="#signin" class="btn-card-action" data-modal="signin" style="text-align: center;">Sign In</a>
-      <a href="#signup" class="btn-get-started" data-modal="signup" style="text-align: center;">Open Account</a>
+      <a href="../dashboard/dashboard.html" class="btn-card-action">Sign In</a>
+      <a href="../dashboard/dashboard.html" class="btn-get-started">Open Account</a>
     </div>
   </div>
 
@@ -121,9 +134,9 @@
               Own shares of Global Markets's most profitable banks, telecommunications giants, cement manufacturers, and consumer goods conglomerates.
             </p>
             <ul class="product-features-list">
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Real-time direct Global order execution</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Automated cash dividend collection</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Zero account custody maintenance charges</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Real-time direct Global order execution</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Automated cash dividend collection</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Zero account custody maintenance charges</li>
             </ul>
           </div>
           <a href="../index/index.html#signup" class="btn-card-action">View Global Equities</a>
@@ -141,9 +154,9 @@
               Invest directly in global innovators: Apple, NVIDIA, Google, Tesla, Microsoft, and the S&amp;P 500 ETF in fractional shares starting at $1.
             </p>
             <ul class="product-features-list">
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Fractional shares trading from $1</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>SIPC insurance up to $500,000</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Pre-market and after-hours execution</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Fractional shares trading from $1</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>SIPC insurance up to $500,000</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Pre-market and after-hours execution</li>
             </ul>
           </div>
           <a href="../index/index.html#signup" class="btn-card-action">Explore US Stocks</a>
@@ -161,9 +174,9 @@
               Sovereign debt notes backed by the full faith and credit of the US Treasury. 100% principal protection.
             </p>
             <ul class="product-features-list">
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>100% Government sovereign guarantee</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>91, 182, and 364-day tenors</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Tax-exempt interest earnings</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>100% Government sovereign guarantee</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>91, 182, and 364-day tenors</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Tax-exempt interest earnings</li>
             </ul>
           </div>
           <a href="../index/index.html#signup" class="btn-card-action">Buy Treasury Bills</a>
@@ -181,9 +194,9 @@
               Professionally managed fund portfolios tailored for capital preservation, balanced equity growth, and ethical / Halal investing.
             </p>
             <ul class="product-features-list">
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Money Market Funds</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Balanced Growth Funds</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Halal &amp; Shariah-Compliant Fund</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Money Market Funds</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Balanced Growth Funds</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Halal &amp; Shariah-Compliant Fund</li>
             </ul>
           </div>
           <a href="../index/index.html#signup" class="btn-card-action">Explore Funds</a>
@@ -201,9 +214,9 @@
               Earn reliable foreign currency income while protecting your purchasing power from local currency devaluation and inflation shocks.
             </p>
             <ul class="product-features-list">
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Global Sovereign Eurobonds</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>US Treasury Bill ETFs</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Dollar cash deposits with quarterly yield</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Global Sovereign Eurobonds</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>US Treasury Bill ETFs</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Dollar cash deposits with quarterly yield</li>
             </ul>
           </div>
           <a href="../index/index.html#signup" class="btn-card-action">View Dollar Assets</a>
@@ -221,10 +234,10 @@
               Fractional ownership of vetted commercial and residential prime properties in New York, London, and Dubai. Receive bi-annual rental disbursements.
             </p>
             <ul class="product-features-list">
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Backed by prime physical property deeds</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Bi-annual rental dividend distributions</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Minimum ticket: $50,000</li>
-              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;"><polyline points="20 6 9 17 4 12"/></svg>Minimum ticket: $50,000</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Backed by prime physical property deeds</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Bi-annual rental dividend distributions</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Minimum ticket: $50,000</li>
+              <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="u-icon-align"><polyline points="20 6 9 17 4 12"/></svg>Minimum ticket: $50,000</li>
             </ul>
           </div>
           <a href="../index/index.html#signup" class="btn-card-action">View Real Estate Notes</a>
@@ -297,13 +310,13 @@
                 <td>7</td>
                 <td>200,000</td>
                 <td>10,000</td>
-                <td style="color: #ef4444; font-weight: bold;">36,000</td>
+                <td class="table-negative" style="color: #ef4444; font-weight: bold;">36,000</td>
               </tr>
               <tr class="vaultx-row" data-level="8">
                 <td>8</td>
                 <td>350,000</td>
                 <td>17,500</td>
-                <td style="color: #ef4444; font-weight: bold;">63,000</td>
+                <td class="table-negative" style="color: #ef4444; font-weight: bold;">63,000</td>
               </tr>
               <tr class="vaultx-row" data-level="9">
                 <td>9</td>
@@ -334,7 +347,7 @@
   </section>
 
   <!-- Interactive Market Screener Table -->
-  <section class="market-section" style="background: #FAF9F6;">
+  <div class="market-section">
     <div class="container">
       <div class="section-header-center">
         <span class="section-tag">LIVE MARKET SCREENER</span>
@@ -362,7 +375,7 @@
               <td>$235.50</td>
               <td><span class="change-pill up">+0.85%</span></td>
               <td>6.8%</td>
-              <td><a href="dashboard.html" class="btn-sign-in auth-required" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+              <td><a href="../dashboard/dashboard.html" class="btn-table-action">Trade</a></td>
             </tr>
             <tr>
               <td><strong>AAPL</strong> (Apple Inc)</td>
@@ -370,7 +383,7 @@
               <td>$148.20</td>
               <td><span class="change-pill up">+3.20%</span></td>
               <td>7.2%</td>
-              <td><a href="dashboard.html" class="btn-sign-in auth-required" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+              <td><a href="../dashboard/dashboard.html" class="btn-table-action">Trade</a></td>
             </tr>
             <tr>
               <td><strong>MSFT</strong> (Microsoft Corp)</td>
@@ -378,7 +391,7 @@
               <td>$340.00</td>
               <td><span class="change-pill up">+1.50%</span></td>
               <td>5.1%</td>
-              <td><a href="dashboard.html" class="btn-sign-in auth-required" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Trade</a></td>
+              <td><a href="../dashboard/dashboard.html" class="btn-table-action">Trade</a></td>
             </tr>
             <tr>
               <td><strong>US-TB 364D</strong> (Treasury Bill)</td>
@@ -386,7 +399,7 @@
               <td>5.50%</td>
               <td><span class="change-pill up">+0.25%</span></td>
               <td>5.5%</td>
-              <td><a href="dashboard.html" class="btn-sign-in auth-required" style="font-size: 0.8rem; padding: 6px 14px; background: #E8F5E9;">Invest</a></td>
+              <td><a href="../dashboard/dashboard.html" class="btn-table-action">Invest</a></td>
             </tr>
           </tbody>
         </table>
@@ -405,8 +418,8 @@
             Secure, transparent, and accessible investment solutions engineered for long-term African wealth creation.
           </p>
           <div style="display: flex; gap: 16px; color: #FFFFFF; font-size: 0.82rem; align-items: center;">
-            <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SEC-Compliant Trustees</span>
-            <span style="display: inline-flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>GDPR Certified</span>
+            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SEC-Compliant Trustees</span>
+            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>GDPR Certified</span>
           </div>
         </div>
 
@@ -438,7 +451,7 @@
             <li><a class="auth-required" href="../academy/academy.html">Financial Academy</a></li>
             <li><a href="../academy/academy.html#calculator">Compound Calculator</a></li>
             <li><a href="../academy/academy.html#guides">Beginner Guides</a></li>
-            <li><a href="#">Web Platform Demo</a></li>
+            <li><a href="../dashboard/dashboard.html">Client Dashboard</a></li>
             <li><a href="../academy/academy.html#glossary">Market Glossary</a></li>
           </ul>
         </div>
@@ -446,11 +459,11 @@
         <div class="footer-col">
           <h4>Company</h4>
           <ul class="footer-links">
-            <li><a href="#">Our Story</a></li>
+            <li><a href="../about/about.html">Our Story</a></li>
             <li><a href="../security/security.html">Security Architecture</a></li>
-            <li><a href="#">Leadership</a></li>
-            <li><a href="#">Contact Support</a></li>
-            <li><a href="#">Careers</a></li>
+            <li><a href="../about/about.html#leadership">Leadership</a></li>
+            <li><a href="../support/support.html">Contact Support</a></li>
+            <li><a href="../careers/careers.html">Careers</a></li>
           </ul>
         </div>
       </div>
@@ -460,16 +473,21 @@
           Crest Wealth is an investment platform. All investments carry risk. Read disclosures <a href="../security/security.html">here</a>.
         </p>
         <p style="text-align: center; font-size: 0.75rem; color: #5B7068;">
-          Ãƒâ€šÃ‚Â© 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
+          � 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
         </p>
       </div>
     </div>
   </footer>
 
-  <script src="../app.js"></script>
+  
   <script src="investments.js" defer></script>
 </body>
 </html>
+
+
+
+
+
 
 
 

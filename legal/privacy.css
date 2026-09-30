@@ -113,6 +113,7 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   overflow-x: hidden;
+  padding-top: calc(var(--ticker-height) + var(--header-height));
 }
 
 img, svg, video {
@@ -287,9 +288,9 @@ button {
   align-items: center;
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .ticker-track {
@@ -347,12 +348,14 @@ button {
    ========================================================================== */
 
 .site-header {
-  position: sticky;
+  width: 100%;
+  left: 0;
+  position: fixed;
   top: var(--ticker-height);
   background-color: rgba(250, 249, 246, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  z-index: 999;
+  z-index: 1500;
   border-bottom: 1px solid var(--border-light);
   transition: all var(--transition-normal);
 }
@@ -1607,6 +1610,7 @@ button {
   flex-direction: column;
   flex-grow: 1;
   justify-content: space-between;
+  padding-top: calc(var(--ticker-height) + var(--header-height));
 }
 
 .course-title {
@@ -1894,6 +1898,7 @@ button {
 
 .modal-body {
   padding: 16px 32px 32px 32px;
+  padding-top: calc(var(--ticker-height) + var(--header-height));
 }
 
 .form-group {
@@ -2292,6 +2297,7 @@ button {
   padding: 20px;
   background: #F3F4F6;
   overflow-y: auto;
+  padding-top: calc(var(--ticker-height) + var(--header-height));
 }
 
 .mock-body::-webkit-scrollbar {
@@ -2408,4 +2414,26 @@ button {
 .mock-tab-icon.active {
   background: #10B981;
 }
+
+
+/* --- Local Styles --- */
+
+/* --- Inline Styles --- */
+
+    .legal-hero {
+      background: var(--color-primary-dark);
+      padding: 80px 0 60px;
+      text-align: center;
+    }
+    .legal-hero h1 { font-size: 2.8rem; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .legal-hero p { color: #A3B8B0; font-size: 1rem; }
+    .legal-body { max-width: 780px; margin: 60px auto; padding: 0 24px 80px;   padding-top: calc(var(--ticker-height) + var(--header-height));
+}
+    .legal-body h2 { font-size: 1.4rem; font-weight: 700; color: #0B251A; margin: 40px 0 14px; }
+    .legal-body p, .legal-body li { font-size: 1rem; color: #374151; line-height: 1.8; margin-bottom: 14px; }
+    .legal-body ul { padding-left: 24px; }
+    .legal-body a { color: #10B981; text-decoration: underline; }
+    .last-updated { font-size: 0.85rem; color: #9CA3AF; margin-bottom: 40px; }
+  
+
 

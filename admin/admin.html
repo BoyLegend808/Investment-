@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Security Headers -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com">
+  <meta http-equiv="X-XSS-Protection" content="1 https://panxaqueawnqrebikwvb.supabase.co; mode=block">
+  <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Crest Wealth - Administrative Observatory & Withdrawal Gatekeeper. Manage platform liquidity, user withdrawal verification tasks, and investment compliance.">
+  <title>Admin Observatory — Crest Wealth</title>
+  <link rel="canonical" href="https://crestwealth.com/admin/admin.html">
+
+  <!-- Open Graph / Social Share -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://crestwealth.com/admin/admin.html">
+  <meta property="og:title" content="Admin Observatory — Crest Wealth">
+  <meta property="og:description" content="Administrative Observatory & Withdrawal Gatekeeper. Manage platform liquidity, user withdrawal verification tasks, and investment compliance.">
+  <meta property="og:image" content="https://crestwealth.com/og-image.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Admin Observatory — Crest Wealth">
+  <meta name="twitter:description" content="Administrative Observatory & Withdrawal Gatekeeper. Manage platform liquidity, user withdrawal verification tasks, and investment compliance.">
+
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase.js"></script>
+  <script src="../auth-guard.js" defer></script>
+</head>
+<body>
+
+  <!-- MOBILE OVERLAY -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ADMIN SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <a href="#" class="sidebar-brand">
+      <svg class="brand-mark" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 2L4 10V26L18 34L32 26V10L18 2Z" fill="#0B251A"/>
+        <path d="M18 2L32 10L18 18L4 10L18 2Z" fill="#10B981"/>
+        <path d="M18 18L32 10V26L18 34V18Z" fill="#0E5E3A"/>
+        <path d="M18 18L4 10V26L18 34V18Z" fill="#071E14"/>
+      </svg>
+      <div class="brand-info">
+        <span class="brand-title">CREST</span>
+        <span class="brand-badge">ADMIN OBSERVATORY</span>
+      </div>
+    </a>
+
+    <nav class="sidebar-nav">
+      <div>
+        <span class="nav-group-label">TERMINAL</span>
+        <div class="nav-links">
+          <a class="nav-item active" data-view="observatory" id="nav-observatory">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Observatory</span>
+            </div>
+          </a>
+          <a class="nav-item" data-view="gatekeeper" id="nav-gatekeeper">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <span>Task Gatekeeper</span>
+            </div>
+            <span class="nav-badge" id="navActiveTaskCount">5 Active</span>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <span class="nav-group-label">CAPITAL DESK</span>
+        <div class="nav-links">
+          <a class="nav-item" data-view="withdrawals" id="nav-withdrawals">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              <span>Withdrawals</span>
+            </div>
+            <span class="nav-badge" id="navPendingWdCount">2</span>
+          </a>
+          <a class="nav-item" data-view="deposits" id="nav-deposits">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              <span>Deposits</span>
+            </div>
+            <span class="nav-badge emerald" id="navPendingDepCount">1</span>
+          </a>
+        </div>
+      </div>
+
+      <div>
+        <span class="nav-group-label">MANAGEMENT</span>
+        <div class="nav-links">
+          <a class="nav-item" data-view="investors" id="nav-investors">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>Investors &amp; KYC</span>
+            </div>
+          </a>
+          <a class="nav-item" data-view="security" id="nav-security">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>Rate Limits &amp; Logs</span>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+        <div class="nav-links">
+          <a href="../dashboard/dashboard.html" class="nav-item" target="_blank" rel="noopener">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+              <span>Switch to User View</span>
+            </div>
+          </a>
+          <a href="../index/index.html" class="nav-item">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+              <span>Sign Out</span>
+            </div>
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="admin-avatar">SA</div>
+      <div class="admin-meta">
+        <span class="admin-name">SuperAdmin</span>
+        <span class="admin-role">OBSERVATORY ROOT</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER -->
+  <main class="main-wrapper">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="burger-btn" id="burgerBtn" aria-label="Toggle menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" x2="21" y1="6" y2="6"/><line x1="3" x2="21" y1="12" y2="12"/><line x1="3" x2="21" y1="18" y2="18"/></svg>
+        </button>
+        <div class="topbar-title-wrap">
+          <h1 class="topbar-title" id="pageTitle">Observatory</h1>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <div class="status-pill">
+          <span class="status-dot"></span>
+          <span>GATEKEEPER ACTIVE</span>
+        </div>
+        <a href="../dashboard/dashboard.html" class="quick-link-btn" title="Open user investment dashboard">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+          <span class="quick-link-text">Live User Portal</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <div class="content-body">
+
+      <!-- ========================================================
+           VIEW 1: OBSERVATORY (OVERVIEW)
+           ======================================================== -->
+      <section class="view-section active" id="view-observatory">
+        <!-- KPI Row -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total Platform AUM</div>
+            <div class="stat-val emerald">&#8358;452,100,000</div>
+            <div class="stat-sub positive">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              +&#8358;14.8M this week &bull; +3.4%
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Active Investors</div>
+            <div class="stat-val">1,248</div>
+            <div class="stat-sub positive">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+              +38 new accounts this month
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">24h Inflow Volume</div>
+            <div class="stat-val">&#8358;14,850,000</div>
+            <div class="stat-sub">
+              <span>94 verified deposits</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Pending Withdrawals</div>
+            <div class="stat-val ember" id="statPendingWd">&#8358;1,850,000</div>
+            <div class="stat-sub">
+              <span id="statPendingWdCountLabel">2 requests awaiting task review</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Inflow / Outflow Chart & Gate Status Row -->
+        <div class="flow-gate-grid">
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3 class="card-title">Liquidity Inflow vs. Outflow</h3>
+                <span class="card-subtitle">Last 7 days volume across all settlement rails</span>
+              </div>
+              <div class="card-actions">
+                <span class="badge badge--approved">Net positive</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="adminFlowChart" class="chart-canvas"></canvas>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3 class="card-title">Withdrawal Gatekeeper</h3>
+                <span class="card-subtitle">Anti-abuse task gate status</span>
+              </div>
+            </div>
+            <div style="padding: 24px;">
+              <div style="margin-bottom: 16px;">
+                <div style="font-family:'Space Mono', monospace; font-size:0.75rem; color:var(--text-muted); margin-bottom: 4px;">TASK GATE ENFORCEMENT</div>
+                <div style="font-size: 1.1rem; font-weight:700; color:var(--color-emerald); display:flex; align-items:center; gap:8px;">
+                  <span class="status-dot"></span> MANDATORY ON
+                </div>
+              </div>
+              <div style="margin-bottom: 16px;">
+                <div style="font-family:'Space Mono', monospace; font-size:0.75rem; color:var(--text-muted); margin-bottom: 4px;">ACTIVE TASKS IN CHAIN</div>
+                <div style="font-size: 1rem; font-weight:600; color:#FFFFFF;">5 Active Tasks Configured</div>
+                <div style="font-size: 0.76rem; color:var(--text-secondary); margin-top: 2px;">X Follow &bull; YouTube Sub &bull; IG Comment &bull; Finance Quiz &bull; Trading Game</div>
+              </div>
+              <div style="margin-bottom: 20px;">
+                <div style="font-family:'Space Mono', monospace; font-size:0.75rem; color:var(--text-muted); margin-bottom: 4px;">PASS RATE BEFORE WITHDRAWAL</div>
+                <div style="font-size: 1rem; font-weight:700; color:#FFFFFF; font-family:'Space Mono', monospace;">78.4% Passed</div>
+              </div>
+              <button class="btn btn-primary" style="width: 100%;" onclick="switchAdminView('gatekeeper')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Configure Tasks &amp; Gate
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Audit Stream -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">Live Platform Telemetry &amp; Audit Trail</h3>
+              <span class="card-subtitle">Real-time settlement, task verifications, and access logs</span>
+            </div>
+            <button class="btn btn-subtle btn-sm" onclick="renderAuditStream()">Refresh</button>
+          </div>
+          <div class="audit-stream" id="auditStream">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 2: WITHDRAWAL GATEKEEPER (TASK MANAGER)
+           ======================================================== -->
+      <section class="view-section" id="view-gatekeeper">
+        <!-- Master Gatekeeper Banner -->
+        <div class="gatekeeper-banner">
+          <div class="gk-info-left">
+            <div class="gk-icon-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div>
+              <div class="gk-title">Withdrawal Task Gatekeeper Engine</div>
+              <div class="gk-desc">
+                Users can deposit funds instantly, but must complete all enabled tasks below before a withdrawal request can be submitted. This prevents hit-and-run exploitation and builds your community following.
+              </div>
+            </div>
+          </div>
+          <div class="gk-controls-right">
+            <div class="gk-enforce-box">
+              <span class="gk-enforce-label">ENFORCE GATE</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="gatekeeperMasterToggle" checked onchange="toggleGatekeeperMaster(this.checked)">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="gk-action-btns">
+              <button class="btn btn-danger-outline btn-gk-reset" onclick="triggerGlobalTaskReset()" title="Reset task completion for all users, forcing tasks to be re-done">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+                Reset User Tasks Cycle
+              </button>
+              <button class="btn btn-primary btn-gk-add" onclick="openAddTaskModal()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                + Add Mandatory Task
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Task List Management -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">Active Withdrawal Prerequisites</h3>
+              <span class="card-subtitle">Changes made here synchronize immediately with all user dashboard instances</span>
+            </div>
+            <div class="card-actions">
+              <span class="badge badge--approved" id="taskSyncStatusBadge">Sync: Live</span>
+            </div>
+          </div>
+          <div class="tasks-admin-list" id="tasksAdminList">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 3: WITHDRAWAL REQUESTS
+           ======================================================== -->
+      <section class="view-section" id="view-withdrawals">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">Withdrawal Requests Queue</h3>
+              <span class="card-subtitle">Review incoming withdrawals and verify prerequisite task completion</span>
+            </div>
+            <div class="card-actions">
+              <input type="search" class="form-input" style="width: 220px; padding: 6px 12px;" placeholder="Search user, bank, or ID..." id="wdSearchInput" oninput="filterWithdrawals()">
+              <select class="form-input" style="width: 140px; padding: 6px 12px;" id="wdStatusFilter" onchange="filterWithdrawals()">
+                <option value="ALL">All Statuses</option>
+                <option value="Pending Review">Pending Review</option>
+                <option value="Approved & Paid">Approved &amp; Paid</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="admin-table" id="withdrawalsTable">
+              <thead>
+                <tr>
+                  <th>Ref ID</th>
+                  <th>Investor</th>
+                  <th>Amount</th>
+                  <th>Destination Bank</th>
+                  <th>Task Gate Status</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="withdrawalsTableBody">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 4: DEPOSITS QUEUE
+           ======================================================== -->
+      <section class="view-section" id="view-deposits">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">Incoming Deposit Queue</h3>
+              <span class="card-subtitle">Bank transfers, debit card payments, and USSD settlements</span>
+            </div>
+            <div class="card-actions">
+              <input type="search" class="form-input" style="width: 220px; padding: 6px 12px;" placeholder="Search narration or ref..." id="depSearchInput" oninput="filterDeposits()">
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="admin-table" id="depositsTable">
+              <thead>
+                <tr>
+                  <th>Ref ID</th>
+                  <th>Investor</th>
+                  <th>Amount</th>
+                  <th>Investment Plan</th>
+                  <th>Method</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="depositsTableBody">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 5: INVESTORS & KYC
+           ======================================================== -->
+      <section class="view-section" id="view-investors">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">Registered Investor Directory</h3>
+              <span class="card-subtitle">Manage investor profiles, tier standings, and task gate overrides</span>
+            </div>
+            <div class="card-actions">
+              <input type="search" class="form-input" style="width: 240px; padding: 6px 12px;" placeholder="Search investor name, BVN, tier..." id="userSearchInput" oninput="filterUsers()">
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Investor</th>
+                  <th>VaultX Tier</th>
+                  <th>Total Invested</th>
+                  <th>Cash Balance</th>
+                  <th>Tasks Completed</th>
+                  <th>KYC Level</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 6: SECURITY & RATE LIMITS
+           ======================================================== -->
+      <section class="view-section" id="view-security">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 28px;">
+          <!-- Rate Limiter Card -->
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3 class="card-title">Token Bucket Rate Limiter</h3>
+                <span class="card-subtitle">System design &amp; anti-DDOS protection engine</span>
+              </div>
+              <span class="badge badge--approved">Active &bull; Distributed</span>
+            </div>
+            <div style="padding: 24px;">
+              <div style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 20px;">
+                Inspired by production systems engineering: continuous refill counter preventing unfair minute-boundary spikes. Rate limiter counters reside in distributed Redis memory across 20 cluster nodes.
+              </div>
+              <div class="form-group">
+                <label class="form-label">BURST CAPACITY (MAX TOKENS)</label>
+                <input type="text" class="form-input" value="100 requests" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">CONTINUOUS REFILL RATE</label>
+                <input type="text" class="form-input" value="1.67 tokens/sec (~100 req/min)" readonly>
+              </div>
+              <div class="form-group">
+                <label class="form-label">REDIS CLUSTER LATENCY</label>
+                <input type="text" class="form-input" value="0.84 ms (Lagos AWS Node)" readonly>
+              </div>
+              <button class="btn btn-subtle" onclick="toast('Rate limiter parameters synced with Redis cluster.')">
+                Sync Limiter Config
+              </button>
+            </div>
+          </div>
+
+          <!-- Security Pillars -->
+          <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3 class="card-title">Compliance &amp; Custody Vault</h3>
+                <span class="card-subtitle">Regulatory framework status</span>
+              </div>
+            </div>
+            <div style="padding: 24px;">
+              <div style="display:flex; flex-direction:column; gap:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                  <div>
+                    <div style="font-weight:600; font-size:0.86rem; color:#FFFFFF;">SEC Nigeria Trustee Custody</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted);">First City Monument Bank Trustees</div>
+                  </div>
+                  <span class="badge badge--approved">Verified</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                  <div>
+                    <div style="font-weight:600; font-size:0.86rem; color:#FFFFFF;">256-Bit Financial Encryption</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted);">TLS 1.3 Strict Transport Security</div>
+                  </div>
+                  <span class="badge badge--approved">Active</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 10px;">
+                  <div>
+                    <div style="font-weight:600; font-size:0.86rem; color:#FFFFFF;">NDPR Compliance Audit</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted);">Nigeria Data Protection Regulation 2026</div>
+                  </div>
+                  <span class="badge badge--approved">Compliant</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; padding-bottom: 6px;">
+                  <div>
+                    <div style="font-weight:600; font-size:0.86rem; color:#FFFFFF;">BVN &amp; NIBSS Automated Verification</div>
+                    <div style="font-size:0.72rem; color:var(--text-muted);">Instant identity validation API</div>
+                  </div>
+                  <span class="badge badge--approved">Online</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ========================================================
+       MODAL: INSPECT TASK PROOF
+       ======================================================== -->
+  <div class="modal-overlay" id="inspectModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Task Verification Proof</h3>
+        <button class="modal-close" onclick="closeModal('inspectModal')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="inspectModalBody">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-subtle" onclick="closeModal('inspectModal')">Close</button>
+        <button class="btn btn-emerald" id="btnApproveFromModal">Approve &amp; Pay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       MODAL: ADD / EDIT MANDATORY TASK
+       ======================================================== -->
+  <div class="modal-overlay" id="taskModal">
+    <div class="modal-content modal-content--wide">
+      <div class="modal-header">
+        <h3 class="modal-title" id="taskModalTitle">Edit Task Prerequisite</h3>
+        <button class="modal-close" onclick="closeModal('taskModal')" aria-label="Close modal">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editTaskId">
+        
+        <!-- Task Title -->
+        <div class="form-group">
+          <label class="form-label" for="taskTitleInput">TASK TITLE</label>
+          <input type="text" class="form-input" id="taskTitleInput" placeholder="e.g. Follow Crest on X / Join Telegram Community">
+        </div>
+
+        <!-- Platform & Icon Grid -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="taskPlatformInput">PLATFORM NAME</label>
+            <input type="text" class="form-input" id="taskPlatformInput" placeholder="e.g. Telegram / YouTube / X">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="taskIconInput">PLATFORM ICON</label>
+            <select class="form-input" id="taskIconInput">
+              <option value="x">X (Twitter)</option>
+              <option value="yt">YouTube</option>
+              <option value="ig">Instagram</option>
+              <option value="telegram">Telegram</option>
+              <option value="tiktok">TikTok</option>
+              <option value="discord">Discord</option>
+              <option value="quiz">Financial Literacy Quiz</option>
+              <option value="game">Market Timing Mini-Game</option>
+              <option value="link">External Website / Article</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Completion Reward Cash Bonus (The requested core feature) -->
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" for="taskRewardAmountInput" style="margin-bottom: 0;">COMPLETION CASH BONUS (&#8358;)</label>
+            <span style="font-size: 0.72rem; color: var(--color-emerald); font-family: 'Space Mono', monospace;">CREDITED DIRECTLY UPON VERIFICATION</span>
+          </div>
+          <input type="number" class="form-input" id="taskRewardAmountInput" placeholder="2500" min="0" step="100" oninput="updateRewardPreview()">
+          <div class="reward-presets">
+            <span style="font-size: 0.72rem; color: var(--text-muted); align-self: center;">Presets:</span>
+            <button type="button" class="preset-chip" onclick="setRewardPreset(1000)">+&#8358;1,000</button>
+            <button type="button" class="preset-chip" onclick="setRewardPreset(2000)">+&#8358;2,000</button>
+            <button type="button" class="preset-chip" onclick="setRewardPreset(2500)">+&#8358;2,500</button>
+            <button type="button" class="preset-chip" onclick="setRewardPreset(3000)">+&#8358;3,000</button>
+            <button type="button" class="preset-chip" onclick="setRewardPreset(5000)">+&#8358;5,000</button>
+            <button type="button" class="preset-chip" onclick="setRewardPreset(10000)">+&#8358;10,000</button>
+          </div>
+          <div class="reward-preview-card" id="rewardPreviewCard">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>User will receive <strong id="rewardPreviewAmount">&#8358;2,500.00</strong> added to their cash balance upon completion</span>
+          </div>
+        </div>
+
+        <!-- Action URL & Button Label -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="taskUrlInput">ACTION TARGET URL</label>
+            <input type="url" class="form-input" id="taskUrlInput" placeholder="https://t.me/crestwealthng">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="taskUrlLabelInput">ACTION BUTTON LABEL</label>
+            <input type="text" class="form-input" id="taskUrlLabelInput" placeholder="e.g. Join Channel / Follow Profile">
+          </div>
+        </div>
+
+        <!-- Verification Method & Proof Placeholder -->
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label" for="taskVerificationTypeInput">VERIFICATION METHOD</label>
+            <select class="form-input" id="taskVerificationTypeInput" onchange="toggleVerificationFields(this.value)">
+              <option value="social_handle">User Social Handle / Username (@handle)</option>
+              <option value="link_proof">Proof Link / Post URL</option>
+              <option value="instant">Instant 1-Click Verification (After click)</option>
+              <option value="quiz">Interactive Investment Quiz (70%+ to pass)</option>
+              <option value="game">Interactive Trading Mini-Game (150+ pts)</option>
+            </select>
+          </div>
+          <div class="form-group" id="placeholderGroup">
+            <label class="form-label" for="taskPlaceholderInput">PROOF INPUT PLACEHOLDER</label>
+            <input type="text" class="form-input" id="taskPlaceholderInput" placeholder="e.g. Your @username or email">
+          </div>
+        </div>
+
+        <!-- Description & Detailed Instructions -->
+        <div class="form-group">
+          <label class="form-label" for="taskDescInput">TASK SUMMARY &amp; PURPOSE</label>
+          <textarea class="form-input form-textarea" id="taskDescInput" rows="2" placeholder="Briefly describe what this task requires and why it is important..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="taskStepsInput">STEP-BY-STEP USER INSTRUCTIONS (One step per line)</label>
+          <textarea class="form-input form-textarea" id="taskStepsInput" rows="3" placeholder="Click the link to open our official community&#10;Follow the profile and turn on post alerts&#10;Enter your username below to verify and claim bonus"></textarea>
+        </div>
+
+        <!-- Requirement Toggle -->
+        <div class="task-modal-toggle-row">
+          <label class="toggle-switch">
+            <input type="checkbox" id="taskActiveInput" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 600; color: #FFFFFF;">Mandatory Prerequisite for Withdrawal</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted);">When enabled, user withdrawals are strictly locked until this task is completed.</div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-subtle" onclick="closeModal('taskModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTaskFromModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Save &amp; Publish Task
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div class="toast" id="adminToast"></div>
+
+  <script src="admin.js" defer></script>
+</body>
+</html>
+
+
+
+

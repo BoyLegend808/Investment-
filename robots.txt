@@ -1,8 +1,11 @@
-﻿User-agent: *
+User-agent: *
 Allow: /
 Disallow: /dashboard.html
+Disallow: /dashboard/
 Disallow: /admin/
 Disallow: /api/
+Disallow: /tools/
+Disallow: /scratch/
 
 Sitemap: https://crestwealth.com/sitemap.xml
 

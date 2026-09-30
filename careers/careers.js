@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Crest Wealth - Core Application Scripts & Interactions
  */
 
@@ -196,12 +196,12 @@ function initModals() {
   // Intercept clicks on auth-required links
   const authLinks = document.querySelectorAll('.auth-required');
   authLinks.forEach(link => {
-    link.addEventListener('click', (e) => {
-      const isAuthenticated = localStorage.getItem('isAuthenticated');
-      if (isAuthenticated !== 'true') {
+    link.addEventListener('click', async (e) => {
+      const authed = await crestIsAuthenticated();
+      if (!authed) {
         e.preventDefault();
         openModal(signinModal);
-        if (typeof showToast === 'function') {
+    if (typeof showToast === 'function') {
           showToast('Please log in or register to access this feature.', 'warning', 3500);
         }
       }
@@ -239,7 +239,7 @@ function initModals() {
   // Handle Form Submissions
   const signinForm = document.getElementById('form-signin');
   if (signinForm) {
-    signinForm.addEventListener('submit', (e) => {
+    signinForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!signinForm.checkValidity()) {
         signinForm.reportValidity();
@@ -251,7 +251,7 @@ function initModals() {
       btn.textContent = 'Authenticating...';
       setTimeout(() => {
         btn.textContent = 'Redirecting...';
-        localStorage.setItem('isAuthenticated', 'true'); // Simulate Auth State
+        // Auth is managed by Supabase - no localStorage flag needed
         if (typeof showToast === 'function') {
           showToast('Authentication successful!', 'success', 3000);
         }
@@ -272,7 +272,7 @@ function initModals() {
 
   const signupForm = document.getElementById('form-signup');
   if (signupForm) {
-    signupForm.addEventListener('submit', (e) => {
+    signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!signupForm.checkValidity()) {
         signupForm.reportValidity();
@@ -284,7 +284,7 @@ function initModals() {
       btn.textContent = 'Creating Account...';
       setTimeout(() => {
         btn.textContent = 'Account Created!';
-        localStorage.setItem('isAuthenticated', 'true'); // Simulate Auth State
+        // Auth is managed by Supabase - no localStorage flag needed
         if (typeof showToast === 'function') {
           showToast('Account created successfully!', 'success', 3000);
         }
@@ -306,13 +306,12 @@ function initModals() {
   // Check URL params for login required (e.g. redirected by auth-guard.js)
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('loginRequired') === 'true') {
-    // Open modal slightly delayed so user sees homepage first
-    setTimeout(() => {
-      openModal(signinModal);
-      if (typeof showToast === 'function') {
+    // Open modal immediately without scrolling or delay
+    window.scrollTo(0, 0);
+    openModal(signinModal);
+    if (typeof showToast === 'function') {
         showToast('Please log in to view the requested page.', 'warning', 4000);
       }
-    }, 500);
   }
 }
 
@@ -356,7 +355,7 @@ async function initLiveTickerUpdate() {
     const usdGbp = fxData.rates.GBP;
 
     // 3. Fetch Stocks from Alpha Vantage (SPY, AAPL, MSFT, TSLA)
-    const apiKey = 'QLX2KJ0DDBB1RUST';
+    const apiKey = window.CREST_AV_KEY || 'QLX2KJ0DDBB1RUST';
     const symbols = ['SPY', 'AAPL', 'MSFT', 'TSLA'];
     const stockData = {};
     
@@ -382,7 +381,7 @@ async function initLiveTickerUpdate() {
         if (res) stockData[res.symbol] = res;
       });
     } catch (e) {
-      console.warn('Alpha Vantage fetch failed:', e);
+
     }
 
     // Build ticker data object
@@ -407,7 +406,7 @@ async function initLiveTickerUpdate() {
     renderTickerData(tickerData, tickerTrack);
 
   } catch (error) {
-    console.error("Failed to fetch ticker data", error);
+
     
     // Fallback to cached data if available
     const cachedData = localStorage.getItem('Crest_ticker_data');
@@ -417,7 +416,7 @@ async function initLiveTickerUpdate() {
         renderTickerData(data, tickerTrack);
         return;
       } catch (e) {
-        console.error('Failed to parse cached data', e);
+
       }
     }
 
@@ -476,7 +475,7 @@ function initDashboardSimulator() {
       const toast = document.getElementById('trade-toast');
       
       if (toast) {
-        toast.textContent = `Order executed successfully: â‚¦${parseFloat(amount).toLocaleString()} of ${ticker}`;
+        toast.textContent = `Order executed successfully: ₦${parseFloat(amount).toLocaleString()} of ${ticker}`;
         toast.style.display = 'block';
         setTimeout(() => {
           toast.style.display = 'none';
@@ -487,76 +486,6 @@ function initDashboardSimulator() {
 }
 
 /* Toast Notification System */
-function showToast(message, type = 'success', duration = 4000) {
-  // Remove existing toast if any
-  const existingToast = document.querySelector('.toast-notification');
-  if (existingToast) {
-    existingToast.remove();
-  }
-
-  // Create toast element
-  const toast = document.createElement('div');
-  toast.className = `toast-notification toast-${type}`;
-  toast.textContent = message;
-  
-  // Add styles
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: ${type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : '#3B82F6'};
-    color: white;
-    padding: 16px 24px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
-    font-weight: 600;
-    font-size: 0.95rem;
-    animation: slideIn 0.3s ease-out;
-    max-width: 400px;
-  `;
-
-  // Add animation keyframes if not exists
-  if (!document.querySelector('#toast-styles')) {
-    const style = document.createElement('style');
-    style.id = 'toast-styles';
-    style.textContent = `
-      @keyframes slideIn {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-      @keyframes slideOut {
-        from {
-          transform: translateX(0);
-          opacity: 1;
-        }
-        to {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  document.body.appendChild(toast);
-
-  // Auto remove after duration
-  setTimeout(() => {
-    toast.style.animation = 'slideOut 0.3s ease-out';
-    setTimeout(() => {
-      if (toast.parentElement) {
-        toast.remove();
-      }
-    }, 300);
-  }, duration);
-}
 
 /* Global Scroll Animations & Lazy Loading Enhancements */
 document.addEventListener('DOMContentLoaded', () => {
@@ -595,6 +524,28 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+
+
+
+/* --- Local JS --- */
+/**
+ * Crest Wealth - Rates & Pricing Page Logic
+ * Rate comparison highlights and interactive savings calculator.
+ */
+
+document.addEventListener('DOMContentLoaded', () => {
+  const rows = document.querySelectorAll('.market-table tbody tr');
+  rows.forEach(row => {
+    row.addEventListener('mouseenter', () => {
+      row.style.transition = 'background 0.15s ease';
+    });
+  });
+});
+
+
+/* --- Inline JS --- */
+
 
 
 
