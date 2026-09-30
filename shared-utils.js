@@ -177,3 +177,41 @@ function crestRedirectToDashboard(isSubdir) {
   const isInSubdir = isSubdir !== undefined ? isSubdir : depth > 1;
   window.location.href = isInSubdir ? '../dashboard/dashboard.html' : 'dashboard/dashboard.html';
 }
+
+// =============================================================================
+// NAVBAR AUTHENTICATION STATE UPDATE
+// Automatically update navbar buttons to point to the dashboard if logged in
+// =============================================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  const isAuth = await crestIsAuthenticated();
+  if (isAuth) {
+    // Find signin and signup buttons
+    const signinBtns = document.querySelectorAll('a[href="#signin"], a[data-modal="signin"]');
+    const signupBtns = document.querySelectorAll('a[href="#signup"], a[data-modal="signup"]');
+    
+    signinBtns.forEach(btn => {
+      if (btn.classList.contains('btn-sign-in')) {
+        btn.textContent = 'Dashboard';
+        btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(window.location.pathname.includes('/about/') || window.location.pathname.includes('/academy/') || window.location.pathname.includes('/accounts/') || window.location.pathname.includes('/careers/') || window.location.pathname.includes('/investments/') || window.location.pathname.includes('/pricing/') || window.location.pathname.includes('/legal/') || window.location.pathname.includes('/error_404/')); };
+        btn.removeAttribute('data-modal');
+        btn.href = '#';
+      } else {
+        btn.style.display = 'none'; // Hide generic signin links like footer if logged in
+      }
+    });
+
+    signupBtns.forEach(btn => {
+      if (btn.classList.contains('btn-get-started')) {
+        btn.textContent = 'Go to Dashboard';
+        btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(window.location.pathname.includes('/about/') || window.location.pathname.includes('/academy/') || window.location.pathname.includes('/accounts/') || window.location.pathname.includes('/careers/') || window.location.pathname.includes('/investments/') || window.location.pathname.includes('/pricing/') || window.location.pathname.includes('/legal/') || window.location.pathname.includes('/error_404/')); };
+        btn.removeAttribute('data-modal');
+        btn.href = '#';
+      } else {
+        btn.textContent = 'Dashboard';
+        btn.onclick = (e) => { e.preventDefault(); crestRedirectToDashboard(window.location.pathname.includes('/about/') || window.location.pathname.includes('/academy/') || window.location.pathname.includes('/accounts/') || window.location.pathname.includes('/careers/') || window.location.pathname.includes('/investments/') || window.location.pathname.includes('/pricing/') || window.location.pathname.includes('/legal/') || window.location.pathname.includes('/error_404/')); };
+        btn.removeAttribute('data-modal');
+        btn.href = '#';
+      }
+    });
+  }
+});
