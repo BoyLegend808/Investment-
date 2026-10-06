@@ -376,7 +376,10 @@
               <input type="email" class="crest-form-input" id="crest-login-email" placeholder="john@example.com" required>
             </div>
             <div class="crest-form-group" style="position: relative;">
-              <label class="crest-form-label">Password</label>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="crest-form-label" style="margin-bottom: 0;">Password</label>
+                <a class="crest-switch-forgot" style="font-size: 0.8rem; color: #059669; font-weight: 600; cursor: pointer; text-decoration: none;">Forgot Password?</a>
+              </div>
               <input type="password" class="crest-form-input" id="crest-login-pass" placeholder="••••••••" required minlength="6" autocomplete="current-password" style="padding-right: 48px;">
               <button type="button" onclick="togglePasswordVisibility('crest-login-pass', this)" style="position: absolute; right: 14px; top: 37px; background: none; border: none; cursor: pointer; color: #94a3b8;" aria-label="Toggle visibility">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -389,6 +392,38 @@
           <div class="crest-auth-footer">
             Don't have an account? <a class="crest-switch-signup">Create one</a>
           </div>
+        </div>
+
+        <!-- FORGOT PASSWORD PANEL -->
+        <div class="crest-tab-panel" id="crest-panel-forgot">
+          <form id="crest-form-forgot" novalidate>
+            <div class="crest-form-group">
+              <label class="crest-form-label">Your Email Address</label>
+              <input type="email" class="crest-form-input" id="crest-forgot-email" placeholder="john@example.com" required>
+            </div>
+            <button type="submit" class="crest-submit-btn" id="crest-forgot-submit">
+              Send Reset Link
+            </button>
+          </form>
+          <div class="crest-auth-footer">
+            Remembered your password? <a class="crest-switch-login">Back to Log In</a>
+          </div>
+        </div>
+
+        <!-- UPDATE NEW PASSWORD PANEL (Triggered via recovery link) -->
+        <div class="crest-tab-panel" id="crest-panel-reset">
+          <form id="crest-form-reset" novalidate>
+            <div class="crest-form-group" style="position: relative;">
+              <label class="crest-form-label">New Password</label>
+              <input type="password" class="crest-form-input" id="crest-reset-pass" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" style="padding-right: 48px;">
+              <button type="button" onclick="togglePasswordVisibility('crest-reset-pass', this)" style="position: absolute; right: 14px; top: 37px; background: none; border: none; cursor: pointer; color: #94a3b8;" aria-label="Toggle visibility">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <button type="submit" class="crest-submit-btn" id="crest-reset-submit">
+              Update Password
+            </button>
+          </form>
         </div>
 
       </div>
@@ -432,9 +467,24 @@
   }
 
   function switchTab(tab) {
+    const tabsContainer = document.getElementById('crest-auth-tabs');
+    if (tab === 'forgot' || tab === 'reset') {
+      if (tabsContainer) tabsContainer.style.display = 'none';
+    } else {
+      if (tabsContainer) tabsContainer.style.display = 'flex';
+    }
+
     document.querySelectorAll('.crest-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    document.getElementById('crest-panel-login').classList.toggle('active', tab === 'login');
-    document.getElementById('crest-panel-signup').classList.toggle('active', tab === 'signup');
+    
+    const pLogin = document.getElementById('crest-panel-login');
+    const pSignup = document.getElementById('crest-panel-signup');
+    const pForgot = document.getElementById('crest-panel-forgot');
+    const pReset = document.getElementById('crest-panel-reset');
+    
+    if (pLogin) pLogin.classList.toggle('active', tab === 'login');
+    if (pSignup) pSignup.classList.toggle('active', tab === 'signup');
+    if (pForgot) pForgot.classList.toggle('active', tab === 'forgot');
+    if (pReset) pReset.classList.toggle('active', tab === 'reset');
     
     // Update headers
     const title = document.getElementById('crest-header-title');
@@ -442,6 +492,12 @@
     if (tab === 'login') {
       title.textContent = 'Welcome Back';
       desc.textContent = 'Log in to access your portfolio.';
+    } else if (tab === 'forgot') {
+      title.textContent = 'Reset Password';
+      desc.textContent = 'Enter your email to receive a password reset link.';
+    } else if (tab === 'reset') {
+      title.textContent = 'Set New Password';
+      desc.textContent = 'Enter a new password for your Crest Wealth account.';
     } else {
       title.textContent = 'Get Started';
       desc.textContent = 'Join Crest Wealth and start investing.';
@@ -472,6 +528,7 @@
 
   document.querySelectorAll('.crest-switch-signup').forEach(el => el.addEventListener('click', () => switchTab('signup')));
   document.querySelectorAll('.crest-switch-login').forEach(el => el.addEventListener('click', () => switchTab('login')));
+  document.querySelectorAll('.crest-switch-forgot').forEach(el => el.addEventListener('click', () => switchTab('forgot')));
 
   var demoBtn = document.getElementById('crest-demo-btn');
   if (demoBtn) {
@@ -487,9 +544,22 @@
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));
   });
 
-  // Default tab handling
-  if (window.crestAuthDefaultTab === 'login') {
+  // Default tab handling or recovery URL hash check
+  if (window.location.hash && window.location.hash.includes('type=recovery')) {
+    switchTab('reset');
+  } else if (window.crestAuthDefaultTab === 'login') {
     switchTab('login');
+  }
+
+  // Listen for Supabase password recovery event
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          switchTab('reset');
+        }
+      });
+    } catch (e) {}
   }
 
   // Login form submit
@@ -556,6 +626,71 @@
         } else {
           showToast('Account created! Opening your dashboard...');
           setTimeout(redirectAfterAuth, 800);
+        }
+      } catch (err) {
+        showToast(err.message || 'An error occurred.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+  }
+
+  // Forgot password form submit
+  var formForgot = document.getElementById('crest-form-forgot');
+  if (formForgot) {
+    formForgot.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('crest-forgot-email').value.trim();
+      if (!email) { showToast('Please enter your email address.'); return; }
+
+      const btn = document.getElementById('crest-forgot-submit');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const res = typeof crestResetPassword === 'function' ? await crestResetPassword(email) : { success: false, error: 'Auth service unavailable.' };
+        if (!res.success) {
+          showToast(res.error || 'Failed to send reset email.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        } else {
+          showToast('Reset email sent! Check your inbox for the recovery link.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          setTimeout(() => switchTab('login'), 3000);
+        }
+      } catch (err) {
+        showToast(err.message || 'An error occurred.');
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    });
+  }
+
+  // Reset password (new password) form submit
+  var formReset = document.getElementById('crest-form-reset');
+  if (formReset) {
+    formReset.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const newPass = document.getElementById('crest-reset-pass').value;
+      if (!newPass || newPass.length < 6) { showToast('Password must be at least 6 characters.'); return; }
+
+      const btn = document.getElementById('crest-reset-submit');
+      const originalText = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Updating Password...';
+
+      try {
+        if (!window.supabaseClient) throw new Error('Supabase client unavailable.');
+        const { error } = await window.supabaseClient.auth.updateUser({ password: newPass });
+        if (error) {
+          showToast(error.message || 'Password update failed.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+        } else {
+          showToast('Password updated successfully! Logging you in...');
+          setTimeout(redirectAfterAuth, 1200);
         }
       } catch (err) {
         showToast(err.message || 'An error occurred.');
