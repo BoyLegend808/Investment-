@@ -140,7 +140,28 @@ async function waitForSupabase() {
     await new Promise(r => setTimeout(r, 50));
     waited += 50;
   }
-  return window.supabaseClient || null;
+  const sb = window.supabaseClient || null;
+  if (sb && !window._crest_auth_listener_attached) {
+    window._crest_auth_listener_attached = true;
+    try {
+      sb.auth.onAuthStateChange(async (event, session) => {
+        if (session && session.user) {
+          localStorage.setItem('crest_current_user', JSON.stringify(session.user));
+          try {
+            await sb.from('profiles').upsert({
+              id: session.user.id,
+              email: session.user.email,
+              full_name: (session.user.user_metadata && session.user.user_metadata.full_name) || session.user.email.split('@')[0],
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+          } catch (e) { /* ignore */ }
+        } else if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('crest_current_user');
+        }
+      });
+    } catch (e) {}
+  }
+  return sb;
 }
 
 /**
@@ -213,10 +234,19 @@ async function crestSignUp(email, password, fullName) {
   const sb = await waitForSupabase();
   if (!sb) return { success: false, error: 'Cannot reach the server. Check your internet connection and try again.' };
 
+  // Determine current page URL for redirecting back after email verification
+  let redirectUrl = window.location.href ? window.location.href.split('#')[0].split('?')[0] : '';
+  if (!redirectUrl || redirectUrl.startsWith('file://')) {
+    redirectUrl = 'http://localhost:5500/index/index.html';
+  }
+
   const { data, error } = await sb.auth.signUp({
     email,
     password,
-    options: { data: { full_name: fullName } }
+    options: {
+      emailRedirectTo: redirectUrl,
+      data: { full_name: fullName }
+    }
   });
   if (error) return { success: false, error: error.message };
   if (!data || !data.user) return { success: false, error: 'Signup failed. Please try again.' };
