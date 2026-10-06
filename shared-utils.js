@@ -159,7 +159,8 @@ async function crestIsAuthenticated() {
   if (localUser) {
     try {
       const parsed = JSON.parse(localUser);
-      if (parsed && (parsed.id || parsed.email)) return true;
+      // Only the explicit demo account is trusted without a Supabase session
+      if (parsed && typeof parsed.id === 'string' && parsed.id.indexOf('demo_') === 0) return true;
     } catch (e) {}
   }
   return false;
@@ -172,53 +173,76 @@ async function crestIsAuthenticated() {
  */
 async function crestSignIn(email, password) {
   const sb = await waitForSupabase();
-  let userData = null;
-  if (sb) {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-    if (error) return { success: false, error: error.message };
-    if (data && data.user) {
-      userData = data.user;
-    }
+  if (!sb) return { success: false, error: 'Cannot reach the server. Check your internet connection and try again.' };
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    const msg = /email not confirmed/i.test(error.message)
+      ? 'Please confirm your email first — check your inbox for the verification link.'
+      : /invalid login credentials/i.test(error.message)
+        ? 'Incorrect email or password.'
+        : error.message;
+    return { success: false, error: msg };
   }
-  if (!userData) {
-    userData = { email, user_metadata: { full_name: email.split('@')[0] }, id: 'user_' + Date.now() };
-  }
-  localStorage.setItem('crest_current_user', JSON.stringify(userData));
-  return { success: true, data: { user: userData } };
+  if (!data || !data.user) return { success: false, error: 'Login failed. Please try again.' };
+
+  localStorage.setItem('crest_current_user', JSON.stringify(data.user));
+
+  // Make sure a profile row exists (non-blocking, ignore failures)
+  try {
+    await sb.from('profiles').upsert({
+      id: data.user.id,
+      email: data.user.email,
+      full_name: (data.user.user_metadata && data.user.user_metadata.full_name) || email.split('@')[0],
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+  } catch (e) { /* ignore */ }
+
+  return { success: true, data: { user: data.user } };
 }
 
 /**
- * Supabase sign-up. Returns { success, error }.
+ * Supabase sign-up. Returns { success, needsConfirmation, error }.
+ * If email confirmation is enabled in Supabase, no session is returned
+ * until the user clicks the link in their email.
  * @param {string} email
  * @param {string} password
  * @param {string} fullName
  */
 async function crestSignUp(email, password, fullName) {
   const sb = await waitForSupabase();
-  let userData = { email, user_metadata: { full_name: fullName }, id: 'user_' + Date.now() };
-  if (sb) {
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } }
-    });
-    if (error) return { success: false, error: error.message };
-    if (data && data.user) {
-      userData = data.user;
-      try {
-        await sb.from('profiles').upsert({
-          id: data.user.id,
-          email: email,
-          full_name: fullName,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'id' });
-      } catch (dbErr) {
-        console.warn('Profiles table upsert notice:', dbErr);
-      }
-    }
+  if (!sb) return { success: false, error: 'Cannot reach the server. Check your internet connection and try again.' };
+
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName } }
+  });
+  if (error) return { success: false, error: error.message };
+  if (!data || !data.user) return { success: false, error: 'Signup failed. Please try again.' };
+
+  // Supabase returns a user with no identities when the email is already registered
+  if (Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+    return { success: false, error: 'An account with this email already exists. Please log in.' };
   }
-  localStorage.setItem('crest_current_user', JSON.stringify(userData));
-  return { success: true, data: { user: userData, session: true } };
+
+  // No session => email confirmation required
+  if (!data.session) {
+    return { success: true, needsConfirmation: true, data: { user: data.user } };
+  }
+
+  localStorage.setItem('crest_current_user', JSON.stringify(data.user));
+  try {
+    await sb.from('profiles').upsert({
+      id: data.user.id,
+      email: email,
+      full_name: fullName,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'id' });
+  } catch (dbErr) {
+    console.warn('Profiles table upsert notice:', dbErr);
+  }
+  return { success: true, data: { user: data.user, session: data.session } };
 }
 
 /**
@@ -232,6 +256,18 @@ async function crestSignOut() {
   localStorage.removeItem('crest_current_user');
   const depth = window.location.pathname.split('/').filter(Boolean).length;
   window.location.href = depth > 1 ? '../index/index.html' : 'index/index.html';
+}
+
+/**
+ * Send a password-reset email via Supabase. Returns { success, error }.
+ */
+async function crestResetPassword(email) {
+  const sb = await waitForSupabase();
+  if (!sb) return { success: false, error: 'Cannot reach the server. Check your internet connection and try again.' };
+  const redirectTo = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + (window.location.pathname.split('/').filter(Boolean).length > 1 ? '../index/index.html' : 'index/index.html');
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+  if (error) return { success: false, error: error.message };
+  return { success: true };
 }
 
 /**
@@ -250,66 +286,60 @@ function crestRedirectToDashboard(isSubdir) {
 // - Unauthenticated (Not Logged In): Hide Client Dashboard nav link, hide Log In button, keep Get Started
 // - Authenticated (Logged In): Show Client Dashboard nav link, change Get Started to Client Dashboard link
 // =============================================================================
+function crestLoadAuthGuard(defaultTab) {
+  if (document.getElementById('crest-auth-overlay')) return; // already open
+  window.crestAuthDefaultTab = defaultTab;
+  const old = document.getElementById('crest-auth-guard-script');
+  if (old) old.remove();
+
+  const depth = window.location.pathname.split('/').filter(Boolean).length;
+  const basePath = depth > 1 ? '../' : '';
+  const script = document.createElement('script');
+  script.id = 'crest-auth-guard-script';
+  script.src = basePath + 'auth-guard.js?t=' + Date.now();
+  document.head.appendChild(script);
+}
+
+// Capture-phase delegation: runs before any page-specific handlers, works immediately.
+document.addEventListener('click', async (e) => {
+  const trigger = e.target.closest('a.btn-sign-in, a.btn-get-started, a[data-modal="signin"], a[data-modal="signup"]');
+  if (!trigger) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+
+  if (await crestIsAuthenticated()) {
+    crestRedirectToDashboard();
+    return;
+  }
+  const isSignin = trigger.matches('a.btn-sign-in, a[data-modal="signin"]');
+  crestLoadAuthGuard(isSignin ? 'login' : 'signup');
+}, true);
+
 document.addEventListener('DOMContentLoaded', async () => {
   const isAuth = await crestIsAuthenticated();
-  
-  // Client Dashboard links in top nav & drawers
-  const dashboardNavLinks = document.querySelectorAll('a[href*="dashboard.html"], a.nav-link-ember');
-  // Log In buttons on nav
-  const signinNavBtns = document.querySelectorAll('a.btn-sign-in, a[href="#signin"], a[data-modal="signin"]');
-  // Get Started / Open Account buttons on nav
-  const signupNavBtns = document.querySelectorAll('a.btn-get-started, a[href="#signup"], a[data-modal="signup"]');
 
-  function loadAuthGuard(defaultTab) {
-    window.crestAuthDefaultTab = defaultTab;
-    const old = document.getElementById('crest-auth-guard-script');
-    if (old) old.remove();
-    
-    const depth = window.location.pathname.split('/').filter(Boolean).length;
-    const basePath = depth > 1 ? '../' : '';
-    const script = document.createElement('script');
-    script.id = 'crest-auth-guard-script';
-    script.src = basePath + 'auth-guard.js?t=' + Date.now();
-    document.head.appendChild(script);
-  }
+  const dashboardNavLinks = document.querySelectorAll('a[href*="dashboard.html"], a.nav-link-ember');
+  const signinNavBtns = document.querySelectorAll('a.btn-sign-in, a[data-modal="signin"]');
+  const signupNavBtns = document.querySelectorAll('a.btn-get-started');
 
   if (isAuth) {
-    // LOGGED IN NAV STATE
-    dashboardNavLinks.forEach(link => {
-      link.style.display = '';
-    });
-    signinNavBtns.forEach(btn => {
-      btn.style.display = 'none';
-    });
-    signupNavBtns.forEach(btn => {
-      btn.textContent = 'Client Dashboard';
-      btn.removeAttribute('data-modal');
-      btn.href = '#';
-      btn.onclick = (e) => {
-        e.preventDefault();
-        crestRedirectToDashboard();
-      };
-    });
+    dashboardNavLinks.forEach(link => { link.style.display = ''; });
+    signinNavBtns.forEach(btn => { btn.style.display = 'none'; });
+    signupNavBtns.forEach(btn => { btn.textContent = 'Client Dashboard'; });
   } else {
-    // NOT LOGGED IN NAV STATE
-    dashboardNavLinks.forEach(link => {
-      link.style.display = 'none';
-    });
-    signinNavBtns.forEach(btn => {
-      btn.style.display = ''; // Show the Log In button
-      btn.onclick = (e) => {
-        e.preventDefault();
-        loadAuthGuard('login');
-      };
-    });
-    signupNavBtns.forEach(btn => {
-      btn.textContent = 'Get Started';
-      btn.removeAttribute('data-modal');
-      btn.href = '#';
-      btn.onclick = (e) => {
-        e.preventDefault();
-        loadAuthGuard('signup');
-      };
-    });
+    dashboardNavLinks.forEach(link => { link.style.display = 'none'; });
+    signinNavBtns.forEach(btn => { btn.style.display = ''; });
+
+    // Auto-open modal if URL hash is #signin or #signup
+    const handleAuthHash = () => {
+      const h = window.location.hash;
+      if (h === '#signin' || h === '#login') {
+        crestLoadAuthGuard('login');
+      } else if (h === '#signup') {
+        crestLoadAuthGuard('signup');
+      }
+    };
+    handleAuthHash();
+    window.addEventListener('hashchange', handleAuthHash);
   }
 });

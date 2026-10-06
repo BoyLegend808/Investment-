@@ -1,28 +1,8 @@
-﻿// Migrate old localStorage keys (Novara branding -> Crest Wealth branding)
-(function migrateStorage() {
-  var migrations = [
-    ['novara_tasks_config','crest_tasks_config'],
-    ['novara_user_tasks','crest_user_tasks'],
-    ['novara_user_balance','crest_user_balance'],
-    ['novara_deposits','crest_deposits'],
-    ['novara_daily_streak','crest_daily_streak'],
-    ['novara_withdrawals','crest_withdrawals'],
-  ];
-  try {
-    migrations.forEach(function(pair) {
-      var v = localStorage.getItem(pair[0]);
-      if (v && !localStorage.getItem(pair[1])) localStorage.setItem(pair[1], v);
-    });
-  } catch (e) { /* ignore storage errors */ }
-})();
-
-// Helper for unified localStorage access (crest_* with novara_* fallback)
+// Unified localStorage access
 function getCrestStorage(key, defaultVal) {
   try {
     var val = localStorage.getItem('crest_' + key);
     if (val !== null) return val;
-    var oldVal = localStorage.getItem('novara_' + key);
-    if (oldVal !== null) return oldVal;
   } catch (e) {}
   return defaultVal;
 }
@@ -31,7 +11,6 @@ function setCrestStorage(key, val) {
   try {
     var strVal = typeof val === 'string' ? val : JSON.stringify(val);
     localStorage.setItem('crest_' + key, strVal);
-    localStorage.setItem('novara_' + key, strVal);
   } catch (e) {}
 }
 
@@ -57,7 +36,12 @@ document.documentElement.style.visibility = 'hidden';
     try { localUser = JSON.parse(localUserRaw); } catch (e) {}
   }
 
-  if (!session && !localUser) {
+  // A locally stored user is ONLY trusted if it is the explicit demo account.
+  // Real users must have a valid Supabase session (prevents console-forged logins).
+  var isDemoUser = !!(localUser && typeof localUser.id === 'string' && localUser.id.indexOf('demo_') === 0);
+
+  if (!session && !isDemoUser) {
+    localStorage.removeItem('crest_current_user');
     window.location.href = '../index/index.html#signin';
     return;
   }
@@ -145,7 +129,7 @@ async function initDashboardUserProfile() {
 }
 
 /* ============================================================
-   NOVARA CAPITAL — USER DASHBOARD JS
+   CREST WEALTH — USER DASHBOARD JS
    - SPA navigation with animated view transitions
    - Task-based withdrawal gate (admin-configurable tasks)
    - Investment IQ Quiz (5 questions, 70% pass)
@@ -711,7 +695,7 @@ function retryQuiz() {
 function renderGameHTML() {
   return '<div class="game-container" id="miniGameContainer">' +
     '<div class="game-header-bar">' +
-      '<div class="game-ticker-label"><span class="game-ticker-live"></span> NGX:NOVARA-INDEX</div>' +
+      '<div class="game-ticker-label"><span class="game-ticker-live"></span> NGX:CREST-INDEX</div>' +
       '<div class="game-score-badge" id="gameScoreLabel">Score: ' + S.game.score + ' / 150 pts</div>' +
     '</div>' +
     '<div class="game-canvas-wrap">' +
@@ -1498,15 +1482,15 @@ window.addEventListener('resize', function() {
 
 // Real-time synchronization when Admin modifies tasks, deposits, or withdrawals
 window.addEventListener('storage', function(e) {
-  if (e.key === 'crest_tasks_config' || e.key === 'crest_user_tasks' || e.key === 'novara_tasks_config' || e.key === 'novara_user_tasks') {
+  if (e.key === 'crest_tasks_config' || e.key === 'crest_user_tasks') {
     S.tasks = loadTasksState();
     refreshTaskUI();
   }
-  if (e.key === 'crest_user_balance' || e.key === 'novara_user_balance') {
+  if (e.key === 'crest_user_balance') {
     S.cashBalance = loadUserBalance();
     updateBalanceDisplays();
   }
-  if (e.key === 'crest_withdrawals' || e.key === 'novara_withdrawals') {
+  if (e.key === 'crest_withdrawals') {
     updateWithdrawalTimeline();
   }
 });

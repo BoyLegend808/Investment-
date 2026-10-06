@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://panxaqueawnqrebikwvb.supabase.co">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
@@ -16,11 +16,11 @@
   <!-- Open Graph / Social Share -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://crestwealth.com/support/support.html">
-  <meta property="og:title" content="Rates &amp; Fees | Transparent support — Crest Wealth">
+  <meta property="og:title" content="Rates &amp; Fees | Transparent support â€” Crest Wealth">
   <meta property="og:description" content="Crest Wealth charges zero hidden fees. See our full rate schedule for savings accounts, trading commissions, and investment products.">
   <meta property="og:image" content="https://crestwealth.com/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Rates &amp; Fees | Transparent support — Crest Wealth">
+  <meta name="twitter:title" content="Rates &amp; Fees | Transparent support â€” Crest Wealth">
   <meta name="twitter:description" content="Crest Wealth charges zero hidden fees. See our full rate schedule for savings accounts, trading commissions, and investment products.">
   <title>Rates &amp; Transparent support | Crest Wealth</title>
   <link rel="canonical" href="https://crestwealth.com/support/support.html">
@@ -29,6 +29,8 @@
   
   <link rel="stylesheet" href="support.css">
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase.js"></script>
   <script src="../shared-utils.js" defer></script>
 </head>
 <body>
@@ -85,7 +87,7 @@
   <div class="mobile-drawer">
     <div class="mobile-drawer-header">
       <div class="brand-name">Crest <span>WEALTH</span></div>
-      <button class="drawer-close" aria-label="Close drawer">×</button>
+      <button class="drawer-close" aria-label="Close drawer">Ã—</button>
     </div>
     <ul class="mobile-drawer-links">
       <li><a href="../index/index.html">Home</a></li>
@@ -142,7 +144,7 @@
             </tr>
             <tr>
               <td><strong>Crest Fixed Lock (Short)</strong></td>
-              <td>30 – 90 Days</td>
+              <td>30 â€“ 90 Days</td>
               <td><span class="u-text-primary-green-bold">13.5% p.a.</span></td>
               <td>Upfront or Maturity</td>
             </tr>
@@ -166,7 +168,7 @@
             </tr>
             <tr>
               <td><strong>Dollar Hedge Vault</strong></td>
-              <td>90 – 365 Days</td>
+              <td>90 â€“ 365 Days</td>
               <td><span class="u-text-primary-green-bold">7.5% APY (USD)</span></td>
               <td>Quarterly in USD</td>
             </tr>
@@ -194,12 +196,12 @@
           <tbody>
             <tr>
               <td><strong>Savings Interest Rate</strong></td>
-              <td>1.5% – 3.0% p.a.</td>
-              <td><span class="u-text-primary-green">4.2% – 5.5% p.a.</span></td>
+              <td>1.5% â€“ 3.0% p.a.</td>
+              <td><span class="u-text-primary-green">4.2% â€“ 5.5% p.a.</span></td>
             </tr>
             <tr>
               <td><strong>Monthly Account Maintenance Fee</strong></td>
-              <td>?50 – ?500 / month</td>
+              <td>?50 â€“ ?500 / month</td>
               <td><span class="u-text-primary-green">?0.00 (Zero)</span></td>
             </tr>
             <tr>
@@ -279,8 +281,8 @@
           <h4>Academy &amp; Tools</h4>
           <ul class="footer-links">
             <li><a class="auth-required" href="../academy/academy.html">Financial Academy</a></li>
-            <li><a href="../academy/academy.html#calculator">Compound Calculator</a></li>
-            <li><a href="../academy/academy.html#guides">Beginner Guides</a></li>
+            <li><a href="../academy/academy.html">Compound Calculator</a></li>
+            <li><a href="../academy/academy.html">Beginner Guides</a></li>
             <li><a href="../dashboard/dashboard.html">Client Dashboard</a></li>
             <li><a href="../academy/academy.html#glossary">Market Glossary</a></li>
           </ul>
@@ -291,7 +293,7 @@
           <ul class="footer-links">
             <li><a href="../about/about.html">Our Story</a></li>
             <li><a href="../security/security.html">Security Architecture</a></li>
-            <li><a href="../about/about.html#leadership">Leadership</a></li>
+            <li><a href="../about/about.html">Leadership</a></li>
             <li><a href="../support/support.html">Contact Support</a></li>
             <li><a href="../careers/careers.html">Careers</a></li>
           </ul>
@@ -303,7 +305,7 @@
           Crest Wealth is an investment platform. All investments carry risk. Read disclosures <a href="../security/security.html">here</a>.
         </p>
         <p style="text-align: center; font-size: 0.75rem; color: #5B7068;">
-          © 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
+          Â© 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
         </p>
       </div>
     </div>

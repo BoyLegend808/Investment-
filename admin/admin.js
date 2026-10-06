@@ -1,21 +1,3 @@
-// Migrate old localStorage keys (Novara branding -> Crest Wealth branding)
-(function migrateStorage() {
-  var migrations = [
-    ['novara_tasks_config','crest_tasks_config'],
-    ['novara_user_tasks','crest_user_tasks'],
-    ['novara_user_balance','crest_user_balance'],
-    ['novara_deposits','crest_deposits'],
-    ['novara_daily_streak','crest_daily_streak'],
-    ['novara_withdrawals','crest_withdrawals'],
-  ];
-  try {
-    migrations.forEach(function(pair) {
-      var v = localStorage.getItem(pair[0]);
-      if (v && !localStorage.getItem(pair[1])) localStorage.setItem(pair[1], v);
-    });
-  } catch (e) { /* ignore storage errors */ }
-})();
-
 // Hide content and verify real Supabase session before showing admin panel
 document.documentElement.style.visibility = 'hidden';
 (async function supabaseAuthGuard() {
@@ -269,7 +251,7 @@ function initAdminData() {
   // Load Tasks Config
   var savedTasks = null;
   try {
-    var raw = localStorage.getItem('novara_tasks_config');
+    var raw = localStorage.getItem('crest_tasks_config');
     if (raw) savedTasks = JSON.parse(raw);
   } catch(e) {}
   AdminState.tasks = (savedTasks && Array.isArray(savedTasks) && savedTasks.length > 0)
@@ -295,7 +277,7 @@ function initAdminData() {
   // Load Withdrawals (Seed + user generated)
   var savedWd = [];
   try {
-    savedWd = JSON.parse(localStorage.getItem('novara_withdrawals') || '[]');
+    savedWd = JSON.parse(localStorage.getItem('crest_withdrawals') || '[]');
   } catch(e) {}
   
   // Combine user submissions with seed data avoiding duplicate IDs
@@ -310,7 +292,7 @@ function initAdminData() {
   // Load Deposits
   var savedDep = [];
   try {
-    savedDep = JSON.parse(localStorage.getItem('novara_deposits') || '[]');
+    savedDep = JSON.parse(localStorage.getItem('crest_deposits') || '[]');
   } catch(e) {}
   var combinedDep = savedDep.slice();
   SEED_DEPOSITS.forEach(function(seed) {
@@ -323,7 +305,7 @@ function initAdminData() {
 
 function saveTasksToStorage() {
   try {
-    localStorage.setItem('novara_tasks_config', JSON.stringify(AdminState.tasks));
+    localStorage.setItem('crest_tasks_config', JSON.stringify(AdminState.tasks));
   } catch(e) {}
   var badge = $('navActiveTaskCount');
   if (badge) {
@@ -334,14 +316,14 @@ function saveTasksToStorage() {
 
 function saveWithdrawalsToStorage() {
   try {
-    localStorage.setItem('novara_withdrawals', JSON.stringify(AdminState.withdrawals));
+    localStorage.setItem('crest_withdrawals', JSON.stringify(AdminState.withdrawals));
   } catch(e) {}
   updateKpis();
 }
 
 function saveDepositsToStorage() {
   try {
-    localStorage.setItem('novara_deposits', JSON.stringify(AdminState.deposits));
+    localStorage.setItem('crest_deposits', JSON.stringify(AdminState.deposits));
   } catch(e) {}
   updateKpis();
 }
@@ -498,7 +480,7 @@ function toggleGatekeeperMaster(isEnforced) {
 function triggerGlobalTaskReset() {
   if (confirm('Are you sure you want to trigger a Global User Task Cycle Reset?\n\nThis will clear completed tasks for all users, requiring them to complete tasks again before subsequent withdrawals.')) {
     try {
-      localStorage.removeItem('novara_user_tasks');
+      localStorage.removeItem('crest_user_tasks');
     } catch(e) {}
     toast('Global task cycle reset complete! All user dashboards must re-verify tasks.', 'emerald');
     addAuditLog('CYCLE_RESET', 'Admin triggered platform-wide user withdrawal task reset.');
@@ -890,13 +872,21 @@ function confirmDeposit(id) {
   saveDepositsToStorage();
   filterDeposits();
 
-  // Credit investor cash balance directly in localStorage!
+  // Credit investor cash balance directly in localStorage & Supabase!
   try {
-    var curBal = parseFloat(localStorage.getItem('novara_user_balance') || '84200');
+    var curBal = parseFloat(localStorage.getItem('crest_user_balance') || '84200');
     if (isNaN(curBal)) curBal = 84200;
     var depAmt = parseFloat(d.amount) || 0;
     var newBal = curBal + depAmt;
-    localStorage.setItem('novara_user_balance', newBal.toString());
+    localStorage.setItem('crest_user_balance', newBal.toString());
+
+    if (window.supabaseClient && d.user_id) {
+      window.supabaseClient
+        .from('profiles')
+        .update({ cash_balance: newBal })
+        .eq('id', d.user_id)
+        .then(function() {});
+    }
   } catch(e) {}
 
   toast('Deposit ' + id + ' confirmed! Investor account credited with ₦' + parseFloat(d.amount).toLocaleString('en-NG'), 'emerald');
@@ -1079,7 +1069,7 @@ function toast(msg, type) {
 
 /* ── STORAGE EVENT LISTENER ──────────────────────────────── */
 window.addEventListener('storage', function(e) {
-  if (e.key === 'novara_withdrawals' || e.key === 'novara_deposits') {
+  if (e.key === 'crest_withdrawals' || e.key === 'crest_deposits') {
     initAdminData();
     filterWithdrawals();
     filterDeposits();

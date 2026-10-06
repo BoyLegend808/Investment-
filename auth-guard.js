@@ -2,24 +2,44 @@
  * Crest Wealth - Client-Side Authentication Guard
  */
 (async function () {
-  // Hide body to prevent flash of protected content while checking auth
-  document.documentElement.style.visibility = 'hidden';
+  const isDynamicLoad = document.readyState === 'complete';
+  
+  // Hide body to prevent flash of protected content while checking auth (only on initial load)
+  if (!isDynamicLoad) document.documentElement.style.visibility = 'hidden';
 
-  // Wait for Supabase to initialize
-  while (!window.supabaseClient) {
+  // Wait for Supabase to initialize (max 3 seconds)
+  let retries = 0;
+  while (!window.supabaseClient && retries < 60) {
     await new Promise(r => setTimeout(r, 50));
+    retries++;
+  }
+
+  if (!window.supabaseClient) {
+    console.error('[Crest Supabase] auth-guard gave up waiting for Supabase.');
+    if (!isDynamicLoad) document.documentElement.style.visibility = '';
+    return;
   }
 
   const { data: { session } } = await window.supabaseClient.auth.getSession();
   
-  if (session) {
+  // Also check if user is logged in via demo mode
+  const localUserRaw = localStorage.getItem('crest_current_user');
+  let isDemoUser = false;
+  if (localUserRaw) {
+    try {
+      const u = JSON.parse(localUserRaw);
+      isDemoUser = !!(u && typeof u.id === 'string' && u.id.indexOf('demo_') === 0);
+    } catch (e) {}
+  }
+
+  if (session || isDemoUser) {
     // User is logged in, show page
-    document.documentElement.style.visibility = '';
+    if (!isDynamicLoad) document.documentElement.style.visibility = '';
     return;
   }
 
   // Not logged in, show overlay
-  document.documentElement.style.visibility = '';
+  if (!isDynamicLoad) document.documentElement.style.visibility = '';
 
   // ── Styles ──────────────────────────────────────────────────────────────────
   const style = document.createElement('style');
@@ -276,24 +296,23 @@
     /* Mobile specifics */
     @media (max-width: 480px) {
       #crest-auth-overlay {
-        padding: 0;
-        align-items: flex-end;
+        padding: 16px;
       }
       #crest-auth-box {
-        border-radius: 28px 28px 0 0;
-        max-height: 95dvh;
+        border-radius: 24px;
+        max-height: calc(100dvh - 32px);
       }
       #crest-auth-header {
-        padding: 28px 24px 20px 24px;
+        padding: 24px 20px 16px 20px;
       }
       #crest-auth-body {
-        padding: 0 24px 28px 24px;
+        padding: 0 20px 24px 20px;
       }
       #crest-auth-close {
         top: 16px;
         right: 16px;
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
       }
     }
   `;
@@ -302,20 +321,20 @@
   // ── HTML ────────────────────────────────────────────────────────────────────
   const overlay = document.createElement('div');
   overlay.id = 'crest-auth-overlay';
-  overlay.innerHTML = \`
+  overlay.innerHTML = `
     <div id="crest-auth-box">
       <button id="crest-auth-close" aria-label="Close">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
       
       <div id="crest-auth-header">
-        <h3 id="crest-header-title">Create Account</h3>
+        <h3 id="crest-header-title">Get Started</h3>
         <p id="crest-header-desc">Join Crest Wealth and start investing.</p>
       </div>
       
       <div id="crest-auth-body">
         <div id="crest-auth-tabs">
-          <button class="crest-tab-btn active" data-tab="signup">Sign Up</button>
+          <button class="crest-tab-btn active" data-tab="signup">Get Started</button>
           <button class="crest-tab-btn" data-tab="login">Log In</button>
         </div>
 
@@ -338,7 +357,7 @@
               </button>
             </div>
             <button type="submit" class="crest-submit-btn" id="crest-signup-submit">
-              Create Account
+              Get Started
             </button>
             <button type="button" class="crest-demo-btn" id="crest-demo-btn">
               Explore Demo Dashboard
@@ -375,7 +394,7 @@
       </div>
     </div>
     <div id="crest-auth-toast"></div>
-  \`;
+  `;
   document.body.appendChild(overlay);
   document.body.style.overflow = 'hidden';
 
@@ -424,7 +443,7 @@
       title.textContent = 'Welcome Back';
       desc.textContent = 'Log in to access your portfolio.';
     } else {
-      title.textContent = 'Create Account';
+      title.textContent = 'Get Started';
       desc.textContent = 'Join Crest Wealth and start investing.';
     }
   }
@@ -488,7 +507,7 @@
       btn.textContent = 'Authenticating...';
 
       try {
-        const res = typeof crestSignIn === 'function' ? await crestSignIn(email, pass) : { success: true };
+        const res = typeof crestSignIn === 'function' ? await crestSignIn(email, pass) : { success: false, error: 'Auth service unavailable. Please refresh the page.' };
         if (!res.success) {
           showToast(res.error || 'Login failed.');
           btn.disabled = false;
@@ -517,14 +536,23 @@
       const btn = document.getElementById('crest-signup-submit');
       const originalText = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Creating Account...';
+      btn.textContent = 'Getting Started...';
 
       try {
-        const res = typeof crestSignUp === 'function' ? await crestSignUp(email, pass, name) : { success: true };
+        const res = typeof crestSignUp === 'function' ? await crestSignUp(email, pass, name) : { success: false, error: 'Auth service unavailable. Please refresh the page.' };
         if (!res.success) {
           showToast(res.error || 'Signup failed.');
           btn.disabled = false;
           btn.textContent = originalText;
+        } else if (res.needsConfirmation) {
+          showToast('Account created! Check your email to confirm, then log in.');
+          btn.disabled = false;
+          btn.textContent = originalText;
+          setTimeout(() => {
+            const le = document.getElementById('crest-login-email');
+            if (le) le.value = email;
+            switchTab('login');
+          }, 1800);
         } else {
           showToast('Account created! Opening your dashboard...');
           setTimeout(redirectAfterAuth, 800);

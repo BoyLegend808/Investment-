@@ -2623,8 +2623,7 @@ button {
   }
 
   /* Mobile Drawer Toggle display */
-  .nav-menu, 
-  .nav-actions .btn-sign-in {
+  .nav-menu {
     display: none !important;
   }
 
@@ -2632,9 +2631,21 @@ button {
     display: flex;
   }
 
-  .nav-actions .btn-get-started {
-    padding: 8px 16px;
+  .nav-actions {
+    gap: 8px;
+  }
+
+  .nav-actions .btn-sign-in {
+    display: inline-flex;
+    padding: 8px 12px;
     font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+  .nav-actions .btn-get-started {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    white-space: nowrap;
   }
 
   .brand-name {
