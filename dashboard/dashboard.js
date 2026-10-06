@@ -302,6 +302,29 @@ function saveUserTasksState() {
   try {
     setCrestStorage('user_tasks', state);
   } catch(e) {}
+
+  // Sync to Supabase DB if user is logged in
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient.auth.getSession().then(function(res) {
+        var u = res && res.data && res.data.session ? res.data.session.user : null;
+        if (u && !u.id.startsWith('demo_')) {
+          S.tasks.forEach(function(t) {
+            if (t.done) {
+              window.supabaseClient.from('user_tasks').upsert({
+                user_id: u.id,
+                task_id: t.id.toString(),
+                task_title: t.title,
+                reward_amount: t.rewardAmount || 2000,
+                status: 'completed',
+                completed_at: new Date().toISOString()
+              }, { onConflict: 'user_id,task_id' }).then(function() {});
+            }
+          });
+        }
+      });
+    } catch(e) {}
+  }
 }
 
 function loadUserBalance() {
@@ -319,6 +342,21 @@ function saveUserBalance() {
   try {
     setCrestStorage('user_balance', S.cashBalance.toString());
   } catch(e) {}
+
+  // Sync cash_balance to Supabase DB if user is logged in
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient.auth.getSession().then(function(res) {
+        var u = res && res.data && res.data.session ? res.data.session.user : null;
+        if (u && !u.id.startsWith('demo_')) {
+          window.supabaseClient.from('profiles').update({
+            cash_balance: S.cashBalance,
+            updated_at: new Date().toISOString()
+          }).eq('id', u.id).then(function() {});
+        }
+      });
+    } catch(e) {}
+  }
 }
 
 function updateBalanceDisplays() {
@@ -350,9 +388,34 @@ function creditUserReward(amount, taskTitle) {
   saveUserBalance();
   updateBalanceDisplays();
 
-  // Add entry to user transactions table
   var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  prependUserTxn(today, 'Task Reward — ' + (taskTitle || 'Prerequisite Complete'), 'Deposit', '+₦' + amt.toLocaleString('en-NG'), 'Completed');
+  var title = taskTitle || 'Prerequisite Complete';
+  prependUserTxn(today, 'Task Reward — ' + title, 'Deposit', '+₦' + amt.toLocaleString('en-NG'), 'Completed');
+
+  // Sync transaction and notification to Supabase DB if user is logged in
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient.auth.getSession().then(function(res) {
+        var u = res && res.data && res.data.session ? res.data.session.user : null;
+        if (u && !u.id.startsWith('demo_')) {
+          window.supabaseClient.from('transactions').insert({
+            user_id: u.id,
+            type: 'reward',
+            amount: amt,
+            description: 'Task Reward — ' + title,
+            status: 'completed'
+          }).then(function() {});
+
+          window.supabaseClient.from('notifications').insert({
+            user_id: u.id,
+            title: 'Task Reward Claimed',
+            message: '+₦' + amt.toLocaleString('en-NG') + ' credited for ' + title,
+            type: 'success'
+          }).then(function() {});
+        }
+      });
+    } catch(e) {}
+  }
 }
 
 var S = {
