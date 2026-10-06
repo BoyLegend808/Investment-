@@ -126,6 +126,37 @@ function togglePasswordVisibility(inputId, btn) {
 window.CREST_AV_KEY = 'QLX2KJ0DDBB1RUST';
 
 // =============================================================================
+// COOKIE CONSENT BANNER CONTROLLER
+// =============================================================================
+function acceptCookies() {
+  try { localStorage.setItem('crest_cookie_consent', 'accepted'); } catch(e) {}
+  const banner = document.getElementById('cookie-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function declineCookies() {
+  try { localStorage.setItem('crest_cookie_consent', 'declined'); } catch(e) {}
+  const banner = document.getElementById('cookie-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      const consent = localStorage.getItem('crest_cookie_consent');
+      const banner = document.getElementById('cookie-banner');
+      if (banner) {
+        if (!consent) {
+          banner.style.display = 'flex';
+        } else {
+          banner.style.display = 'none';
+        }
+      }
+    } catch(e) {}
+  });
+}
+
+// =============================================================================
 // SUPABASE AUTH HELPERS
 // Shared across all public pages for consistent login/signup behaviour.
 // =============================================================================

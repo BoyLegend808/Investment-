@@ -1134,6 +1134,29 @@ function submitDeposit() {
   existingDep.unshift(newDep);
   setCrestStorage('deposits', existingDep);
 
+  // Sync to Supabase DB if user is logged in
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient.auth.getSession().then(function(res) {
+        var u = res && res.data && res.data.session ? res.data.session.user : null;
+        if (u) {
+          window.supabaseClient.from('deposits').insert({
+            id: refId,
+            user_id: u.id,
+            user_email: u.email,
+            amount: amt,
+            plan: planName,
+            bank_name: bInfo.name,
+            account_number: bInfo.acctNum,
+            status: 'Pending'
+          }).then(function(dbRes) {
+            if (dbRes.error) console.warn('Supabase deposit sync notice:', dbRes.error);
+          });
+        }
+      });
+    } catch(e) {}
+  }
+
   // Add row to user activity table
   prependUserTxn(newDep.date, 'Deposit Initiated — ' + planName, 'Deposit', '+₦' + amt.toLocaleString('en-NG'), 'Pending Confirmation');
 
@@ -1340,6 +1363,25 @@ function submitWithdrawal() {
   } catch(e) {}
   existingWd.unshift(newWd);
   setCrestStorage('withdrawals', existingWd);
+
+  // Sync to Supabase DB via atomic stored procedure
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient.auth.getSession().then(function(res) {
+        var u = res && res.data && res.data.session ? res.data.session.user : null;
+        if (u) {
+          window.supabaseClient.rpc('request_withdrawal', {
+            p_amount: amt,
+            p_bank_name: selectedBank,
+            p_account_number: nuban,
+            p_account_name: 'Investor'
+          }).then(function(rpcRes) {
+            if (rpcRes.error) console.warn('Supabase withdrawal RPC notice:', rpcRes.error);
+          });
+        }
+      });
+    } catch(e) {}
+  }
 
   // Deduct local balance
   S.cashBalance -= amt;

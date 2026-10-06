@@ -781,6 +781,19 @@ function approveWithdrawal(id) {
   w.status = 'Approved & Paid';
   saveWithdrawalsToStorage();
   filterWithdrawals();
+
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient
+        .from('withdrawals')
+        .update({ status: 'Approved & Paid', processed_at: new Date().toISOString() })
+        .eq('id', id)
+        .then(function(res) {
+          if (res.error) console.warn('Supabase approve withdrawal notice:', res.error);
+        });
+    } catch(e) {}
+  }
+
   toast('Withdrawal ' + id + ' approved! Payout webhook settled with GTBank.', 'emerald');
   addAuditLog('PAYOUT_SETTLED', 'Withdrawal ' + id + ' (₦' + parseFloat(w.amount).toLocaleString('en-NG') + ') approved & settled for ' + w.user);
 }
@@ -795,6 +808,24 @@ function rejectWithdrawal(id) {
   w.rejectionReason = reason.trim();
   saveWithdrawalsToStorage();
   filterWithdrawals();
+
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient.rpc('admin_reject_withdrawal', {
+        withdrawal_id: id,
+        p_reason: reason.trim()
+      }).then(function(res) {
+        if (res.error) {
+          window.supabaseClient
+            .from('withdrawals')
+            .update({ status: 'Rejected', admin_notes: reason.trim(), processed_at: new Date().toISOString() })
+            .eq('id', id)
+            .then(function() {});
+        }
+      });
+    } catch(e) {}
+  }
+
   toast('Withdrawal ' + id + ' rejected. Feedback sent to investor dashboard.', 'warn');
   addAuditLog('WITHDRAWAL_REJECTED', 'Withdrawal ' + id + ' rejected: "' + reason.trim() + '"');
 }
@@ -872,21 +903,38 @@ function confirmDeposit(id) {
   saveDepositsToStorage();
   filterDeposits();
 
-  // Credit investor cash balance directly in localStorage & Supabase!
+  // Credit investor cash balance in Supabase via RPC or table update
+  if (window.supabaseClient) {
+    try {
+      window.supabaseClient.rpc('admin_confirm_deposit', { deposit_id: id }).then(function(res) {
+        if (res.error && d.user_id) {
+          // Fallback manual profile update if deposit row was inserted directly
+          var depAmt = parseFloat(d.amount) || 0;
+          window.supabaseClient
+            .from('profiles')
+            .select('cash_balance')
+            .eq('id', d.user_id)
+            .single()
+            .then(function(pRes) {
+              var cur = pRes.data ? parseFloat(pRes.data.cash_balance || 0) : 84200;
+              window.supabaseClient
+                .from('profiles')
+                .update({ cash_balance: cur + depAmt })
+                .eq('id', d.user_id)
+                .then(function() {});
+            });
+        }
+      });
+    } catch(e) {}
+  }
+
+  // Credit investor cash balance in localStorage
   try {
     var curBal = parseFloat(localStorage.getItem('crest_user_balance') || '84200');
     if (isNaN(curBal)) curBal = 84200;
     var depAmt = parseFloat(d.amount) || 0;
     var newBal = curBal + depAmt;
     localStorage.setItem('crest_user_balance', newBal.toString());
-
-    if (window.supabaseClient && d.user_id) {
-      window.supabaseClient
-        .from('profiles')
-        .update({ cash_balance: newBal })
-        .eq('id', d.user_id)
-        .then(function() {});
-    }
   } catch(e) {}
 
   toast('Deposit ' + id + ' confirmed! Investor account credited with ₦' + parseFloat(d.amount).toLocaleString('en-NG'), 'emerald');
