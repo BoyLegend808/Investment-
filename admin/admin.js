@@ -982,12 +982,30 @@ function bypassGateForUser(name) {
   addAuditLog('VIP_OVERRIDE', 'Task gate bypassed for user: ' + name);
 }
 
-function adjustUserBalance(name) {
-  var amt = prompt('Enter adjustment amount for ' + name + ' (+/- ₦):');
-  if (amt) {
-    toast('Balance adjusted by ' + amt + ' for ' + name, 'emerald');
-    addAuditLog('BALANCE_ADJUST', 'Manual balance correction of ' + amt + ' for ' + name);
+function adjustUserBalance(name, userId) {
+  var amtStr = prompt('Enter adjustment amount for ' + name + ' (+/- ₦):');
+  if (!amtStr) return;
+  var amt = parseFloat(amtStr.replace(/[^0-9.-]/g, ''));
+  if (isNaN(amt) || amt === 0) {
+    toast('Please enter a valid numeric amount.', 'warn');
+    return;
   }
+
+  // Sync to Supabase DB if user_id is provided
+  if (window.supabaseClient && userId) {
+    try {
+      window.supabaseClient.rpc('admin_adjust_balance', {
+        p_user_id: userId,
+        p_amount: amt,
+        p_reason: 'Admin manual balance adjustment'
+      }).then(function(res) {
+        if (res.error) console.warn('Supabase balance adjust RPC notice:', res.error);
+      });
+    } catch(e) {}
+  }
+
+  toast('Balance adjusted by ₦' + amt.toLocaleString('en-NG') + ' for ' + name, 'emerald');
+  addAuditLog('BALANCE_ADJUST', 'Manual balance correction of ₦' + amt.toLocaleString('en-NG') + ' for ' + name);
 }
 
 /* ── OBSERVATORY KPIS & FLOW CHART ───────────────────────── */
