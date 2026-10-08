@@ -138,10 +138,31 @@ body {
 .sidebar-brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 20px 18px;
+  padding: 16px 18px;
   border-bottom: 1px solid rgba(255,255,255,0.07);
   flex-shrink: 0;
+}
+.sidebar-close-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.sidebar-close-btn:hover, .sidebar-close-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 .brand-mark { width: 28px; height: 28px; flex-shrink: 0; }
 .brand-text {
@@ -1399,12 +1420,33 @@ body {
 @media (max-width: 768px) {
   :root { --sidebar-w: 0px; }
   .sidebar {
-    width: 240px;
-    transform: translateX(-240px);
+    width: 270px;
+    max-width: 84vw;
+    transform: translateX(-100%);
+    box-shadow: 10px 0 35px rgba(0, 0, 0, 0.45);
   }
   .sidebar.open { transform: translateX(0); }
+  .sidebar-close-btn { display: flex; }
   .main-wrap { margin-left: 0; }
-  .burger { display: flex; }
+  .burger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    padding: 0;
+    border-radius: 8px;
+    background: #f1f5f9;
+    color: var(--c-ink);
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .burger:active {
+    background: #e2e8f0;
+    transform: scale(0.96);
+  }
   .topbar-kpi { display: none; }
   .content { padding: 16px; }
   .portfolio-hero { padding: 20px; }
