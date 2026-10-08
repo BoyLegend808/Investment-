@@ -204,6 +204,12 @@
       border-color: #059669; 
       box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.1);
     }
+    .crest-form-input:-webkit-autofill,
+    .crest-form-input:-webkit-autofill:hover, 
+    .crest-form-input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+      -webkit-text-fill-color: #0f172a !important;
+    }
 
     /* Buttons */
     .crest-submit-btn {
@@ -360,6 +366,13 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
+            <div class="crest-form-group" style="position: relative;">
+              <label class="crest-form-label">Confirm Password</label>
+              <input type="password" class="crest-form-input" id="crest-signup-pass-confirm" placeholder="Repeat your password" required minlength="6" autocomplete="new-password" style="padding-right: 48px;">
+              <button type="button" onclick="togglePasswordVisibility('crest-signup-pass-confirm', this)" style="position: absolute; right: 14px; top: 37px; background: none; border: none; cursor: pointer; color: #94a3b8;" aria-label="Toggle visibility">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
             <div class="crest-form-group">
               <label class="crest-form-label">Select Starting Package</label>
               <select class="crest-form-input" id="crest-signup-package" style="background: #FFFFFF;">
@@ -371,7 +384,7 @@
               </select>
             </div>
             <button type="submit" class="crest-submit-btn" id="crest-signup-submit">
-              Get Started
+              Create Account
             </button>
             <button type="button" class="crest-demo-btn" id="crest-demo-btn">
               Explore Demo Dashboard
@@ -618,16 +631,31 @@
       e.preventDefault();
       const name  = document.getElementById('crest-signup-name').value.trim();
       const email = document.getElementById('crest-signup-email').value.trim();
+      const phone = document.getElementById('crest-signup-phone') ? document.getElementById('crest-signup-phone').value.trim() : '';
       const pass = document.getElementById('crest-signup-pass').value;
-      if (!name || !email || !pass) { showToast('Please fill in all fields.'); return; }
+      const passConfirm = document.getElementById('crest-signup-pass-confirm') ? document.getElementById('crest-signup-pass-confirm').value : '';
+      const pkg = document.getElementById('crest-signup-package') ? document.getElementById('crest-signup-package').value : 'Level 1 Package (Starter)';
+
+      if (!name || !email || !phone || !pass) {
+        showToast('Please fill in all registration fields.');
+        return;
+      }
+      if (pass.length < 6) {
+        showToast('Password must be at least 6 characters.');
+        return;
+      }
+      if (passConfirm && pass !== passConfirm) {
+        showToast('Passwords do not match. Please re-enter.');
+        return;
+      }
       
       const btn = document.getElementById('crest-signup-submit');
       const originalText = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Getting Started...';
+      btn.textContent = 'Creating Account...';
 
       try {
-        const res = typeof crestSignUp === 'function' ? await crestSignUp(email, pass, name) : { success: false, error: 'Auth service unavailable. Please refresh the page.' };
+        const res = typeof crestSignUp === 'function' ? await crestSignUp(email, pass, name, phone, pkg) : { success: false, error: 'Auth service unavailable. Please refresh the page.' };
         if (!res.success) {
           showToast(res.error || 'Signup failed.');
           btn.disabled = false;

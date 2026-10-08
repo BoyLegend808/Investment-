@@ -267,11 +267,20 @@ function initModals() {
       if (!signupForm.checkValidity()) { signupForm.reportValidity(); return; }
       const name = signupForm.querySelector('input[name="name"],#signup-name,#fullname')?.value?.trim() || '';
       const email = document.getElementById('signup-email')?.value?.trim() || signupForm.querySelector('input[type="email"]')?.value?.trim();
+      const phone = document.getElementById('signup-phone')?.value?.trim() || '';
       const password = document.getElementById('signup-password')?.value || signupForm.querySelector('input[type="password"]')?.value;
+      const confirmPassword = document.getElementById('signup-password-confirm')?.value || '';
+      const pkg = document.getElementById('signup-package')?.value || 'Level 1 Package (Starter)';
+
+      if (confirmPassword && password !== confirmPassword) {
+        if (typeof showToast === 'function') showToast('Passwords do not match. Please verify.', 'error', 4000);
+        return;
+      }
+
       const btn = signupForm.querySelector('button[type="submit"]');
       btn.disabled = true;
       btn.textContent = 'Creating Account...';
-      const result = await crestSignUp(email, password, name);
+      const result = await crestSignUp(email, password, name, phone, pkg);
       if (!result.success) {
         if (typeof showToast === 'function') showToast(result.error, 'error', 4000);
         btn.disabled = false;

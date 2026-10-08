@@ -261,7 +261,7 @@ async function crestSignIn(email, password) {
  * @param {string} password
  * @param {string} fullName
  */
-async function crestSignUp(email, password, fullName) {
+async function crestSignUp(email, password, fullName, phone, pkg) {
   const sb = await waitForSupabase();
   if (!sb) return { success: false, error: 'Cannot reach the server. Check your internet connection and try again.' };
 
@@ -276,7 +276,11 @@ async function crestSignUp(email, password, fullName) {
     password,
     options: {
       emailRedirectTo: redirectUrl,
-      data: { full_name: fullName }
+      data: {
+        full_name: fullName,
+        phone: phone || '',
+        package: pkg || 'Level 1 Package (Starter)'
+      }
     }
   });
   if (error) return { success: false, error: error.message };
@@ -298,6 +302,9 @@ async function crestSignUp(email, password, fullName) {
       id: data.user.id,
       email: email,
       full_name: fullName,
+      phone: phone || '',
+      cash_balance: 0,
+      invested_balance: 0,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
   } catch (dbErr) {
