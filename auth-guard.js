@@ -297,27 +297,96 @@
     }
     .crest-auth-footer a:hover { text-decoration: underline; }
 
-    /* Toast */
+    /* Redesigned Authentication Complete Toast & Circles */
     #crest-auth-toast {
       position: fixed;
       bottom: 30px;
       left: 50%;
-      transform: translateX(-50%) translateY(20px);
-      background: #0f172a;
+      transform: translateX(-50%) translateY(20px) scale(0.95);
+      background: rgba(11, 37, 26, 0.96);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(16, 185, 129, 0.4);
       color: #fff;
-      padding: 14px 28px;
-      border-radius: 100px;
-      font-size: 0.95rem;
-      font-weight: 500;
+      padding: 10px 22px 10px 12px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
       z-index: 100000;
       opacity: 0;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       pointer-events: none;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 24px rgba(16, 185, 129, 0.25);
+      max-width: calc(100vw - 32px);
+      box-sizing: border-box;
     }
     #crest-auth-toast.show { 
       opacity: 1; 
-      transform: translateX(-50%) translateY(0);
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+    .crest-toast-circle {
+      width: 34px;
+      height: 34px;
+      min-width: 34px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10B981, #059669);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.6);
+      animation: crestCirclePulse 1.8s infinite ease-in-out;
+    }
+    .crest-toast-circle.error {
+      background: linear-gradient(135deg, #EF4444, #DC2626);
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.6);
+      animation: none;
+    }
+    @keyframes crestCirclePulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+      50% { transform: scale(1.08); box-shadow: 0 0 22px rgba(16, 185, 129, 0.85); }
+    }
+    .crest-toast-text {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+    .crest-toast-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.2;
+    }
+    .crest-toast-sub {
+      font-size: 0.75rem;
+      color: #A7F3D0;
+      font-weight: 500;
+      margin-top: 1px;
+    }
+    .auth-btn-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2.5px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: authBtnSpin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes authBtnSpin {
+      to { transform: rotate(360deg); }
+    }
+    .auth-btn-circle-check {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      margin-right: 8px;
+      vertical-align: middle;
     }
 
     /* Mobile specifics */
@@ -497,9 +566,23 @@
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
-  function showToast(msg) {
+  function showToast(msg, isError) {
     const t = document.getElementById('crest-auth-toast');
-    t.textContent = msg;
+    if (!t) return;
+    const isComplete = !isError && (msg.toLowerCase().includes('success') || msg.toLowerCase().includes('complete') || msg.toLowerCase().includes('welcome') || msg.toLowerCase().includes('demo'));
+    
+    t.innerHTML = `
+      <div class="crest-toast-circle ${isError ? 'error' : ''}">
+        ${isError 
+          ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+          : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+        }
+      </div>
+      <div class="crest-toast-text">
+        <span class="crest-toast-title">${isComplete ? 'Authentication Complete' : msg}</span>
+        ${isComplete ? '<span class="crest-toast-sub">Verified • Loading Investor Portal</span>' : ''}
+      </div>
+    `;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3500);
   }
@@ -568,17 +651,19 @@
   }
 
   function redirectAfterAuth() {
-    showToast('Authentication successful!');
+    showToast('Authentication Complete');
     const p = window.location.pathname.toLowerCase();
     const isDashboard = p.includes('/dashboard') || p.includes('dashboard.html');
 
     if (isDashboard) {
-      closeOverlay();
-      if (typeof initDashboardUserProfile === 'function') {
-        initDashboardUserProfile();
-      } else {
-        window.location.reload();
-      }
+      setTimeout(() => {
+        closeOverlay();
+        if (typeof initDashboardUserProfile === 'function') {
+          initDashboardUserProfile();
+        } else {
+          window.location.reload();
+        }
+      }, 400);
       return;
     }
 
@@ -589,7 +674,7 @@
                        p.includes('/about/') || p.includes('/careers/') ||
                        p.includes('/support/') || p.includes('/legal/');
       window.location.href = isSubDir ? '../dashboard/dashboard.html' : 'dashboard/dashboard.html';
-    }, 150);
+    }, 450);
   }
 
   // ── Events ───────────────────────────────────────────────────────────────────
@@ -611,7 +696,7 @@
       const demoUser = { id: 'demo_investor', email: 'demo@crestwealth.com', user_metadata: { full_name: 'Demo Investor' } };
       localStorage.setItem('crest_current_user', JSON.stringify(demoUser));
       window.crestUser = demoUser;
-      setTimeout(redirectAfterAuth, 150);
+      setTimeout(redirectAfterAuth, 250);
     });
   }
 
@@ -644,27 +729,29 @@
       e.preventDefault();
       const email = document.getElementById('crest-login-email').value.trim();
       const pass  = document.getElementById('crest-login-pass').value;
-      if (!email || !pass) { showToast('Please fill in all fields.'); return; }
+      if (!email || !pass) { showToast('Please fill in all fields.', true); return; }
       
       const btn = document.getElementById('crest-auth-submit');
-      const originalText = btn.textContent;
+      const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.textContent = 'Authenticating...';
+      btn.innerHTML = '<span class="auth-btn-spinner"></span> Authenticating...';
 
       try {
         const res = typeof crestSignIn === 'function' ? await crestSignIn(email, pass) : { success: false, error: 'Auth service unavailable. Please refresh the page.' };
         if (!res.success) {
-          showToast(res.error || 'Login failed.');
+          showToast(res.error || 'Login failed.', true);
           btn.disabled = false;
-          btn.textContent = originalText;
+          btn.innerHTML = originalText;
         } else {
           window.crestUser = res.data && res.data.user ? res.data.user : null;
+          btn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+          btn.innerHTML = '<span class="auth-btn-circle-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Authentication Complete';
           redirectAfterAuth();
         }
       } catch (err) {
-        showToast(err.message || 'An error occurred.');
+        showToast(err.message || 'An error occurred.', true);
         btn.disabled = false;
-        btn.textContent = originalText;
+        btn.innerHTML = originalText;
       }
     });
   }

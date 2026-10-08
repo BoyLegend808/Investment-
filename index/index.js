@@ -245,18 +245,20 @@ function initModals() {
       const email = document.getElementById('signin-email')?.value?.trim() || signinForm.querySelector('input[type="email"]')?.value?.trim();
       const password = document.getElementById('signin-password')?.value || signinForm.querySelector('input[type="password"]')?.value;
       const btn = signinForm.querySelector('button[type="submit"]');
+      const originalText = btn.innerHTML;
       btn.disabled = true;
-      btn.textContent = 'Authenticating...';
+      btn.innerHTML = '<span class="auth-btn-spinner" style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:authSpin 0.7s linear infinite;vertical-align:middle;margin-right:8px;"></span> Authenticating...';
       const result = await crestSignIn(email, password);
       if (!result.success) {
         if (typeof showToast === 'function') showToast(result.error, 'error', 4000);
         btn.disabled = false;
-        btn.textContent = 'Log In';
+        btn.innerHTML = originalText;
         return;
       }
-      btn.textContent = 'Redirecting...';
-      if (typeof showToast === 'function') showToast('Authentication successful!', 'success', 2000);
-      setTimeout(() => crestRedirectToDashboard(), 150);
+      btn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
+      btn.innerHTML = '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.25);margin-right:8px;vertical-align:middle;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Authentication Complete';
+      if (typeof showToast === 'function') showToast('Authentication Complete', 'success', 2000);
+      setTimeout(() => crestRedirectToDashboard(), 400);
     });
   }
 

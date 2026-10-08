@@ -13,30 +13,58 @@
 function showToast(message, type = 'success', duration = 4000) {
   // Remove existing toast if any
   const existingToast = document.querySelector('.toast-notification');
-  if (existingToast) {
-    existingToast.remove();
-  }
+  if (existingToast) existingToast.remove();
+
+  const isSuccess = type === 'success';
+  const isError = type === 'error';
+  const isAuthComplete = isSuccess && (message.toLowerCase().includes('auth') || message.toLowerCase().includes('success'));
 
   // Create toast element
   const toast = document.createElement('div');
   toast.className = `toast-notification toast-${type}`;
-  toast.textContent = message;
+
+  const circleBg = isSuccess 
+    ? 'linear-gradient(135deg, #10B981, #059669)'
+    : isError 
+      ? 'linear-gradient(135deg, #EF4444, #DC2626)' 
+      : 'linear-gradient(135deg, #F59E0B, #D97706)';
+
+  const iconSvg = isSuccess
+    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+    : isError
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
+      : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`;
+
+  toast.innerHTML = `
+    <div style="width: 34px; height: 34px; min-width: 34px; border-radius: 50%; background: ${circleBg}; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px ${isSuccess ? 'rgba(16, 185, 129, 0.6)' : isError ? 'rgba(239, 68, 68, 0.6)' : 'rgba(245, 158, 11, 0.6)'};">
+      ${iconSvg}
+    </div>
+    <div style="display: flex; flex-direction: column; text-align: left;">
+      <span style="font-weight: 700; font-size: 0.92rem; color: #ffffff; line-height: 1.2;">${isAuthComplete ? 'Authentication Complete' : message}</span>
+      ${isAuthComplete ? '<span style="font-size: 0.75rem; color: #A7F3D0; font-weight: 500; margin-top: 1px;">Verified • Loading Investor Portal</span>' : ''}
+    </div>
+  `;
 
   // Add styles
   toast.style.cssText = `
     position: fixed;
     bottom: 24px;
     right: 24px;
-    background: ${type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : type === 'warning' ? '#F59E0B' : '#3B82F6'};
+    background: rgba(11, 37, 26, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(16, 185, 129, 0.4);
     color: white;
-    padding: 16px 24px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
-    font-weight: 600;
-    font-size: 0.95rem;
+    padding: 10px 22px 10px 12px;
+    border-radius: 999px;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), 0 0 24px rgba(16, 185, 129, 0.25);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     animation: slideIn 0.3s ease-out;
-    max-width: 400px;
+    max-width: 90vw;
+    box-sizing: border-box;
   `;
 
   // Add animation keyframes if not exists
