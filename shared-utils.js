@@ -314,7 +314,17 @@ async function crestSignOut() {
   if (sb) {
     try { await sb.auth.signOut(); } catch(e) {}
   }
-  localStorage.removeItem('crest_current_user');
+  
+  // Clear all crest_ variables from localStorage to prevent leaking data between accounts
+  const keysToRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('crest_')) {
+      keysToRemove.push(key);
+    }
+  }
+  keysToRemove.forEach(k => localStorage.removeItem(k));
+
   const depth = window.location.pathname.split('/').filter(Boolean).length;
   window.location.href = depth > 1 ? '../index/index.html' : 'index/index.html';
 }

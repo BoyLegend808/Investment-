@@ -356,6 +356,16 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
+            <div class="crest-form-group">
+              <label class="crest-form-label">Select Starting Package</label>
+              <select class="crest-form-input" id="crest-signup-package" style="background: #FFFFFF; width: 100%; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; font-size: 0.95rem; color: #1e293b;">
+                <option value="level1">Level 1 Package (Starter)</option>
+                <option value="level2">Level 2 Package (Basic)</option>
+                <option value="level3">Level 3 Package (Pro)</option>
+                <option value="level4">Level 4 Package (Advanced)</option>
+                <option value="level5">Level 5 Package (VIP)</option>
+              </select>
+            </div>
             <button type="submit" class="crest-submit-btn" id="crest-signup-submit">
               Get Started
             </button>
