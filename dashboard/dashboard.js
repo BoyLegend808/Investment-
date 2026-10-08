@@ -14,47 +14,57 @@ function setCrestStorage(key, val) {
   } catch (e) {}
 }
 
-// Hide content and verify auth before showing dashboard
-document.documentElement.style.visibility = 'hidden';
-(async function supabaseAuthGuard() {
-  var waited = 0;
-  var session = null;
-  while (!window.supabaseClient && waited < 2000) {
-    await new Promise(r => setTimeout(r, 50));
-    waited += 50;
-  }
-  if (window.supabaseClient) {
-    try {
-      const { data } = await window.supabaseClient.auth.getSession();
-      session = data ? data.session : null;
-    } catch (e) {}
-  }
-  
-  var localUserRaw = localStorage.getItem('crest_current_user');
-  var localUser = null;
-  if (localUserRaw) {
-    try { localUser = JSON.parse(localUserRaw); } catch (e) {}
-  }
+// Verify auth before rendering dashboard
+if (!window.crestUser) {
+  (async function supabaseAuthGuard() {
+    var waited = 0;
+    var session = null;
+    while (!window.supabaseClient && waited < 1000) {
+      await new Promise(r => setTimeout(r, 25));
+      waited += 25;
+    }
+    if (window.supabaseClient) {
+      try {
+        const { data } = await window.supabaseClient.auth.getSession();
+        session = data ? data.session : null;
+      } catch (e) {}
+    }
+    
+    var localUserRaw = localStorage.getItem('crest_current_user');
+    var localUser = null;
+    if (localUserRaw) {
+      try { localUser = JSON.parse(localUserRaw); } catch (e) {}
+    }
 
-  // A locally stored user is ONLY trusted if it is the explicit demo account.
-  // Real users must have a valid Supabase session (prevents console-forged logins).
-  var isDemoUser = !!(localUser && typeof localUser.id === 'string' && localUser.id.indexOf('demo_') === 0);
+    // A locally stored user is ONLY trusted if it is the explicit demo account.
+    var isDemoUser = !!(localUser && typeof localUser.id === 'string' && localUser.id.indexOf('demo_') === 0);
 
-  if (!session && !isDemoUser) {
-    localStorage.removeItem('crest_current_user');
-    window.location.href = '../index/index.html#signin';
-    return;
-  }
+    if (!session && !isDemoUser) {
+      // If auth-guard overlay is active, let user sign in via modal instead of abruptly redirecting
+      if (!document.getElementById('crest-auth-overlay')) {
+        localStorage.removeItem('crest_current_user');
+        window.location.href = '../index/index.html#signin';
+      }
+      return;
+    }
 
-  window.crestUser = session ? session.user : localUser;
+    window.crestUser = session ? session.user : localUser;
+    document.documentElement.style.visibility = '';
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() { initDashboardUserProfile(); });
+    } else {
+      initDashboardUserProfile();
+    }
+  })();
+} else {
   document.documentElement.style.visibility = '';
-
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function() { initDashboardUserProfile(); });
   } else {
-    setTimeout(function() { initDashboardUserProfile(); }, 50);
+    initDashboardUserProfile();
   }
-})();
+}
 
 async function initDashboardUserProfile() {
   var user = window.crestUser;

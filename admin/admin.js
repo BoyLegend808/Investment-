@@ -1,16 +1,25 @@
 // Hide content and verify real Supabase session before showing admin panel
-document.documentElement.style.visibility = 'hidden';
+if (!window.crestSession) {
+  document.documentElement.style.visibility = 'hidden';
+}
 (async function supabaseAuthGuard() {
-  let waited = 0;
-  while (!window.supabaseClient && waited < 3000) {
-    await new Promise(r => setTimeout(r, 50));
-    waited += 50;
+  let session = window.crestSession;
+  if (!session) {
+    let waited = 0;
+    while (!window.supabaseClient && waited < 1500) {
+      await new Promise(r => setTimeout(r, 25));
+      waited += 25;
+    }
+    if (!window.supabaseClient) {
+      window.location.href = '../index/index.html';
+      return;
+    }
+    try {
+      const { data } = await window.supabaseClient.auth.getSession();
+      session = data ? data.session : null;
+    } catch (e) {}
   }
-  if (!window.supabaseClient) {
-    window.location.href = '../index/index.html';
-    return;
-  }
-  const { data: { session } } = await window.supabaseClient.auth.getSession();
+
   if (!session) {
     window.location.href = '../index/index.html';
     return;

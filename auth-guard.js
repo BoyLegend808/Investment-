@@ -2,44 +2,65 @@
  * Crest Wealth - Client-Side Authentication Guard
  */
 (async function () {
-  const isDynamicLoad = document.readyState === 'complete';
-  
-  // Hide body to prevent flash of protected content while checking auth (only on initial load)
-  if (!isDynamicLoad) document.documentElement.style.visibility = 'hidden';
+  const path = window.location.pathname.toLowerCase();
+  const isProtectedPage = path.includes('/dashboard') || path.includes('/admin');
 
-  // Wait for Supabase to initialize (max 3 seconds)
-  let retries = 0;
-  while (!window.supabaseClient && retries < 60) {
-    await new Promise(r => setTimeout(r, 50));
-    retries++;
-  }
-
-  if (!window.supabaseClient) {
-    console.error('[Crest Supabase] auth-guard gave up waiting for Supabase.');
-    if (!isDynamicLoad) document.documentElement.style.visibility = '';
-    return;
-  }
-
-  const { data: { session } } = await window.supabaseClient.auth.getSession();
-  
-  // Also check if user is logged in via demo mode
+  // Fast check: if demo investor or existing window user
   const localUserRaw = localStorage.getItem('crest_current_user');
   let isDemoUser = false;
+  let localUser = null;
   if (localUserRaw) {
     try {
-      const u = JSON.parse(localUserRaw);
-      isDemoUser = !!(u && typeof u.id === 'string' && u.id.indexOf('demo_') === 0);
+      localUser = JSON.parse(localUserRaw);
+      isDemoUser = !!(localUser && typeof localUser.id === 'string' && localUser.id.indexOf('demo_') === 0);
     } catch (e) {}
   }
 
-  if (session || isDemoUser) {
-    // User is logged in, show page
-    if (!isDynamicLoad) document.documentElement.style.visibility = '';
-    return;
+  // ONLY hide document on protected pages when neither demo nor authenticated user exists
+  if (isProtectedPage && !isDemoUser && !window.crestUser) {
+    document.documentElement.style.visibility = 'hidden';
   }
 
-  // Not logged in, show overlay
-  if (!isDynamicLoad) document.documentElement.style.visibility = '';
+  // Resolve Supabase session quickly
+  let session = null;
+  if (window.supabaseClient) {
+    try {
+      const res = await window.supabaseClient.auth.getSession();
+      session = res && res.data ? res.data.session : null;
+    } catch (e) {}
+  } else {
+    let retries = 0;
+    while (!window.supabaseClient && retries < 30) {
+      await new Promise(r => setTimeout(r, 25));
+      retries++;
+    }
+    if (window.supabaseClient) {
+      try {
+        const res = await window.supabaseClient.auth.getSession();
+        session = res && res.data ? res.data.session : null;
+      } catch (e) {}
+    }
+  }
+
+  // Always restore document visibility immediately
+  if (isProtectedPage) {
+    document.documentElement.style.visibility = '';
+  }
+
+  if (session || isDemoUser) {
+    window.crestUser = session ? session.user : localUser;
+    window.crestSession = session;
+    // On protected pages, user is authorized, so do not build or show overlay
+    if (isProtectedPage) return;
+  }
+
+  // If overlay already exists in DOM, just open it
+  if (document.getElementById('crest-auth-overlay')) {
+    if (typeof window.crestOpenAuthModal === 'function') {
+      window.crestOpenAuthModal(window.crestAuthDefaultTab || 'login');
+    }
+    return;
+  }
 
   // ── Styles ──────────────────────────────────────────────────────────────────
   const style = document.createElement('style');
@@ -487,11 +508,26 @@
     overlay.style.opacity = '0';
     overlay.style.pointerEvents = 'none';
     setTimeout(() => {
-      if (overlay.parentNode) overlay.remove();
-      if (style.parentNode) style.remove();
+      overlay.style.display = 'none';
       document.body.style.overflow = '';
-    }, 300);
+      const p = window.location.pathname.toLowerCase();
+      const isProt = p.includes('/dashboard') || p.includes('/admin');
+      if (isProt && !window.crestUser) {
+        const isSub = p.includes('/dashboard/') || p.includes('/admin/');
+        window.location.href = isSub ? '../index/index.html' : 'index/index.html';
+      }
+    }, 200);
   }
+
+  window.crestOpenAuthModal = function (tab) {
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      overlay.style.opacity = '1';
+      overlay.style.pointerEvents = 'auto';
+    });
+    document.body.style.overflow = 'hidden';
+    switchTab(tab || 'login');
+  };
 
   function switchTab(tab) {
     const tabsContainer = document.getElementById('crest-auth-tabs');
@@ -532,21 +568,28 @@
   }
 
   function redirectAfterAuth() {
-    showToast('Authentication successful! Opening dashboard...');
-    setTimeout(() => {
+    showToast('Authentication successful!');
+    const p = window.location.pathname.toLowerCase();
+    const isDashboard = p.includes('/dashboard') || p.includes('dashboard.html');
+
+    if (isDashboard) {
       closeOverlay();
-      var path = window.location.pathname;
-      if (path.includes('/dashboard/') || path.includes('dashboard.html')) {
+      if (typeof initDashboardUserProfile === 'function') {
+        initDashboardUserProfile();
+      } else {
         window.location.reload();
-        return;
       }
-      var isSubDir = path.includes('/index/') || path.includes('/accounts/') ||
-                     path.includes('/investments/') || path.includes('/academy/') ||
-                     path.includes('/pricing/') || path.includes('/security/') ||
-                     path.includes('/about/') || path.includes('/careers/') ||
-                     path.includes('/support/') || path.includes('/legal/');
+      return;
+    }
+
+    setTimeout(() => {
+      const isSubDir = p.includes('/index/') || p.includes('/accounts/') ||
+                       p.includes('/investments/') || p.includes('/academy/') ||
+                       p.includes('/pricing/') || p.includes('/security/') ||
+                       p.includes('/about/') || p.includes('/careers/') ||
+                       p.includes('/support/') || p.includes('/legal/');
       window.location.href = isSubDir ? '../dashboard/dashboard.html' : 'dashboard/dashboard.html';
-    }, 800);
+    }, 150);
   }
 
   // ── Events ───────────────────────────────────────────────────────────────────
@@ -567,7 +610,8 @@
       showToast('Continuing as Demo Investor...');
       const demoUser = { id: 'demo_investor', email: 'demo@crestwealth.com', user_metadata: { full_name: 'Demo Investor' } };
       localStorage.setItem('crest_current_user', JSON.stringify(demoUser));
-      setTimeout(redirectAfterAuth, 400);
+      window.crestUser = demoUser;
+      setTimeout(redirectAfterAuth, 150);
     });
   }
 
@@ -614,6 +658,7 @@
           btn.disabled = false;
           btn.textContent = originalText;
         } else {
+          window.crestUser = res.data && res.data.user ? res.data.user : null;
           redirectAfterAuth();
         }
       } catch (err) {

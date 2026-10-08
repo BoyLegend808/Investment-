@@ -166,10 +166,11 @@ if (typeof document !== 'undefined') {
  * Returns the client or null if Supabase failed to load.
  */
 async function waitForSupabase() {
+  if (window.supabaseClient) return window.supabaseClient;
   let waited = 0;
-  while (!window.supabaseClient && waited < 3000) {
-    await new Promise(r => setTimeout(r, 50));
-    waited += 50;
+  while (!window.supabaseClient && waited < 2000) {
+    await new Promise(r => setTimeout(r, 25));
+    waited += 25;
   }
   const sb = window.supabaseClient || null;
   if (sb && !window._crest_auth_listener_attached) {
@@ -179,12 +180,12 @@ async function waitForSupabase() {
         if (session && session.user) {
           localStorage.setItem('crest_current_user', JSON.stringify(session.user));
           try {
-            await sb.from('profiles').upsert({
+            sb.from('profiles').upsert({
               id: session.user.id,
               email: session.user.email,
               full_name: (session.user.user_metadata && session.user.user_metadata.full_name) || session.user.email.split('@')[0],
               updated_at: new Date().toISOString()
-            }, { onConflict: 'id' });
+            }, { onConflict: 'id' }).then(() => {}).catch(() => {});
           } catch (e) { /* ignore */ }
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem('crest_current_user');
@@ -200,19 +201,20 @@ async function waitForSupabase() {
  * Returns true/false. Safe to call from any page.
  */
 async function crestIsAuthenticated() {
+  // Fast optimistic check for demo user
+  const localUser = localStorage.getItem('crest_current_user');
+  if (localUser) {
+    try {
+      const parsed = JSON.parse(localUser);
+      if (parsed && typeof parsed.id === 'string' && parsed.id.indexOf('demo_') === 0) return true;
+    } catch (e) {}
+  }
+
   const sb = await waitForSupabase();
   if (sb) {
     try {
       const { data: { session } } = await sb.auth.getSession();
       if (session) return true;
-    } catch (e) {}
-  }
-  const localUser = localStorage.getItem('crest_current_user');
-  if (localUser) {
-    try {
-      const parsed = JSON.parse(localUser);
-      // Only the explicit demo account is trusted without a Supabase session
-      if (parsed && typeof parsed.id === 'string' && parsed.id.indexOf('demo_') === 0) return true;
     } catch (e) {}
   }
   return false;
@@ -240,14 +242,14 @@ async function crestSignIn(email, password) {
 
   localStorage.setItem('crest_current_user', JSON.stringify(data.user));
 
-  // Make sure a profile row exists (non-blocking, ignore failures)
+  // Non-blocking background sync for profile row (do not await)
   try {
-    await sb.from('profiles').upsert({
+    sb.from('profiles').upsert({
       id: data.user.id,
       email: data.user.email,
       full_name: (data.user.user_metadata && data.user.user_metadata.full_name) || email.split('@')[0],
       updated_at: new Date().toISOString()
-    }, { onConflict: 'id' });
+    }, { onConflict: 'id' }).then(() => {}).catch(() => {});
   } catch (e) { /* ignore */ }
 
   return { success: true, data: { user: data.user } };
@@ -365,17 +367,26 @@ function crestRedirectToDashboard(isSubdir) {
 // - Authenticated (Logged In): Show Client Dashboard nav link, change Get Started to Client Dashboard link
 // =============================================================================
 function crestLoadAuthGuard(defaultTab) {
-  if (document.getElementById('crest-auth-overlay')) return; // already open
-  window.crestAuthDefaultTab = defaultTab;
-  const old = document.getElementById('crest-auth-guard-script');
-  if (old) old.remove();
-
-  const depth = window.location.pathname.split('/').filter(Boolean).length;
-  const basePath = depth > 1 ? '../' : '';
-  const script = document.createElement('script');
-  script.id = 'crest-auth-guard-script';
-  script.src = basePath + 'auth-guard.js?t=' + Date.now();
-  document.head.appendChild(script);
+  const tab = defaultTab || 'login';
+  if (typeof window.crestOpenAuthModal === 'function') {
+    window.crestOpenAuthModal(tab);
+    return;
+  }
+  window.crestAuthDefaultTab = tab;
+  let script = document.getElementById('crest-auth-guard-script');
+  if (!script) {
+    const depth = window.location.pathname.split('/').filter(Boolean).length;
+    const basePath = depth > 1 ? '../' : '';
+    script = document.createElement('script');
+    script.id = 'crest-auth-guard-script';
+    script.src = basePath + 'auth-guard.js';
+    script.onload = function() {
+      if (typeof window.crestOpenAuthModal === 'function') {
+        window.crestOpenAuthModal(tab);
+      }
+    };
+    document.head.appendChild(script);
+  }
 }
 
 // Capture-phase delegation: runs before any page-specific handlers, works immediately.
@@ -385,12 +396,14 @@ document.addEventListener('click', async (e) => {
   e.preventDefault();
   e.stopImmediatePropagation();
 
+  const isSignin = trigger.matches('a.btn-sign-in, a[data-modal="signin"]');
+  const targetTab = isSignin ? 'login' : 'signup';
+
   if (await crestIsAuthenticated()) {
     crestRedirectToDashboard();
     return;
   }
-  const isSignin = trigger.matches('a.btn-sign-in, a[data-modal="signin"]');
-  crestLoadAuthGuard(isSignin ? 'login' : 'signup');
+  crestLoadAuthGuard(targetTab);
 }, true);
 
 document.addEventListener('DOMContentLoaded', async () => {

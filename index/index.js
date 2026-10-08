@@ -255,8 +255,8 @@ function initModals() {
         return;
       }
       btn.textContent = 'Redirecting...';
-      if (typeof showToast === 'function') showToast('Authentication successful!', 'success', 3000);
-      setTimeout(() => crestRedirectToDashboard(), 1200);
+      if (typeof showToast === 'function') showToast('Authentication successful!', 'success', 2000);
+      setTimeout(() => crestRedirectToDashboard(), 150);
     });
   }
 
@@ -292,8 +292,8 @@ function initModals() {
         if (typeof showToast === 'function') showToast('Account created! Please check your email to verify your account.', 'success', 6000);
         btn.textContent = 'Check your email';
       } else {
-        if (typeof showToast === 'function') showToast('Account created! Redirecting...', 'success', 3000);
-        setTimeout(() => crestRedirectToDashboard(), 1500);
+        if (typeof showToast === 'function') showToast('Account created! Redirecting...', 'success', 2000);
+        setTimeout(() => crestRedirectToDashboard(), 150);
       }
     });
   }
