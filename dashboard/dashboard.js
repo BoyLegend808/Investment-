@@ -88,9 +88,17 @@ async function initDashboardUserProfile() {
           var b = parseFloat(dbProfile.cash_balance);
           if (!isNaN(b) && typeof S !== 'undefined') {
             S.cashBalance = b;
-            saveUserBalance();
-            updateBalanceDisplays();
           }
+        }
+        if (dbProfile.invested_balance !== undefined && dbProfile.invested_balance !== null) {
+          var ib = parseFloat(dbProfile.invested_balance);
+          if (!isNaN(ib) && typeof S !== 'undefined') {
+            S.investedBalance = ib;
+          }
+        }
+        if (typeof S !== 'undefined') {
+          saveUserBalance();
+          updateBalanceDisplays();
         }
       }
     } catch (err) {
@@ -146,20 +154,16 @@ var DEFAULT_TASKS = [
     icon: 'x', platform: 'X (Twitter)',
     title: 'Follow Crest on X',
     desc: 'Follow <strong>@CrestWealthNG</strong> and stay updated with daily market tips.',
-    steps: ['Search @CrestWealthNG on X', 'Click Follow on the profile', 'Enter your X username below'],
-    inputType: 'text', inputPlaceholder: 'Your @username',
-    inputDoneVal: '@adaeze_invests',
+    steps: ['Tap the button below to open @CrestWealthNG on X', 'Click Follow on the profile', 'Come back here — we verify automatically'],
+    inputType: null,
     reward: '+₦2,000', rewardAmount: 2000,
     url: 'https://x.com/CrestWealthNG', urlLabel: 'Open X Profile',
-    verificationType: 'social_handle'
-  },
-  {
-    id: 1, done: false,
+    verificationType: 'timed', minSeconds: 20
     icon: 'yt', platform: 'YouTube',
     title: 'Subscribe on YouTube',
     desc: 'Subscribe to <strong>Crest Wealth</strong> and watch at least one full video.',
-    steps: ['Open Crest Wealth YouTube channel', 'Click Subscribe', 'Watch any full video (5+ mins)', 'Paste your email below'],
-    inputType: 'email', inputPlaceholder: 'YouTube account email',
+    steps: ['Tap the button below to open our YouTube channel', 'Click Subscribe', 'Watch any full video, then come back here'],
+    inputType: null,
     reward: '+₦3,000', rewardAmount: 3000,
     url: 'https://youtube.com/@CrestWealth', urlLabel: 'Open YouTube Channel',
     verificationType: 'social_handle'
@@ -169,8 +173,8 @@ var DEFAULT_TASKS = [
     icon: 'ig', platform: 'Instagram',
     title: 'Comment on Our Post',
     desc: 'Find the pinned post on <strong>@CrestWealthNG</strong> and leave a genuine comment.',
-    steps: ['Open @CrestWealthNG on Instagram', 'Find the pinned investment post', 'Leave a comment', 'Enter your username below'],
-    inputType: 'text', inputPlaceholder: 'Your Instagram username',
+    steps: ['Tap the button below to open @CrestWealthNG on Instagram', 'Find the pinned investment post', 'Leave a comment, then come back here'],
+    inputType: null,
     reward: '+₦1,500', rewardAmount: 1500,
     url: 'https://instagram.com/CrestWealthNG', urlLabel: 'Open Instagram',
     verificationType: 'social_handle'
@@ -202,8 +206,8 @@ var DEFAULT_TASKS = [
     icon: 'link', platform: 'VIP Referrals',
     title: 'Invite 2 Friends to Crest',
     desc: 'Share your personal referral link on WhatsApp. When 2 friends join and verify, earn <strong>₦5,000</strong> instant cash credit.',
-    steps: ['Click Share on WhatsApp below', 'Send your invitation to at least 2 friends or investment groups', 'Enter the phone numbers or names of your 2 invited friends'],
-    inputType: 'text', inputPlaceholder: 'Names or WhatsApp numbers of 2 friends',
+    steps: ['Tap Share on WhatsApp below', 'Send your invitation to at least 2 friends or investment groups', 'Come back here — we verify automatically'],
+    inputType: null,
     reward: '+₦5,000', rewardAmount: 5000,
     url: "https://api.whatsapp.com/send?text=Hey!%20I'm%20earning%20daily%20passive%20returns%20with%20Crest%20Wealth.%20Join%20with%20my%20VIP%20link%20to%20get%20%E2%82%A62%2C000%20welcome%20bonus%3A%20https%3A%2F%2Fcrestwealth.com%2Fref%2FADAEZE2026",
     urlLabel: 'Share on WhatsApp',
@@ -283,21 +287,23 @@ function loadTasksState() {
     if (!copy.reward) {
       copy.reward = '+₦' + copy.rewardAmount.toLocaleString('en-NG');
     }
-    if (!copy.verificationType) {
-      copy.verificationType = copy.isQuiz ? 'quiz' : (copy.isGame ? 'game' : 'social_handle');
-    }
+    if (copy.isQuiz || copy.verificationType === 'quiz') copy.verificationType = 'quiz';
+    else if (copy.isGame || copy.verificationType === 'game') copy.verificationType = 'game';
+    else if (copy.verificationType !== 'screenshot') copy.verificationType = 'timed';
+    if (copy.verificationType === 'timed' && !copy.minSeconds) copy.minSeconds = 30;
     if (userDone[copy.id] !== undefined) {
       copy.done = !!userDone[copy.id].done;
       if (userDone[copy.id].inputDoneVal) copy.inputDoneVal = userDone[copy.id].inputDoneVal;
+      if (userDone[copy.id].proofPath) copy.proofPath = userDone[copy.id].proofPath;
     }
     return copy;
   });
 }
 
-function saveUserTasksState() {
+function saveUserTasksState(onlyTaskId) {
   var state = {};
   S.tasks.forEach(function(t) {
-    state[t.id] = { done: t.done, inputDoneVal: t.inputDoneVal || '' };
+    state[t.id] = { done: t.done, inputDoneVal: t.inputDoneVal || '', proofPath: t.proofPath || '' };
   });
   try {
     setCrestStorage('user_tasks', state);
@@ -310,21 +316,35 @@ function saveUserTasksState() {
         var u = res && res.data && res.data.session ? res.data.session.user : null;
         if (u && !u.id.startsWith('demo_')) {
           S.tasks.forEach(function(t) {
+            if (onlyTaskId !== undefined && t.id !== onlyTaskId) return;
             if (t.done) {
-              window.supabaseClient.from('user_tasks').upsert({
+              var row = {
                 user_id: u.id,
                 task_id: t.id.toString(),
                 task_title: t.title,
                 reward_amount: t.rewardAmount || 2000,
                 status: 'completed',
                 completed_at: new Date().toISOString()
-              }, { onConflict: 'user_id,task_id' }).then(function() {});
+              };
+              if (t.proofPath) row.proof_url = t.proofPath;
+              window.supabaseClient.from('user_tasks').upsert(row, { onConflict: 'user_id,task_id' }).then(function() {});
             }
           });
         }
       });
     } catch(e) {}
   }
+}
+
+function loadInvestedBalance() {
+  try {
+    var saved = getCrestStorage('invested_balance', null);
+    if (saved !== null) {
+      var num = parseFloat(saved);
+      if (!isNaN(num)) return num;
+    }
+  } catch(e) {}
+  return 0;
 }
 
 function loadUserBalance() {
@@ -335,12 +355,13 @@ function loadUserBalance() {
       if (!isNaN(num)) return num;
     }
   } catch(e) {}
-  return 84200;
+  return 0;
 }
 
 function saveUserBalance() {
   try {
     setCrestStorage('user_balance', S.cashBalance.toString());
+    setCrestStorage('invested_balance', (S.investedBalance || 0).toString());
   } catch(e) {}
 
   // Sync cash_balance to Supabase DB if user is logged in
@@ -350,8 +371,8 @@ function saveUserBalance() {
         var u = res && res.data && res.data.session ? res.data.session.user : null;
         if (u && !u.id.startsWith('demo_')) {
           window.supabaseClient.from('profiles').update({
-            cash_balance: S.cashBalance,
-            updated_at: new Date().toISOString()
+            cash_balance: S.cashBalance
+            // Note: invested_balance is protected by RLS triggers
           }).eq('id', u.id).then(function() {});
         }
       });
@@ -363,22 +384,25 @@ function updateBalanceDisplays() {
   var fmt2 = function(n) { return '₦' + n.toLocaleString('en-NG', { minimumFractionDigits: 2 }); };
   var fmt0 = function(n) { return '₦' + Math.round(n).toLocaleString('en-NG'); };
 
-  // 1. Overview cash balance stat card
   if ($('cashBalanceVal')) $('cashBalanceVal').textContent = fmt0(S.cashBalance);
+  if ($('cashBalanceHeroVal')) $('cashBalanceHeroVal').textContent = fmt2(S.cashBalance);
 
-  // 2. Withdraw view available balance
   document.querySelectorAll('.balance-display').forEach(function(el) {
     el.textContent = fmt2(S.cashBalance);
   });
 
-  // 3. Withdraw amount placeholder
   var wdInput = $('withdrawAmount');
   if (wdInput) wdInput.placeholder = 'Max ' + fmt0(S.cashBalance);
 
-  // 4. Portfolio values (Invested 976,800 + Accrued 187,500 = 1,164,300 + S.cashBalance)
-  var totalPortfolio = 1164300 + S.cashBalance;
+  var totalInvested = S.investedBalance || 0;
+  var totalAccrued = S.accruedInterest || 0;
+  var totalPortfolio = totalInvested + totalAccrued + S.cashBalance;
+
   if ($('topbarPortfolio')) $('topbarPortfolio').textContent = fmt0(totalPortfolio);
   if ($('portfolioValue')) $('portfolioValue').textContent = fmt2(totalPortfolio);
+  
+  if ($('totalInvestedVal')) $('totalInvestedVal').textContent = fmt0(totalInvested);
+  if ($('totalAccruedVal')) $('totalAccruedVal').textContent = fmt0(totalAccrued);
 }
 
 function creditUserReward(amount, taskTitle) {
@@ -421,6 +445,8 @@ function creditUserReward(amount, taskTitle) {
 var S = {
   currentView: 'overview',
   cashBalance: loadUserBalance(),
+  investedBalance: loadInvestedBalance(),
+  accruedInterest: 0,
   tasks: loadTasksState(),
   quiz: { q: 0, score: 0, done: false, passed: false },
   game: {
@@ -590,8 +616,17 @@ var ICONS = {
   link: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>'
 };
 
+var EXT_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>';
+
+// Strip legacy "enter your username below" style steps (e.g. from admin-saved task configs)
+function cleanTaskSteps(steps) {
+  return (steps || []).filter(function(s) {
+    return !/(enter|paste|type|input)\b.*\b(below|username|email|handle)/i.test(s);
+  });
+}
+
 function renderTaskCard(t) {
-  var steps = t.steps ? t.steps.map(function(s) {
+  var steps = t.steps ? cleanTaskSteps(t.steps).map(function(s) {
     return '<div class="task-step' + (t.done ? ' task-step--done' : '') + '">' + s + '</div>';
   }).join('') : '';
 
@@ -599,24 +634,36 @@ function renderTaskCard(t) {
 
   var actionHtml = '';
   if (t.done && !t.isQuiz && !t.isGame) {
-    actionHtml = '<div class="task-input-row">' +
-      '<input class="task-input task-input--done" value="' + (t.inputDoneVal || 'Verified') + '" readonly>' +
-      '<button class="task-btn task-btn--done" disabled><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Verified &amp; Paid</button>' +
-      '</div>';
+    actionHtml = '<button class="task-btn task-btn--done task-btn--full" disabled><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Verified &amp; Paid</button>';
   } else if (!t.done && !t.isQuiz && !t.isGame) {
-    if (t.verificationType === 'instant') {
-      actionHtml = '<div class="task-input-row">' +
-        (t.url ? ('<a href="' + t.url + '" target="_blank" rel="noopener" class="task-ext-link" style="margin-bottom:0;flex:1;">' + (t.urlLabel || 'Open Link') +
-        ' <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg></a>') : '') +
-        '<button class="task-btn" onclick="verifyTask(' + t.id + ')">Confirm &amp; Claim <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>' +
+    var openBtn = t.url
+      ? '<a href="' + t.url + '" target="_blank" rel="noopener" class="task-btn task-go-btn" onclick="startTask(' + t.id + ', event)">' +
+        (t.urlLabel || 'Open ' + t.platform) + ' ' + EXT_ICON + '</a>'
+      : '';
+
+    if (t.verificationType === 'screenshot') {
+      actionHtml = '<div class="task-action-stack">' + openBtn +
+        '<label class="task-upload-btn" for="tproof-' + t.id + '">' +
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>' +
+          '<span>Upload screenshot to claim</span>' +
+        '</label>' +
+        '<input type="file" accept="image/*" id="tproof-' + t.id + '" class="task-file-input" onchange="uploadTaskProof(' + t.id + ', this)">' +
         '</div>';
     } else {
-      actionHtml = '<div class="task-input-row">' +
-        '<input type="' + (t.inputType || 'text') + '" class="task-input" id="tinput-' + t.id + '" placeholder="' + (t.inputPlaceholder || 'Your answer') + '">' +
-        '<button class="task-btn" onclick="verifyTask(' + t.id + ')">Verify <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>' +
-        '</div>' +
-        (t.url ? ('<a href="' + t.url + '" target="_blank" rel="noopener" class="task-ext-link">' + (t.urlLabel || 'Open ' + t.platform) +
-        ' <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg></a>') : '');
+      var pending = getPendingTask();
+      var isPending = pending && pending.id === t.id;
+      var need = fmtDur(t.minSeconds || 30);
+      if (isPending) {
+        actionHtml = '<div class="task-pending"><span class="task-pending-spin"></span>' +
+          '<span class="task-pending-text">Stay on ' + t.platform + ' for at least ' + need + ', then come back here</span>' +
+          (t.url ? '<button class="task-pending-retry" onclick="startTask(' + t.id + ')">Open again</button>' : '') +
+          '</div>';
+      } else if (t.url) {
+        actionHtml = '<div class="task-action-stack">' + openBtn +
+          '<div class="task-time-hint">Spend at least ' + need + ' there — coming back early won\'t count</div></div>';
+      } else {
+        actionHtml = '<button class="task-btn task-btn--full" onclick="verifyTask(' + t.id + ')">Claim Reward <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>';
+      }
     }
   } else if (t.isQuiz && !t.done) {
     actionHtml = renderQuizHTML();
@@ -639,31 +686,113 @@ function renderTaskCard(t) {
     '</div>';
 }
 
-function verifyTask(id) {
+/* ── TIMED AUTO-VERIFY ─────────────────────────────────────────
+   Click link -> pending saved -> we measure how long the user is actually
+   AWAY from this tab (page hidden). Only a single continuous stretch of at
+   least task.minSeconds counts. Coming straight back = not verified. */
+var PENDING_TASK_KEY = 'crest_pending_task';
+
+function fmtDur(sec) {
+  sec = Math.max(1, Math.round(sec));
+  if (sec < 60) return sec + ' sec';
+  var m = Math.floor(sec / 60), s = sec % 60;
+  return m + ' min' + (s ? ' ' + s + ' sec' : '');
+}
+
+function getPendingTask() {
+  try { return JSON.parse(localStorage.getItem(PENDING_TASK_KEY) || 'null'); } catch (e) { return null; }
+}
+function savePendingTask(p) {
+  try { localStorage.setItem(PENDING_TASK_KEY, JSON.stringify(p)); } catch (e) {}
+}
+
+function startTask(id, ev) {
   var task = S.tasks.find(function(item) { return item.id === id; });
-  if (!task) return;
+  if (!task || task.done) return;
+  if (task.verificationType === 'screenshot') return; // screenshot tasks just open the link
+  savePendingTask({ id: id, ts: Date.now(), hiddenAt: null, best: 0 });
+  // "Open again" button isn't an anchor — open the link manually
+  if (!ev && task.url) window.open(task.url, '_blank', 'noopener');
+  setTimeout(renderTasksGrid, 50);
+}
 
-  var isInstant = task.verificationType === 'instant';
-  var inputVal = '';
-
-  if (!isInstant) {
-    var input = $('tinput-' + id);
-    if (!input || !input.value.trim()) {
-      toast('Please enter the required information first.', 'warn');
-      return;
-    }
-    inputVal = input.value.trim();
-  } else {
-    inputVal = 'Instant Verified';
+function onTaskVisibilityChange() {
+  var p = getPendingTask();
+  if (!p) return;
+  if (document.visibilityState === 'hidden') {
+    if (!p.hiddenAt) { p.hiddenAt = Date.now(); savePendingTask(p); }
+    return;
   }
+  if (p.hiddenAt) {
+    p.lastAway = Date.now() - p.hiddenAt;
+    p.best = Math.max(p.best || 0, p.lastAway);
+    p.hiddenAt = null;
+    savePendingTask(p);
+  }
+  checkPendingTaskReturn();
+}
+
+function checkPendingTaskReturn() {
+  var p = getPendingTask();
+  if (!p || !S || !S.tasks) return;
+  var task = S.tasks.find(function(item) { return item.id === p.id; });
+  if (!task || task.done) { localStorage.removeItem(PENDING_TASK_KEY); return; }
+  if (!p.best) return; // user hasn't actually left the site yet
+
+  var needMs = (task.minSeconds || 30) * 1000;
+  if (p.best < needMs) {
+    var left = Math.ceil((needMs - (p.lastAway || 0)) / 1000);
+    toast('Not verified — you came back after ' + fmtDur((p.lastAway || 0) / 1000) + '. Stay on ' + task.platform + ' for ' + fmtDur(task.minSeconds || 30) + ' (' + fmtDur(left) + ' more). Tap "Open again".', 'warn');
+    return;
+  }
+  localStorage.removeItem(PENDING_TASK_KEY);
+  var pend = document.querySelector('#tcard-' + p.id + ' .task-pending-text');
+  if (pend) pend.textContent = 'Verifying your ' + task.platform + ' task...';
+  verifyTask(p.id);
+}
+
+document.addEventListener('visibilitychange', onTaskVisibilityChange);
+window.addEventListener('pageshow', function() { setTimeout(onTaskVisibilityChange, 800); });
+
+/* ── SCREENSHOT PROOF UPLOAD (paid as soon as the upload succeeds) ── */
+function uploadTaskProof(id, input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  if (!/^image\//.test(file.type)) { toast('Please upload an image (screenshot).', 'warn'); input.value = ''; return; }
+  if (file.size > 8 * 1024 * 1024) { toast('Screenshot is too large (max 8MB).', 'warn'); input.value = ''; return; }
+
+  var label = document.querySelector('#tcard-' + id + ' .task-upload-btn');
+  if (label) { label.classList.add('is-loading'); label.querySelector('span').textContent = 'Uploading screenshot...'; }
+
+  var fail = function(msg) { toast(msg, 'warn'); renderTasksGrid(); };
+  if (!window.supabaseClient) { verifyTask(id, null); return; }
+
+  window.supabaseClient.auth.getSession().then(function(res) {
+    var u = res && res.data && res.data.session ? res.data.session.user : null;
+    if (!u || u.id.startsWith('demo_')) { verifyTask(id, null); return; }
+    var ext = ((file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')) || 'jpg';
+    var path = u.id + '/task-' + id + '-' + Date.now() + '.' + ext;
+    window.supabaseClient.storage.from('task-proofs')
+      .upload(path, file, { contentType: file.type, upsert: false })
+      .then(function(r) {
+        if (r.error) { console.warn('[Crest] Proof upload failed:', r.error); fail('Upload failed. Please try again.'); return; }
+        verifyTask(id, path);
+      });
+  }).catch(function() { fail('Upload failed. Please try again.'); });
+}
+
+function verifyTask(id, proofPath) {
+  var task = S.tasks.find(function(item) { return item.id === id; });
+  if (!task || task.done) return;
 
   var btn = document.querySelector('#tcard-' + id + ' .task-btn');
-  if (btn) { btn.textContent = 'Verifying...'; btn.disabled = true; }
+  if (btn && !proofPath) { btn.textContent = 'Verifying...'; btn.disabled = true; }
 
   setTimeout(function() {
     task.done = true;
-    task.inputDoneVal = inputVal;
-    saveUserTasksState();
+    task.inputDoneVal = proofPath ? 'Screenshot' : 'Verified';
+    if (proofPath) task.proofPath = proofPath;
+    saveUserTasksState(id);
 
     var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : (function() {
       var m = (task.reward || '').replace(/[^0-9]/g, '');
@@ -674,6 +803,35 @@ function verifyTask(id) {
     refreshTaskUI();
     toast('Task verified! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
   }, 1200);
+}
+
+/* ── REMOTE SYNC: admin task config + this user's completed tasks ── */
+function loadRemoteTasksConfig() {
+  if (!window.supabaseClient) return;
+  var sb = window.supabaseClient;
+  sb.from('app_settings').select('value').eq('key', 'tasks_config').maybeSingle().then(function(res) {
+    if (!res.error && res.data && Array.isArray(res.data.value) && res.data.value.length) {
+      setCrestStorage('tasks_config', res.data.value);
+    }
+    return sb.auth.getSession();
+  }).then(function(sres) {
+    var u = sres && sres.data && sres.data.session ? sres.data.session.user : null;
+    if (!u || u.id.startsWith('demo_')) return null;
+    return sb.from('user_tasks').select('task_id, proof_url, status').eq('user_id', u.id);
+  }).then(function(tres) {
+    if (tres && !tres.error && Array.isArray(tres.data)) {
+      var local = {};
+      try { local = JSON.parse(getCrestStorage('user_tasks', '{}')) || {}; } catch (e) {}
+      tres.data.forEach(function(r) {
+        if (r.status === 'completed' && r.task_id != null) {
+          local[r.task_id] = Object.assign({}, local[r.task_id], { done: true, proofPath: r.proof_url || '' });
+        }
+      });
+      setCrestStorage('user_tasks', local);
+    }
+    S.tasks = loadTasksState();
+    refreshTaskUI();
+  }).catch(function(e) { console.warn('[Crest] Remote task sync skipped:', e); });
 }
 
 /* ── INVESTMENT IQ QUIZ ──────────────────────────────── */
@@ -1718,6 +1876,7 @@ function initSettingsInteractions() {
         if (window.supabaseClient) {
           await window.supabaseClient.auth.signOut();
         }
+        localStorage.removeItem('crest_current_user');
         setTimeout(function() {
           window.location.href = '../index/index.html';
         }, 500);

@@ -1625,3 +1625,40 @@ input:checked + .toggle-slider:before {
     justify-content: flex-end;
   }
 }
+
+/* ── Task templates & screenshot proofs ─────────────────── */
+.task-templates { display: flex; flex-wrap: wrap; gap: 6px; }
+.tpl-chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #E8E8E8;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 6px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tpl-chip:hover { border-color: var(--color-emerald); color: var(--color-emerald); transform: translateY(-1px); }
+.tpl-chip--active { background: rgba(16, 185, 129, 0.14); border-color: var(--color-emerald); color: var(--color-emerald); }
+
+.proofs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+  padding: 16px;
+}
+.proofs-empty { grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 24px; }
+.proof-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.proof-card:hover { transform: translateY(-2px); border-color: var(--color-emerald); }
+.proof-thumb { display: block; width: 100%; height: 150px; object-fit: cover; background: #111; }
+.proof-meta { padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+.proof-user { font-size: 0.8rem; font-weight: 700; color: #FFFFFF; }
+.proof-task { font-size: 0.74rem; color: var(--color-emerald); }
+.proof-date { font-size: 0.68rem; color: var(--text-muted); font-family: 'Space Mono', monospace; }

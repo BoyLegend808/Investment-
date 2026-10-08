@@ -51,30 +51,30 @@ var DEFAULT_ADMIN_TASKS = [
     icon: 'x', platform: 'X (Twitter)',
     title: 'Follow Crest on X',
     desc: 'Follow @CrestWealthNG for market notices & rate announcements.',
-    steps: ['Search @CrestWealthNG on X', 'Click Follow on the profile', 'Enter your X username below to claim bonus'],
+    steps: ['Tap the button below to open @CrestWealthNG on X', 'Click Follow on the profile', 'Come back here — we verify automatically'],
     reward: '+₦2,000', rewardAmount: 2000,
     url: 'https://x.com/CrestWealthNG', urlLabel: 'Open X Profile',
-    verificationType: 'social_handle', inputType: 'text', inputPlaceholder: 'Your @username'
+    verificationType: 'timed', minSeconds: 20
   },
   {
     id: 1, active: true,
     icon: 'yt', platform: 'YouTube',
     title: 'Subscribe on YouTube',
     desc: 'Subscribe to Crest Wealth and watch video briefs.',
-    steps: ['Open Crest Wealth YouTube channel', 'Click Subscribe', 'Watch any full video (5+ mins)', 'Paste your account email below'],
+    steps: ['Tap the button below to open our YouTube channel', 'Click Subscribe', 'Watch any full video, then come back here'],
     reward: '+₦3,000', rewardAmount: 3000,
     url: 'https://youtube.com/@CrestWealth', urlLabel: 'Open YouTube Channel',
-    verificationType: 'social_handle', inputType: 'email', inputPlaceholder: 'YouTube account email'
+    verificationType: 'timed', minSeconds: 120
   },
   {
     id: 2, active: true,
     icon: 'ig', platform: 'Instagram',
     title: 'Comment on Our Post',
     desc: 'Engage with the weekly pinned rate review post on @CrestWealthNG.',
-    steps: ['Open @CrestWealthNG on Instagram', 'Find the pinned investment post', 'Leave a comment', 'Enter your username below'],
+    steps: ['Tap the button below to open @CrestWealthNG on Instagram', 'Find the pinned investment post', 'Leave a comment, then come back here'],
     reward: '+₦1,500', rewardAmount: 1500,
     url: 'https://instagram.com/CrestWealthNG', urlLabel: 'Open Instagram',
-    verificationType: 'social_handle', inputType: 'text', inputPlaceholder: 'Your Instagram username'
+    verificationType: 'screenshot'
   },
   {
     id: 3, active: true,
@@ -267,12 +267,11 @@ function initAdminData() {
     if (!t.reward) {
       t.reward = '+₦' + t.rewardAmount.toLocaleString('en-NG');
     }
-    if (!t.verificationType) {
-      t.verificationType = t.isQuiz ? 'quiz' : (t.isGame ? 'game' : 'social_handle');
-    }
+    t.verificationType = normalizeVerificationType(t);
+    if (t.verificationType === 'timed' && !t.minSeconds) t.minSeconds = 30;
   });
 
-  saveTasksToStorage();
+  saveTasksToStorage(true);
 
   // Load Withdrawals (Seed + user generated)
   var savedWd = [];
@@ -303,7 +302,7 @@ function initAdminData() {
   AdminState.deposits = combinedDep;
 }
 
-function saveTasksToStorage() {
+function saveTasksToStorage(skipRemote) {
   try {
     localStorage.setItem('crest_tasks_config', JSON.stringify(AdminState.tasks));
   } catch(e) {}
@@ -312,6 +311,112 @@ function saveTasksToStorage() {
     var count = AdminState.tasks.filter(function(t) { return t.active !== false; }).length;
     badge.textContent = count + ' Active';
   }
+  if (!skipRemote) pushTasksToSupabase();
+}
+
+/* ── SUPABASE TASK SYNC (so every user's dashboard gets the admin's tasks) ── */
+function normalizeVerificationType(t) {
+  if (t.isQuiz || t.verificationType === 'quiz') return 'quiz';
+  if (t.isGame || t.verificationType === 'game') return 'game';
+  if (t.verificationType === 'screenshot') return 'screenshot';
+  return 'timed'; // legacy social_handle / instant / link_proof
+}
+
+function waitForSupabase() {
+  return new Promise(function(resolve) {
+    var waited = 0;
+    (function check() {
+      if (window.supabaseClient) return resolve(window.supabaseClient);
+      if (waited > 4000) return resolve(null);
+      waited += 100;
+      setTimeout(check, 100);
+    })();
+  });
+}
+
+function setTaskSyncBadge(text, ok) {
+  var b = $('taskSyncStatusBadge');
+  if (!b) return;
+  b.textContent = text;
+  b.className = 'badge ' + (ok ? 'badge--approved' : 'badge--pending');
+}
+
+function pushTasksToSupabase() {
+  setTaskSyncBadge('Sync: Saving...', false);
+  waitForSupabase().then(function(sb) {
+    if (!sb) { setTaskSyncBadge('Sync: Offline', false); return; }
+    sb.from('app_settings').upsert({
+      key: 'tasks_config',
+      value: AdminState.tasks,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' }).then(function(res) {
+      if (res.error) {
+        console.warn('[Admin] Task sync failed:', res.error);
+        setTaskSyncBadge('Sync: Failed', false);
+        toast('Could not publish tasks to users. Run the latest supabase-schema.sql.', 'warn');
+      } else {
+        setTaskSyncBadge('Sync: Live', true);
+      }
+    });
+  });
+}
+
+function loadRemoteTasks() {
+  waitForSupabase().then(function(sb) {
+    if (!sb) return;
+    sb.from('app_settings').select('value').eq('key', 'tasks_config').maybeSingle().then(function(res) {
+      if (res.error) { setTaskSyncBadge('Sync: Not set up', false); return; }
+      if (res.data && Array.isArray(res.data.value) && res.data.value.length) {
+        AdminState.tasks = res.data.value;
+        AdminState.tasks.forEach(function(t) { t.verificationType = normalizeVerificationType(t); });
+        saveTasksToStorage(true);
+        renderAdminTasks();
+        setTaskSyncBadge('Sync: Live', true);
+      } else {
+        // First run: publish the current local tasks so users receive them
+        pushTasksToSupabase();
+      }
+    });
+  });
+}
+
+/* ── SCREENSHOT PROOFS FEED ── */
+function loadTaskProofs() {
+  var el = $('taskProofsList');
+  if (!el) return;
+  waitForSupabase().then(function(sb) {
+    if (!sb) return;
+    sb.from('user_tasks')
+      .select('task_title, proof_url, completed_at, user_id, profiles(email, full_name)')
+      .not('proof_url', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(40)
+      .then(function(res) {
+        if (res.error || !res.data || !res.data.length) {
+          el.innerHTML = '<div class="proofs-empty">No screenshot proofs yet.</div>';
+          return;
+        }
+        var rows = res.data;
+        Promise.all(rows.map(function(r) {
+          return sb.storage.from('task-proofs').createSignedUrl(r.proof_url, 3600)
+            .then(function(s) { return s.data ? s.data.signedUrl : ''; })
+            .catch(function() { return ''; });
+        })).then(function(urls) {
+          el.innerHTML = rows.map(function(r, i) {
+            var p = r.profiles || {};
+            var who = escapeHtml(p.full_name || p.email || 'User');
+            var when = r.completed_at ? new Date(r.completed_at).toLocaleString('en-NG', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+            var img = urls[i]
+              ? '<a href="' + urls[i] + '" target="_blank" rel="noopener"><img class="proof-thumb" src="' + urls[i] + '" alt="Screenshot proof from ' + who + '" loading="lazy"></a>'
+              : '<div class="proof-thumb"></div>';
+            return '<div class="proof-card">' + img +
+              '<div class="proof-meta"><span class="proof-user">' + who + '</span>' +
+              '<span class="proof-task">' + escapeHtml(r.task_title || 'Task') + '</span>' +
+              '<span class="proof-date">' + when + '</span></div></div>';
+          }).join('');
+        });
+      });
+  });
 }
 
 function saveWithdrawalsToStorage() {
@@ -405,16 +510,14 @@ function renderAdminTasks() {
     var isActive = t.active !== false;
 
     var vTypeBadge = '';
-    if (t.verificationType === 'instant') {
-      vTypeBadge = '<span class="tac-vtype-badge">1-Click Instant</span>';
-    } else if (t.verificationType === 'link_proof') {
-      vTypeBadge = '<span class="tac-vtype-badge">Proof URL Link</span>';
+    if (t.verificationType === 'screenshot') {
+      vTypeBadge = '<span class="tac-vtype-badge">Screenshot Proof</span>';
     } else if (t.verificationType === 'quiz') {
       vTypeBadge = '<span class="tac-vtype-badge">Financial IQ Quiz</span>';
     } else if (t.verificationType === 'game') {
       vTypeBadge = '<span class="tac-vtype-badge">Trading Mini-Game</span>';
     } else {
-      vTypeBadge = '<span class="tac-vtype-badge">@Handle Input</span>';
+      vTypeBadge = '<span class="tac-vtype-badge">Auto · min ' + (t.minSeconds || 30) + 's away</span>';
     }
 
     var displayReward = t.reward || ('+₦' + (t.rewardAmount || 2000).toLocaleString('en-NG'));
@@ -504,37 +607,70 @@ function updateRewardPreview() {
 }
 
 function toggleVerificationFields(val) {
-  var grp = $('placeholderGroup');
-  var plInput = $('taskPlaceholderInput');
+  var grp = $('minTimeGroup');
   if (!grp) return;
-  if (val === 'quiz' || val === 'game') {
-    grp.style.display = 'none';
-  } else if (val === 'instant') {
-    grp.style.display = 'none';
-  } else {
-    grp.style.display = 'block';
-    if (plInput) {
-      plInput.placeholder = val === 'link_proof' ? 'e.g. https://... or post link' : 'e.g. Your @username';
-    }
-  }
+  grp.style.display = (val === 'timed') ? 'block' : 'none';
+}
+
+/* ── QUICK TEMPLATES ── */
+var TASK_TEMPLATES = {
+  x_follow:  { title: 'Follow us on X', platform: 'X (Twitter)', icon: 'x', urlLabel: 'Open X Profile', url: 'https://x.com/', vt: 'timed', min: 20,
+               steps: ['Tap the button below to open our X profile', 'Tap Follow', 'Come back here to get verified'] },
+  yt_sub:    { title: 'Subscribe to our YouTube channel', platform: 'YouTube', icon: 'yt', urlLabel: 'Open YouTube Channel', url: 'https://youtube.com/@', vt: 'timed', min: 30,
+               steps: ['Tap the button below to open our channel', 'Tap Subscribe', 'Come back here to get verified'] },
+  yt_video:  { title: 'Watch our latest video', platform: 'YouTube', icon: 'yt', urlLabel: 'Watch Video', url: 'https://youtu.be/', vt: 'timed', min: 180,
+               steps: ['Tap the button below to open the video', 'Watch the full video and tap Like', 'Come back here to get verified'] },
+  tt_follow: { title: 'Follow us on TikTok', platform: 'TikTok', icon: 'tiktok', urlLabel: 'Open TikTok Page', url: 'https://www.tiktok.com/@', vt: 'timed', min: 20,
+               steps: ['Tap the button below to open our TikTok page', 'Tap Follow', 'Come back here to get verified'] },
+  tt_video:  { title: 'Like & comment on our TikTok video', platform: 'TikTok', icon: 'tiktok', urlLabel: 'Open TikTok Video', url: 'https://www.tiktok.com/@', vt: 'screenshot', min: 30,
+               steps: ['Tap the button below to open the video', 'Like it and leave a comment', 'Screenshot your comment and upload it here'] },
+  ig_follow: { title: 'Follow us on Instagram', platform: 'Instagram', icon: 'ig', urlLabel: 'Open Instagram', url: 'https://instagram.com/', vt: 'timed', min: 20,
+               steps: ['Tap the button below to open our Instagram', 'Tap Follow', 'Come back here to get verified'] },
+  tg_join:   { title: 'Join our Telegram channel', platform: 'Telegram', icon: 'telegram', urlLabel: 'Join Telegram', url: 'https://t.me/', vt: 'timed', min: 15,
+               steps: ['Tap the button below to open Telegram', 'Tap Join', 'Come back here to get verified'] },
+  wa_join:   { title: 'Join our WhatsApp group', platform: 'WhatsApp', icon: 'link', urlLabel: 'Join WhatsApp Group', url: 'https://chat.whatsapp.com/', vt: 'screenshot', min: 15,
+               steps: ['Tap the button below to open WhatsApp', 'Tap Join Group', 'Screenshot the group and upload it here'] },
+  custom:    { title: '', platform: '', icon: 'link', urlLabel: 'Open Link', url: '', vt: 'timed', min: 30,
+               steps: ['Tap the button below', 'Complete the task', 'Come back here to get verified'] }
+};
+
+function applyTaskTemplate(key) {
+  var tpl = TASK_TEMPLATES[key];
+  if (!tpl) return;
+  document.querySelectorAll('.tpl-chip').forEach(function(c) {
+    c.classList.toggle('tpl-chip--active', (c.getAttribute('onclick') || '').indexOf("'" + key + "'") !== -1);
+  });
+  $('taskTitleInput').value = tpl.title;
+  $('taskPlatformInput').value = tpl.platform;
+  $('taskIconInput').value = tpl.icon;
+  $('taskUrlLabelInput').value = tpl.urlLabel;
+  $('taskUrlInput').value = tpl.url;
+  $('taskVerificationTypeInput').value = tpl.vt;
+  $('taskMinSecondsInput').value = tpl.min;
+  $('taskStepsInput').value = tpl.steps.join('\n');
+  toggleVerificationFields(tpl.vt);
+  var urlInput = $('taskUrlInput');
+  if (urlInput) { urlInput.focus(); urlInput.setSelectionRange(urlInput.value.length, urlInput.value.length); }
 }
 
 function openAddTaskModal() {
   $('editTaskId').value = '';
   $('taskModalTitle').textContent = 'Add Mandatory Task';
+  if ($('taskTemplatesGroup')) $('taskTemplatesGroup').style.display = 'block';
+  document.querySelectorAll('.tpl-chip').forEach(function(c) { c.classList.remove('tpl-chip--active'); });
   $('taskTitleInput').value = '';
   $('taskPlatformInput').value = '';
-  $('taskIconInput').value = 'telegram';
+  $('taskIconInput').value = 'link';
   $('taskRewardAmountInput').value = '2500';
   updateRewardPreview();
   $('taskUrlInput').value = '';
   $('taskUrlLabelInput').value = '';
-  $('taskVerificationTypeInput').value = 'social_handle';
-  $('taskPlaceholderInput').value = '';
+  $('taskVerificationTypeInput').value = 'timed';
+  $('taskMinSecondsInput').value = '30';
   $('taskDescInput').value = '';
-  $('taskStepsInput').value = 'Open the official community link\nFollow or join the group\nEnter your username below to verify and claim bonus';
+  $('taskStepsInput').value = 'Tap the button below\nComplete the task\nCome back here to get verified';
   $('taskActiveInput').checked = true;
-  toggleVerificationFields('social_handle');
+  toggleVerificationFields('timed');
   openModal('taskModal');
 }
 
@@ -543,6 +679,7 @@ function openEditTaskModal(id) {
   if (!task) return;
   $('editTaskId').value = id;
   $('taskModalTitle').textContent = 'Edit Task: ' + task.title;
+  if ($('taskTemplatesGroup')) $('taskTemplatesGroup').style.display = 'none';
   $('taskTitleInput').value = task.title || '';
   $('taskPlatformInput').value = task.platform || '';
   $('taskIconInput').value = task.icon || 'quiz';
@@ -556,9 +693,9 @@ function openEditTaskModal(id) {
 
   $('taskUrlInput').value = task.url || '';
   $('taskUrlLabelInput').value = task.urlLabel || '';
-  var vType = task.verificationType || (task.isQuiz ? 'quiz' : (task.isGame ? 'game' : 'social_handle'));
+  var vType = normalizeVerificationType(task);
   $('taskVerificationTypeInput').value = vType;
-  $('taskPlaceholderInput').value = task.inputPlaceholder || '';
+  $('taskMinSecondsInput').value = task.minSeconds || 30;
   $('taskDescInput').value = (task.desc || '').replace(/<[^>]*>?/gm, '');
   $('taskStepsInput').value = Array.isArray(task.steps) ? task.steps.join('\n') : (task.steps || '');
   $('taskActiveInput').checked = task.active !== false;
@@ -576,7 +713,7 @@ function saveTaskFromModal() {
   var url = $('taskUrlInput').value.trim();
   var urlLabel = $('taskUrlLabelInput').value.trim() || ('Visit ' + platform);
   var verificationType = $('taskVerificationTypeInput').value;
-  var placeholder = $('taskPlaceholderInput').value.trim();
+  var minSeconds = Math.max(5, parseInt($('taskMinSecondsInput').value, 10) || 30);
   var desc = $('taskDescInput').value.trim();
   var stepsRaw = $('taskStepsInput').value.trim();
   var isActive = $('taskActiveInput').checked;
@@ -603,8 +740,9 @@ function saveTaskFromModal() {
       existing.url = url;
       existing.urlLabel = urlLabel;
       existing.verificationType = verificationType;
-      existing.inputType = (verificationType === 'link_proof') ? 'url' : 'text';
-      existing.inputPlaceholder = placeholder || (verificationType === 'link_proof' ? 'Proof link' : 'Your @username');
+      existing.minSeconds = minSeconds;
+      delete existing.inputType;
+      delete existing.inputPlaceholder;
       existing.desc = desc || existing.desc;
       if (steps.length > 0) existing.steps = steps;
       existing.active = isActive;
@@ -621,14 +759,13 @@ function saveTaskFromModal() {
       platform: platform,
       title: title,
       desc: desc || ('Complete task on ' + platform + ' to earn your completion bonus.'),
-      steps: steps.length ? steps : ['Open the target link', 'Follow instructions', 'Submit verification proof'],
+      steps: steps.length ? steps : ['Tap the button below', 'Complete the task', 'Come back here to get verified'],
       rewardAmount: rewardAmt,
       reward: formattedReward,
       url: url,
       urlLabel: urlLabel,
       verificationType: verificationType,
-      inputType: (verificationType === 'link_proof') ? 'url' : 'text',
-      inputPlaceholder: placeholder || (verificationType === 'link_proof' ? 'Proof link' : 'Your @username'),
+      minSeconds: minSeconds,
       isQuiz: isQuiz,
       isGame: isGame
     });
@@ -1148,6 +1285,8 @@ window.addEventListener('storage', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
   initAdminData();
   renderAdminTasks();
+  loadRemoteTasks();
+  loadTaskProofs();
   filterWithdrawals();
   filterDeposits();
   renderUsersTable();

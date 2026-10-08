@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    NOVARA CAPITAL — USER DASHBOARD
    Design principles:
    - Data hierarchy first (numbers lead, labels follow)
@@ -1105,6 +1105,45 @@ body {
   text-decoration: none;
 }
 .task-ext-link:hover { text-decoration: underline; }
+
+/* One-tap auto-verify task actions */
+.task-go-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 11px 14px;
+  font-size: 0.82rem;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+.task-go-btn svg { transition: transform 0.2s; }
+.task-go-btn:hover svg { transform: translate(2px, -2px); }
+.task-btn--full { width: 100%; justify-content: center; padding: 11px 14px; }
+.task-pending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--c-green);
+  background: var(--c-green-bg);
+  color: var(--c-green-ink);
+  border-radius: var(--r-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.task-pending-spin {
+  width: 14px; height: 14px; flex-shrink: 0;
+  border: 2px solid var(--c-green);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: taskSpin 0.8s linear infinite;
+}
+.task-pending-retry {
+  margin-left: auto;
+  background: none; border: none;
+  color: var(--c-green); font-weight: 700; font-size: 0.75rem;
+  cursor: pointer; text-decoration: underline; font-family: var(--f-sans);
+}
+@keyframes taskSpin { to { transform: rotate(360deg); } }
 
 /* QUIZ */
 .quiz-wrap { display: flex; flex-direction: column; gap: 10px; }

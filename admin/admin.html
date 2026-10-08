@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <!-- Security Headers -->
@@ -121,7 +121,7 @@
               <span>Switch to User View</span>
             </div>
           </a>
-          <a href="../index/index.html" class="nav-item">
+          <a href="#" class="nav-item" onclick="event.preventDefault(); crestSignOut();">
             <div class="nav-item-left">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
               <span>Sign Out</span>
@@ -321,6 +321,22 @@
           </div>
           <div class="tasks-admin-list" id="tasksAdminList">
             <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Screenshot Proofs Feed -->
+        <div class="card" style="margin-top: 20px;">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">Screenshot Proofs</h3>
+              <span class="card-subtitle">Latest screenshots users uploaded for tasks (paid automatically on upload)</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-subtle btn-sm" onclick="loadTaskProofs()">Refresh</button>
+            </div>
+          </div>
+          <div class="proofs-grid" id="taskProofsList">
+            <div class="proofs-empty">No screenshot proofs yet.</div>
           </div>
         </div>
       </section>
@@ -555,11 +571,28 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="editTaskId">
+
+        <!-- Quick Templates -->
+        <div class="form-group" id="taskTemplatesGroup">
+          <label class="form-label">QUICK START TEMPLATE</label>
+          <div class="task-templates">
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('x_follow')">Follow on X</button>
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('yt_sub')">Subscribe YouTube</button>
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('yt_video')">Watch a YouTube Video</button>
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('tt_follow')">Follow on TikTok</button>
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('tt_video')">Like a TikTok Video</button>
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('ig_follow')">Follow on Instagram</button>
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('tg_join')">Join Telegram</button>
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('wa_join')">Join WhatsApp Group</button>
+            <button type="button" class="tpl-chip" onclick="applyTaskTemplate('custom')">Custom Task</button>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px;">Pick a template, then paste the exact link (profile, channel, video or post) below.</div>
+        </div>
         
         <!-- Task Title -->
         <div class="form-group">
           <label class="form-label" for="taskTitleInput">TASK TITLE</label>
-          <input type="text" class="form-input" id="taskTitleInput" placeholder="e.g. Follow Crest on X / Join Telegram Community">
+          <input type="text" class="form-input" id="taskTitleInput" placeholder="e.g. Follow @CrestWealthNG on X / Watch our latest video">
         </div>
 
         <!-- Platform & Icon Grid -->
@@ -609,8 +642,8 @@
         <!-- Action URL & Button Label -->
         <div class="form-row-2">
           <div class="form-group">
-            <label class="form-label" for="taskUrlInput">ACTION TARGET URL</label>
-            <input type="url" class="form-input" id="taskUrlInput" placeholder="https://t.me/crestwealthng">
+            <label class="form-label" for="taskUrlInput">TASK LINK (profile, channel, video or post URL)</label>
+            <input type="url" class="form-input" id="taskUrlInput" placeholder="https://www.tiktok.com/@yourpage or https://youtu.be/VIDEO_ID">
           </div>
           <div class="form-group">
             <label class="form-label" for="taskUrlLabelInput">ACTION BUTTON LABEL</label>
@@ -623,16 +656,16 @@
           <div class="form-group">
             <label class="form-label" for="taskVerificationTypeInput">VERIFICATION METHOD</label>
             <select class="form-input" id="taskVerificationTypeInput" onchange="toggleVerificationFields(this.value)">
-              <option value="social_handle">User Social Handle / Username (@handle)</option>
-              <option value="link_proof">Proof Link / Post URL</option>
-              <option value="instant">Instant 1-Click Verification (After click)</option>
+              <option value="timed">Auto-verify after minimum time away</option>
+              <option value="screenshot">Screenshot upload (paid instantly on upload)</option>
               <option value="quiz">Interactive Investment Quiz (70%+ to pass)</option>
               <option value="game">Interactive Trading Mini-Game (150+ pts)</option>
             </select>
           </div>
-          <div class="form-group" id="placeholderGroup">
-            <label class="form-label" for="taskPlaceholderInput">PROOF INPUT PLACEHOLDER</label>
-            <input type="text" class="form-input" id="taskPlaceholderInput" placeholder="e.g. Your @username or email">
+          <div class="form-group" id="minTimeGroup">
+            <label class="form-label" for="taskMinSecondsInput">MINIMUM TIME ON TASK (seconds)</label>
+            <input type="number" class="form-input" id="taskMinSecondsInput" min="5" step="5" placeholder="e.g. 30 for a follow, 180 for a video">
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">User must stay on the other app/page at least this long. Coming back early = not verified.</div>
           </div>
         </div>
 
@@ -644,7 +677,7 @@
 
         <div class="form-group">
           <label class="form-label" for="taskStepsInput">STEP-BY-STEP USER INSTRUCTIONS (One step per line)</label>
-          <textarea class="form-input form-textarea" id="taskStepsInput" rows="3" placeholder="Click the link to open our official community&#10;Follow the profile and turn on post alerts&#10;Enter your username below to verify and claim bonus"></textarea>
+          <textarea class="form-input form-textarea" id="taskStepsInput" rows="3" placeholder="Tap the button below to open our TikTok page&#10;Tap Follow&#10;Come back here to get verified"></textarea>
         </div>
 
         <!-- Requirement Toggle -->

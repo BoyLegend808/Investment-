@@ -351,3 +351,38 @@ DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.withdrawals; EX
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions; EXCEPTION WHEN OTHERS THEN NULL; END $$;
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_investments; EXCEPTION WHEN OTHERS THEN NULL; END $$;
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+-- 15. ADMIN-CONFIGURED TASKS (shared with every user dashboard)
+CREATE TABLE IF NOT EXISTS public.app_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "App settings read" ON public.app_settings;
+DROP POLICY IF EXISTS "App settings admin write" ON public.app_settings;
+CREATE POLICY "App settings read" ON public.app_settings FOR SELECT USING (true);
+CREATE POLICY "App settings admin write" ON public.app_settings FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.app_settings; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+-- 16. USER TASKS: columns used by the dashboard (task id, reward, screenshot proof)
+ALTER TABLE public.user_tasks ALTER COLUMN task_key DROP NOT NULL;
+ALTER TABLE public.user_tasks ADD COLUMN IF NOT EXISTS task_id TEXT;
+ALTER TABLE public.user_tasks ADD COLUMN IF NOT EXISTS task_title TEXT;
+ALTER TABLE public.user_tasks ADD COLUMN IF NOT EXISTS reward_amount NUMERIC(15, 2);
+ALTER TABLE public.user_tasks ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed';
+ALTER TABLE public.user_tasks ADD COLUMN IF NOT EXISTS proof_url TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_tasks_user_task ON public.user_tasks(user_id, task_id);
+CREATE INDEX IF NOT EXISTS idx_user_tasks_user_id ON public.user_tasks(user_id);
+
+-- 17. SCREENSHOT PROOF STORAGE (private bucket; users upload to their own folder, admins can view all)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('task-proofs', 'task-proofs', false)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Task proofs upload own" ON storage.objects;
+DROP POLICY IF EXISTS "Task proofs read own or admin" ON storage.objects;
+CREATE POLICY "Task proofs upload own" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'task-proofs' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "Task proofs read own or admin" ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'task-proofs' AND ((storage.foldername(name))[1] = auth.uid()::text OR public.is_admin()));
