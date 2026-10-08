@@ -523,6 +523,10 @@
     setTimeout(() => {
       closeOverlay();
       var path = window.location.pathname;
+      if (path.includes('/dashboard/') || path.includes('dashboard.html')) {
+        window.location.reload();
+        return;
+      }
       var isSubDir = path.includes('/index/') || path.includes('/accounts/') ||
                      path.includes('/investments/') || path.includes('/academy/') ||
                      path.includes('/pricing/') || path.includes('/security/') ||

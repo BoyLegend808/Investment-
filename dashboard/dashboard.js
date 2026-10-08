@@ -134,6 +134,10 @@ async function initDashboardUserProfile() {
     var emailInput = settingsView.querySelector('input[type="email"]');
     if (emailInput) emailInput.value = email;
   }
+
+  if (typeof loadRemoteTasksConfig === 'function') {
+    loadRemoteTasksConfig();
+  }
 }
 
 /* ============================================================
@@ -159,6 +163,9 @@ var DEFAULT_TASKS = [
     reward: '+₦2,000', rewardAmount: 2000,
     url: 'https://x.com/CrestWealthNG', urlLabel: 'Open X Profile',
     verificationType: 'timed', minSeconds: 20
+  },
+  {
+    id: 1, done: false,
     icon: 'yt', platform: 'YouTube',
     title: 'Subscribe on YouTube',
     desc: 'Subscribe to <strong>Crest Wealth</strong> and watch at least one full video.',
@@ -166,7 +173,7 @@ var DEFAULT_TASKS = [
     inputType: null,
     reward: '+₦3,000', rewardAmount: 3000,
     url: 'https://youtube.com/@CrestWealth', urlLabel: 'Open YouTube Channel',
-    verificationType: 'social_handle'
+    verificationType: 'timed', minSeconds: 30
   },
   {
     id: 2, done: false,
@@ -1886,7 +1893,7 @@ function initSettingsInteractions() {
 }
 
 /* ── INITIALIZATION ──────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function() {
+function initDashboard() {
   switchView('overview');
   updateBalanceDisplays();
   refreshTaskUI();
@@ -1896,6 +1903,15 @@ document.addEventListener('DOMContentLoaded', function() {
   updateWithdrawalTimeline();
   initTxnFiltering();
   initSettingsInteractions();
+  if (typeof loadRemoteTasksConfig === 'function') {
+    loadRemoteTasksConfig();
+  }
   setTimeout(function() { drawSparkline(); drawGrowth(); drawDonut(); }, 120);
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  initDashboard();
+}
 
