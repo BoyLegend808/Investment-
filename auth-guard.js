@@ -349,6 +349,10 @@
               <label class="crest-form-label">Email Address</label>
               <input type="email" class="crest-form-input" id="crest-signup-email" placeholder="john@example.com" required>
             </div>
+            <div class="crest-form-group">
+              <label class="crest-form-label">Phone Number</label>
+              <input type="tel" class="crest-form-input" id="crest-signup-phone" placeholder="+234 803 000 0000" required>
+            </div>
             <div class="crest-form-group" style="position: relative;">
               <label class="crest-form-label">Password</label>
               <input type="password" class="crest-form-input" id="crest-signup-pass" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" style="padding-right: 48px;">
@@ -358,12 +362,12 @@
             </div>
             <div class="crest-form-group">
               <label class="crest-form-label">Select Starting Package</label>
-              <select class="crest-form-input" id="crest-signup-package" style="background: #FFFFFF; width: 100%; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; font-size: 0.95rem; color: #1e293b;">
-                <option value="level1">Level 1 Package (Starter)</option>
-                <option value="level2">Level 2 Package (Basic)</option>
-                <option value="level3">Level 3 Package (Pro)</option>
-                <option value="level4">Level 4 Package (Advanced)</option>
-                <option value="level5">Level 5 Package (VIP)</option>
+              <select class="crest-form-input" id="crest-signup-package" style="background: #FFFFFF;">
+                <option>Level 1 Package (Starter)</option>
+                <option>Level 2 Package (Basic)</option>
+                <option>Level 3 Package (Pro)</option>
+                <option>Level 4 Package (Advanced)</option>
+                <option>Level 5 Package (VIP)</option>
               </select>
             </div>
             <button type="submit" class="crest-submit-btn" id="crest-signup-submit">
