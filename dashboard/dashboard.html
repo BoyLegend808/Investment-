@@ -373,16 +373,18 @@
         </div>
       </div>
       <div class="card">
-        <table class="data-table" id="txnTable">
-          <thead>
-            <tr>
-              <th>Date</th><th>Description</th><th>Type</th><th>Amount</th><th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="txnTableBody">
-            <!-- Rendered dynamically from Supabase transactions table -->
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="data-table" id="txnTable">
+            <thead>
+              <tr>
+                <th>Date</th><th>Description</th><th>Type</th><th>Amount</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="txnTableBody">
+              <!-- Rendered dynamically from Supabase transactions table -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -745,12 +747,14 @@
       </div>
       <div class="card" style="margin-top:16px;">
         <div class="card-title" style="margin-bottom:16px;">Referral History</div>
-        <table class="data-table">
-          <thead><tr><th>User</th><th>Joined</th><th>Package</th><th>Your Bonus</th><th>Status</th></tr></thead>
-          <tbody id="referralHistoryTableBody">
-            <!-- Rendered dynamically from Supabase database profiles -->
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead><tr><th>User</th><th>Joined</th><th>Package</th><th>Your Bonus</th><th>Status</th></tr></thead>
+            <tbody id="referralHistoryTableBody">
+              <!-- Rendered dynamically from Supabase database profiles -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
