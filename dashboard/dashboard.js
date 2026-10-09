@@ -2165,16 +2165,16 @@ function initSettingsInteractions() {
    VAULTX VIP TIERS, DYNAMIC PORTFOLIO & REFERRALS (DB LINKED)
    ============================================================ */
 var VAULTX_TIERS = [
-  { level: 1, rank: 'Bronze VIP', badgeCls: 'vx-badge-bronze', package: 5000, welcomeBonus: 250, dailyEarning: 900 },
-  { level: 2, rank: 'Silver VIP', badgeCls: 'vx-badge-silver', package: 15000, welcomeBonus: 750, dailyEarning: 2700 },
-  { level: 3, rank: 'Gold VIP', badgeCls: 'vx-badge-gold', package: 30000, welcomeBonus: 1500, dailyEarning: 5400 },
-  { level: 4, rank: 'Platinum VIP', badgeCls: 'vx-badge-platinum', package: 50000, welcomeBonus: 2500, dailyEarning: 9000 },
-  { level: 5, rank: 'Emerald VIP', badgeCls: 'vx-badge-emerald', package: 75000, welcomeBonus: 3750, dailyEarning: 13500 },
-  { level: 6, rank: 'Ruby VIP', badgeCls: 'vx-badge-ruby', package: 100000, welcomeBonus: 5000, dailyEarning: 18000 },
-  { level: 7, rank: 'Sapphire VIP', badgeCls: 'vx-badge-sapphire', package: 200000, welcomeBonus: 10000, dailyEarning: 36000 },
-  { level: 8, rank: 'Diamond VIP', badgeCls: 'vx-badge-diamond', package: 350000, welcomeBonus: 17500, dailyEarning: 63000 },
-  { level: 9, rank: 'Crown Obsidian', badgeCls: 'vx-badge-crown', package: 500000, welcomeBonus: 25000, dailyEarning: 90000 },
-  { level: 10, rank: 'Apex Imperial VIP', badgeCls: 'vx-badge-apex', package: 1000000, welcomeBonus: 50000, dailyEarning: 180000 }
+  { level: 1, rank: 'Welcome VIP', badgeCls: 'vx-badge-welcome', package: 1500, welcomeBonus: 75, dailyEarning: 270 },
+  { level: 2, rank: 'Bronze VIP', badgeCls: 'vx-badge-bronze', package: 5000, welcomeBonus: 250, dailyEarning: 900 },
+  { level: 3, rank: 'Silver VIP', badgeCls: 'vx-badge-silver', package: 10000, welcomeBonus: 500, dailyEarning: 1800 },
+  { level: 4, rank: 'Gold VIP', badgeCls: 'vx-badge-gold', package: 17000, welcomeBonus: 850, dailyEarning: 3060 },
+  { level: 5, rank: 'Platinum VIP', badgeCls: 'vx-badge-platinum', package: 25000, welcomeBonus: 1250, dailyEarning: 4500 },
+  { level: 6, rank: 'Emerald VIP', badgeCls: 'vx-badge-emerald', package: 35000, welcomeBonus: 1750, dailyEarning: 6300 },
+  { level: 7, rank: 'Ruby VIP', badgeCls: 'vx-badge-ruby', package: 70000, welcomeBonus: 3500, dailyEarning: 12600 },
+  { level: 8, rank: 'Sapphire VIP', badgeCls: 'vx-badge-sapphire', package: 90000, welcomeBonus: 4500, dailyEarning: 16200 },
+  { level: 9, rank: 'Diamond VIP', badgeCls: 'vx-badge-diamond', package: 150000, welcomeBonus: 7500, dailyEarning: 27000 },
+  { level: 10, rank: 'Apex Imperial VIP', badgeCls: 'vx-badge-apex', package: 350000, welcomeBonus: 17500, dailyEarning: 63000 }
 ];
 
 function renderVaultXModal() {
@@ -2183,20 +2183,28 @@ function renderVaultXModal() {
   var fmt = function(n) { return '₦' + n.toLocaleString('en-NG'); };
 
   grid.innerHTML = VAULTX_TIERS.map(function(t) {
-    var isFeat = t.level === 3 || t.level === 6 || t.level === 10;
-    return '<div class="vx-tier-card' + (isFeat ? ' featured' : '') + '">' +
+    return '<div class="vx-tier-card" data-level="' + t.level + '">' +
       '<div class="vx-tier-head">' +
-        '<span class="vx-tier-num">Level ' + t.level + '</span>' +
-        '<span class="vx-tier-badge ' + t.badgeCls + '">' + t.rank + '</span>' +
+        '<span class="vx-tier-num">LEVEL ' + t.level + '</span>' +
+        '<span class="vx-tier-badge ' + t.badgeCls + '">' + t.rank.toUpperCase() + '</span>' +
       '</div>' +
-      '<div class="vx-tier-cost">' + fmt(t.package) + ' <small>Capital</small></div>' +
+      '<div class="vx-tier-cost">' +
+        '<span class="vx-cost-num">' + fmt(t.package) + '</span>' +
+        '<span class="vx-cost-label">Capital</span>' +
+      '</div>' +
       '<div class="vx-tier-metrics">' +
-        '<div class="vx-tm-item"><span class="vx-tm-label">Daily Yield</span><span class="vx-tm-val positive">' + fmt(t.dailyEarning) + '/day</span></div>' +
-        '<div class="vx-tm-item"><span class="vx-tm-label">Bonus</span><span class="vx-tm-val">+' + fmt(t.welcomeBonus) + ' instant</span></div>' +
+        '<div class="vx-tm-item">' +
+          '<span class="vx-tm-label">DAILY YIELD</span>' +
+          '<span class="vx-tm-val positive">' + fmt(t.dailyEarning) + '/day</span>' +
+        '</div>' +
+        '<div class="vx-tm-item vx-tm-right">' +
+          '<span class="vx-tm-label">BONUS</span>' +
+          '<span class="vx-tm-val vx-bonus-val">+' + fmt(t.welcomeBonus) + ' instant</span>' +
+        '</div>' +
       '</div>' +
       '<button class="vx-btn-activate" onclick="subscribeToVaultXTier(' + t.level + ')">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ' +
-        'Activate ' + t.rank +
+        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ' +
+        '<span>Activate ' + t.rank + '</span>' +
       '</button>' +
     '</div>';
   }).join('');
@@ -2399,13 +2407,22 @@ function setupUserReferralUI(refCode) {
 
   if ($('refLink')) $('refLink').textContent = userReferralUrl;
 
+  var waShareText = "Hey! Join VaultX on Crest Wealth and earn daily returns up to 18% passive income. Register with my official VIP link to get an instant welcome bonus: " + userReferralUrl;
   var waBtn = $('shareWaBtn');
   if (waBtn) {
-    waBtn.href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent("Hey! Join VaultX on Crest Wealth and earn daily returns up to 18% passive income. Register with my official VIP link to get an instant welcome bonus: " + userReferralUrl);
+    waBtn.href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(waShareText);
   }
   var xBtn = $('shareXBtn');
   if (xBtn) {
     xBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent("Growing my portfolio daily with VaultX. Use my VIP invite code " + code + " for instant welcome bonus: " + userReferralUrl);
+  }
+
+  // Also dynamically update Task 5 in tasks list if present
+  if (typeof TASKS_LIST !== 'undefined' && Array.isArray(TASKS_LIST)) {
+    var t5 = TASKS_LIST.find(function(t) { return t.id === 5; });
+    if (t5) {
+      t5.url = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(waShareText);
+    }
   }
 }
 
@@ -2436,13 +2453,32 @@ async function loadUserReferralsFromDB() {
   }
 
   try {
-    var { data: refs, error } = await window.supabaseClient
-      .from('profiles')
-      .select('id, full_name, email, invested_balance, created_at')
-      .eq('referred_by', user.id)
-      .order('created_at', { ascending: false });
+    var refs = null;
 
-    if (error || !refs || refs.length === 0) {
+    // 1. Try secure RPC first (guaranteed bypass of RLS restrictions)
+    try {
+      var { data: rpcRefs, error: rpcErr } = await window.supabaseClient.rpc('get_user_referrals');
+      if (!rpcErr && Array.isArray(rpcRefs)) {
+        refs = rpcRefs;
+      }
+    } catch(rpcEx) {
+      console.warn('get_user_referrals RPC notice:', rpcEx);
+    }
+
+    // 2. Fallback to direct table query
+    if (!refs) {
+      var { data: directRefs, error: directErr } = await window.supabaseClient
+        .from('profiles')
+        .select('id, full_name, email, invested_balance, created_at')
+        .eq('referred_by', user.id)
+        .order('created_at', { ascending: false });
+
+      if (!directErr && directRefs) {
+        refs = directRefs;
+      }
+    }
+
+    if (!refs || refs.length === 0) {
       renderEmptyReferralsState();
       return;
     }
@@ -2455,7 +2491,8 @@ async function loadUserReferralsFromDB() {
       var inv = parseFloat(r.invested_balance) || 0;
       var isActive = inv > 0;
       if (isActive) activeRefs++;
-      var bonus = isActive ? 5000 : 0;
+      // 10% direct affiliate commission on active investment
+      var bonus = isActive ? Math.round(inv * 0.10) : 0;
       totalEarned += bonus;
 
       var name = r.full_name || (r.email ? r.email.split('@')[0] : 'Partner');
@@ -2465,8 +2502,8 @@ async function loadUserReferralsFromDB() {
         '<td><strong>' + name + '</strong></td>' +
         '<td>' + joined + '</td>' +
         '<td>' + (isActive ? ('₦' + inv.toLocaleString('en-NG')) : '&mdash;') + '</td>' +
-        '<td class="credit">' + (isActive ? '+₦5,000' : '₦0') + '</td>' +
-        '<td><span class="badge ' + (isActive ? 'badge--done' : 'badge--warn') + '">' + (isActive ? 'Active' : 'Signed Up') + '</span></td>' +
+        '<td class="credit">' + (isActive ? ('+₦' + bonus.toLocaleString('en-NG')) : '₦0') + '</td>' +
+        '<td><span class="badge ' + (isActive ? 'badge--done' : 'badge--warn') + '">' + (isActive ? 'Active Investor' : 'Registered') + '</span></td>' +
       '</tr>';
     }).join('');
 
@@ -2474,6 +2511,8 @@ async function loadUserReferralsFromDB() {
     if ($('refTotalCount')) $('refTotalCount').textContent = totalRefs;
     if ($('refTotalEarned')) $('refTotalEarned').textContent = '₦' + totalEarned.toLocaleString('en-NG');
     if ($('refActiveCount')) $('refActiveCount').textContent = activeRefs;
+    if ($('overviewRefEarnings')) $('overviewRefEarnings').textContent = '₦' + totalEarned.toLocaleString('en-NG');
+    if ($('overviewRefCount')) $('overviewRefCount').textContent = totalRefs + ' referral' + (totalRefs === 1 ? '' : 's');
   } catch(e) {
     console.warn('loadUserReferralsFromDB error:', e);
     renderEmptyReferralsState();
@@ -2483,11 +2522,13 @@ async function loadUserReferralsFromDB() {
 function renderEmptyReferralsState() {
   var tbody = $('referralHistoryTableBody');
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:28px;color:#94A3B8;">No partners referred yet. Share your VIP link to earn ₦5,000 for every investor!</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:28px;color:#94A3B8;">No partners referred yet. Share your VIP link to earn 10% instant commission on every investment!</td></tr>';
   }
   if ($('refTotalCount')) $('refTotalCount').textContent = '0';
   if ($('refTotalEarned')) $('refTotalEarned').textContent = '₦0';
   if ($('refActiveCount')) $('refActiveCount').textContent = '0';
+  if ($('overviewRefEarnings')) $('overviewRefEarnings').textContent = '₦0';
+  if ($('overviewRefCount')) $('overviewRefCount').textContent = '0 referrals';
 }
 
 /* ── DYNAMIC TRANSACTIONS LEDGER ─────────────────────── */
@@ -2570,6 +2611,13 @@ function initDashboard() {
     loadRemoteTasksConfig();
   }
   setTimeout(function() { drawSparkline(); drawGrowth(); drawDonut(); }, 120);
+
+  try {
+    var urlP = new URLSearchParams(window.location.search);
+    if (urlP.get('modal') === 'vaultx' || window.location.hash === '#vaultx') {
+      setTimeout(openVaultXModal, 350);
+    }
+  } catch(e) {}
 }
 
 if (document.readyState === 'loading') {

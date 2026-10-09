@@ -263,8 +263,8 @@
         </div>
         <div class="stat-item">
           <div class="stat-item-label">Referral Earnings</div>
-          <div class="stat-item-value">&#8358;35,000</div>
-          <div class="stat-item-sub neutral">7 referrals</div>
+          <div class="stat-item-value" id="overviewRefEarnings">&#8358;0</div>
+          <div class="stat-item-sub neutral" id="overviewRefCount">0 referrals</div>
         </div>
       </div>
 
@@ -732,7 +732,7 @@
             <div class="referral-kpi"><div class="referral-kpi-val positive" id="refTotalEarned">&#8358;0</div><div class="referral-kpi-label">Earned</div></div>
             <div class="referral-kpi"><div class="referral-kpi-val" id="refActiveCount">0</div><div class="referral-kpi-label">Active</div></div>
           </div>
-          <div class="referral-desc">Earn <strong>&#8358;5,000</strong> instant bonus for every partner who registers with your VIP link and activates a VaultX package.</div>
+          <div class="referral-desc">Earn <strong>10% instant commission</strong> (up to &#8358;35,000) for every partner who registers with your VIP link and activates a VaultX package.</div>
           <div class="referral-link-row">
             <code class="referral-link-code" id="refLink">Loading your referral link...</code>
             <button class="btn-outline-sm" onclick="copyReferralLink()">Copy Link</button>
@@ -868,10 +868,6 @@
     </div>
     
     <div class="vx-modal-body">
-      <div class="vx-modal-intro">
-        Choose a ranking tier below to start earning daily returns instantly. Welcome bonus is credited to your balance immediately upon activation.
-      </div>
-
       <div class="vx-tiers-grid" id="vxTiersGrid">
         <!-- Tiers 1-10 rendered dynamically via JS with VIP skins -->
       </div>

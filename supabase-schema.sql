@@ -360,7 +360,7 @@ ALTER TABLE public.user_tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Profiles select policy" ON public.profiles;
 DROP POLICY IF EXISTS "Profiles update policy" ON public.profiles;
 DROP POLICY IF EXISTS "Profiles insert policy" ON public.profiles;
-CREATE POLICY "Profiles select policy" ON public.profiles FOR SELECT USING (auth.uid() = id OR public.is_admin());
+CREATE POLICY "Profiles select policy" ON public.profiles FOR SELECT USING (auth.uid() = id OR referred_by = auth.uid() OR public.is_admin() OR referral_code IS NOT NULL);
 CREATE POLICY "Profiles update policy" ON public.profiles FOR UPDATE USING (auth.uid() = id OR public.is_admin());
 CREATE POLICY "Profiles insert policy" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
@@ -620,31 +620,32 @@ DECLARE
   v_rank TEXT;
   v_new_cash NUMERIC;
   v_new_inv NUMERIC;
+  v_ref_comm NUMERIC;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Authentication required.';
   END IF;
 
   IF p_level = 1 THEN
-    v_cost := 5000.00;    v_bonus := 250.00;   v_daily := 900.00;   v_rank := 'Bronze VIP';
+    v_cost := 1500.00;    v_bonus := 75.00;     v_daily := 270.00;    v_rank := 'Welcome VIP';
   ELSIF p_level = 2 THEN
-    v_cost := 15000.00;   v_bonus := 750.00;   v_daily := 2700.00;  v_rank := 'Silver VIP';
+    v_cost := 5000.00;    v_bonus := 250.00;    v_daily := 900.00;    v_rank := 'Bronze VIP';
   ELSIF p_level = 3 THEN
-    v_cost := 30000.00;   v_bonus := 1500.00;  v_daily := 5400.00;  v_rank := 'Gold VIP';
+    v_cost := 10000.00;   v_bonus := 500.00;    v_daily := 1800.00;   v_rank := 'Silver VIP';
   ELSIF p_level = 4 THEN
-    v_cost := 50000.00;   v_bonus := 2500.00;  v_daily := 9000.00;  v_rank := 'Platinum VIP';
+    v_cost := 17000.00;   v_bonus := 850.00;    v_daily := 3060.00;   v_rank := 'Gold VIP';
   ELSIF p_level = 5 THEN
-    v_cost := 75000.00;   v_bonus := 3750.00;  v_daily := 13500.00; v_rank := 'Emerald VIP';
+    v_cost := 25000.00;   v_bonus := 1250.00;   v_daily := 4500.00;   v_rank := 'Platinum VIP';
   ELSIF p_level = 6 THEN
-    v_cost := 100000.00;  v_bonus := 5000.00;  v_daily := 18000.00; v_rank := 'Ruby VIP';
+    v_cost := 35000.00;   v_bonus := 1750.00;   v_daily := 6300.00;   v_rank := 'Emerald VIP';
   ELSIF p_level = 7 THEN
-    v_cost := 200000.00;  v_bonus := 10000.00; v_daily := 36000.00; v_rank := 'Sapphire VIP';
+    v_cost := 70000.00;   v_bonus := 3500.00;   v_daily := 12600.00;  v_rank := 'Ruby VIP';
   ELSIF p_level = 8 THEN
-    v_cost := 350000.00;  v_bonus := 17500.00; v_daily := 63000.00; v_rank := 'Diamond VIP';
+    v_cost := 90000.00;   v_bonus := 4500.00;   v_daily := 16200.00;  v_rank := 'Sapphire VIP';
   ELSIF p_level = 9 THEN
-    v_cost := 500000.00;  v_bonus := 25000.00; v_daily := 90000.00; v_rank := 'Crown Obsidian';
+    v_cost := 150000.00;  v_bonus := 7500.00;   v_daily := 27000.00;  v_rank := 'Diamond VIP';
   ELSIF p_level = 10 THEN
-    v_cost := 1000000.00; v_bonus := 50000.00; v_daily := 180000.00; v_rank := 'Apex Imperial VIP';
+    v_cost := 350000.00;  v_bonus := 17500.00;  v_daily := 63000.00;  v_rank := 'Apex Imperial VIP';
   ELSE
     RAISE EXCEPTION 'Invalid package level (must be 1 to 10).';
   END IF;
@@ -698,6 +699,32 @@ BEGIN
     'success'
   );
 
+  -- Credit Referrer 10% Instant Direct Commission
+  IF v_prof.referred_by IS NOT NULL THEN
+    v_ref_comm := ROUND(v_cost * 0.10, 2);
+
+    UPDATE public.profiles
+    SET cash_balance = cash_balance + v_ref_comm, updated_at = NOW()
+    WHERE id = v_prof.referred_by;
+
+    INSERT INTO public.transactions (user_id, type, amount, description, status)
+    VALUES (
+      v_prof.referred_by,
+      'reward',
+      v_ref_comm,
+      'Affiliate Commission: ' || COALESCE(v_prof.full_name, 'Partner') || ' activated ' || v_rank,
+      'completed'
+    );
+
+    INSERT INTO public.notifications (user_id, title, message, type)
+    VALUES (
+      v_prof.referred_by,
+      'Affiliate Commission Received!',
+      'Your partner ' || COALESCE(v_prof.full_name, 'Partner') || ' activated VaultX ' || v_rank || ' (₦' || v_cost || '). +₦' || v_ref_comm || ' (10%) has been credited to your cash balance!',
+      'success'
+    );
+  END IF;
+
   RETURN jsonb_build_object(
     'success', true,
     'level', p_level,
@@ -749,13 +776,63 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 20. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
+-- 20. REFERRAL SECURE RPCs (Guaranteed bypass of client RLS limits)
+CREATE OR REPLACE FUNCTION public.get_user_referrals()
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_res JSONB;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN '[]'::jsonb;
+  END IF;
+
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+    'id', id,
+    'full_name', full_name,
+    'email', email,
+    'invested_balance', invested_balance,
+    'created_at', created_at
+  ) ORDER BY created_at DESC), '[]'::jsonb)
+  INTO v_res
+  FROM public.profiles
+  WHERE referred_by = v_uid;
+
+  RETURN v_res;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.lookup_referral_code(p_code TEXT)
+RETURNS JSONB AS $$
+DECLARE
+  v_prof RECORD;
+BEGIN
+  IF p_code IS NULL OR TRIM(p_code) = '' THEN
+    RETURN jsonb_build_object('valid', false);
+  END IF;
+
+  SELECT id, full_name INTO v_prof
+  FROM public.profiles
+  WHERE UPPER(TRIM(referral_code)) = UPPER(TRIM(p_code))
+  LIMIT 1;
+
+  IF FOUND THEN
+    RETURN jsonb_build_object('valid', true, 'referrer_id', v_prof.id, 'referrer_name', v_prof.full_name);
+  ELSE
+    RETURN jsonb_build_object('valid', false);
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 21. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.claim_daily_streak_reward(NUMERIC) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.credit_user_balance(NUMERIC, TEXT, TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.sync_user_balance(NUMERIC) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.subscribe_vaultx_package(INT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.get_user_referrals() TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.lookup_referral_code(TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.request_withdrawal(NUMERIC, TEXT, TEXT, TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.admin_confirm_deposit(TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.admin_reject_withdrawal(TEXT, TEXT) TO authenticated, anon;

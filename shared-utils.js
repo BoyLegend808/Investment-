@@ -337,8 +337,22 @@ async function crestSignUp(email, password, fullName, phone, pkg) {
   try {
     let referrerId = null;
     if (refCode && sb) {
-      const { data: refProfile } = await sb.from('profiles').select('id').eq('referral_code', refCode.trim()).maybeSingle();
-      if (refProfile && refProfile.id) referrerId = refProfile.id;
+      const cleanRef = refCode.trim().toUpperCase();
+      // Try secure RPC first
+      try {
+        const { data: rpcLookup } = await sb.rpc('lookup_referral_code', { p_code: cleanRef });
+        if (rpcLookup && rpcLookup.valid && rpcLookup.referrer_id) {
+          referrerId = rpcLookup.referrer_id;
+        }
+      } catch(rpcErr) {
+        console.warn('lookup_referral_code notice:', rpcErr);
+      }
+
+      // Fallback direct table query
+      if (!referrerId) {
+        const { data: refProfile } = await sb.from('profiles').select('id').ilike('referral_code', cleanRef).maybeSingle();
+        if (refProfile && refProfile.id) referrerId = refProfile.id;
+      }
     }
 
     const myRefCode = 'CW-' + data.user.id.substring(0, 8).toUpperCase();
@@ -368,7 +382,7 @@ async function crestSignUp(email, password, fullName, phone, pkg) {
     if (typeof window !== 'undefined' && window.location) {
       const p = new URLSearchParams(window.location.search);
       const r = p.get('ref');
-      if (r) localStorage.setItem('crest_ref_code', r.trim());
+      if (r) localStorage.setItem('crest_ref_code', r.trim().toUpperCase());
     }
   } catch(e) {}
 })();
