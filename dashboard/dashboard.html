@@ -345,72 +345,15 @@
     <div class="view" id="view-portfolio">
       <div class="page-header">
         <h2 class="page-title">Portfolio</h2>
-        <button class="btn-primary" onclick="switchView('deposit')">+ New Investment</button>
+        <button class="btn-primary" onclick="openVaultXModal()">+ Invest in VaultX</button>
       </div>
       <div class="stat-row">
-        <div class="stat-item"><div class="stat-item-label">Total Value</div><div class="stat-item-value">&#8358;1,248,500</div><div class="stat-item-sub positive">+2.4% overall</div></div>
-        <div class="stat-item"><div class="stat-item-label">Total Invested</div><div class="stat-item-value">&#8358;976,800</div><div class="stat-item-sub neutral">Cost basis</div></div>
-        <div class="stat-item"><div class="stat-item-label">Total Returns</div><div class="stat-item-value positive">&#8358;187,500</div><div class="stat-item-sub positive">19.2% ROI</div></div>
+        <div class="stat-item"><div class="stat-item-label">Total Value</div><div class="stat-item-value" id="portfolioTotalValue">&#8358;0</div><div class="stat-item-sub positive" id="portfolioValueGrowth">Live Balance</div></div>
+        <div class="stat-item"><div class="stat-item-label">Total Invested</div><div class="stat-item-value" id="portfolioTotalInvested">&#8358;0</div><div class="stat-item-sub neutral">Active Capital</div></div>
+        <div class="stat-item"><div class="stat-item-label">Total Returns</div><div class="stat-item-value positive" id="portfolioTotalReturns">&#8358;0</div><div class="stat-item-sub positive">Accrued Yield</div></div>
       </div>
-      <div class="inv-list">
-        <div class="inv-card inv-card--featured">
-          <div class="inv-card-header">
-            <div class="inv-icon inv-icon-ember">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </div>
-            <div>
-              <div class="inv-name">Level 1 Package</div>
-              <div class="inv-meta">Started Sep 1, 2026 &bull; 364-day term</div>
-            </div>
-            <span class="badge badge--active">Active</span>
-          </div>
-          <div class="inv-metrics">
-            <div><div class="inv-metric-label">Principal</div><div class="inv-metric-val">&#8358;500,000</div></div>
-            <div><div class="inv-metric-label">Rate p.a.</div><div class="inv-metric-val positive">16.8%</div></div>
-            <div><div class="inv-metric-label">Accrued</div><div class="inv-metric-val positive">+&#8358;84,000</div></div>
-            <div><div class="inv-metric-label">Matures</div><div class="inv-metric-val">Aug 31, 2027</div></div>
-          </div>
-          <div class="inv-progress">
-            <div class="inv-progress-labels"><span>Term Progress</span><span>15%</span></div>
-            <div class="inv-progress-track"><div class="inv-progress-fill" style="width:15%;background:#10B981"></div></div>
-          </div>
-        </div>
-        <div class="inv-card">
-          <div class="inv-card-header">
-            <div class="inv-icon inv-icon-copper">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
-            </div>
-            <div>
-              <div class="inv-name">Level 2 Package</div>
-              <div class="inv-meta">GTCO &bull; DANGCEM &bull; MTNN</div>
-            </div>
-            <span class="badge badge--active">Live</span>
-          </div>
-          <div class="inv-metrics">
-            <div><div class="inv-metric-label">Market Value</div><div class="inv-metric-val">&#8358;380,000</div></div>
-            <div><div class="inv-metric-label">Cost Basis</div><div class="inv-metric-val">&#8358;345,000</div></div>
-            <div><div class="inv-metric-label">Gain</div><div class="inv-metric-val positive">+&#8358;35,000</div></div>
-            <div><div class="inv-metric-label">Yield</div><div class="inv-metric-val">6.2% avg</div></div>
-          </div>
-        </div>
-        <div class="inv-card">
-          <div class="inv-card-header">
-            <div class="inv-icon inv-icon-amber">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4"/></svg>
-            </div>
-            <div>
-              <div class="inv-name">Level 3 Package</div>
-              <div class="inv-meta">364-day FGN &bull; Sep 5, 2026</div>
-            </div>
-            <span class="badge badge--active">Active</span>
-          </div>
-          <div class="inv-metrics">
-            <div><div class="inv-metric-label">Face Value</div><div class="inv-metric-val">&#8358;100,000</div></div>
-            <div><div class="inv-metric-label">Rate</div><div class="inv-metric-val positive">16.8%</div></div>
-            <div><div class="inv-metric-label">Discount</div><div class="inv-metric-val">&#8358;16,800</div></div>
-            <div><div class="inv-metric-label">Matures</div><div class="inv-metric-val">Sep 4, 2027</div></div>
-          </div>
-        </div>
+      <div class="inv-list" id="portfolioInvestmentsList">
+        <!-- Rendered dynamically from Supabase database user_investments -->
       </div>
     </div>
 
@@ -419,9 +362,13 @@
       <div class="page-header">
         <h2 class="page-title">Transactions</h2>
         <div class="filter-row">
-          <input type="search" class="input-sm" placeholder="Search..." id="txnSearch">
-          <select class="select-sm" id="txnFilter">
-            <option>All</option><option>Deposits</option><option>Withdrawals</option><option>Interest</option><option>Trades</option>
+          <input type="search" class="input-sm" placeholder="Search..." id="txnSearch" oninput="filterTransactionsList()">
+          <select class="select-sm" id="txnFilter" onchange="filterTransactionsList()">
+            <option value="All">All</option>
+            <option value="Deposit">Deposits</option>
+            <option value="Withdrawal">Withdrawals</option>
+            <option value="Reward">Rewards</option>
+            <option value="Trade">Investments</option>
           </select>
         </div>
       </div>
@@ -432,13 +379,8 @@
               <th>Date</th><th>Description</th><th>Type</th><th>Amount</th><th>Status</th>
             </tr>
           </thead>
-          <tbody>
-            <tr><td>Sep 24, 2026</td><td>Level 1 Package Deposit</td><td><span class="type-tag type-tag--deposit">Deposit</span></td><td class="credit">+&#8358;200,000</td><td><span class="badge badge--done">Completed</span></td></tr>
-            <tr><td>Sep 20, 2026</td><td>Level 2 Package Purchase</td><td><span class="type-tag type-tag--trade">Trade</span></td><td>-&#8358;45,000</td><td><span class="badge badge--done">Completed</span></td></tr>
-            <tr><td>Sep 17, 2026</td><td>Interest Credit &mdash; Stash</td><td><span class="type-tag type-tag--interest">Interest</span></td><td class="credit">+&#8358;4,200</td><td><span class="badge badge--done">Completed</span></td></tr>
-            <tr><td>Sep 15, 2026</td><td>Withdrawal Request</td><td><span class="type-tag type-tag--withdraw">Withdrawal</span></td><td>-&#8358;50,000</td><td><span class="badge badge--warn">Task Locked</span></td></tr>
-            <tr><td>Sep 10, 2026</td><td>Level 3 Package Purchase</td><td><span class="type-tag type-tag--trade">Trade</span></td><td>-&#8358;100,000</td><td><span class="badge badge--done">Completed</span></td></tr>
-            <tr><td>Sep 1, 2026</td><td>Account Opening Deposit</td><td><span class="type-tag type-tag--deposit">Deposit</span></td><td class="credit">+&#8358;500,000</td><td><span class="badge badge--done">Completed</span></td></tr>
+          <tbody id="txnTableBody">
+            <!-- Rendered dynamically from Supabase transactions table -->
           </tbody>
         </table>
       </div>
@@ -786,29 +728,27 @@
       <div class="referral-banner">
         <div class="referral-banner-main">
           <div class="referral-kpi-row">
-            <div class="referral-kpi"><div class="referral-kpi-val">7</div><div class="referral-kpi-label">Referrals</div></div>
-            <div class="referral-kpi"><div class="referral-kpi-val positive">&#8358;35,000</div><div class="referral-kpi-label">Earned</div></div>
-            <div class="referral-kpi"><div class="referral-kpi-val">3</div><div class="referral-kpi-label">Active</div></div>
+            <div class="referral-kpi"><div class="referral-kpi-val" id="refTotalCount">0</div><div class="referral-kpi-label">Referrals</div></div>
+            <div class="referral-kpi"><div class="referral-kpi-val positive" id="refTotalEarned">&#8358;0</div><div class="referral-kpi-label">Earned</div></div>
+            <div class="referral-kpi"><div class="referral-kpi-val" id="refActiveCount">0</div><div class="referral-kpi-label">Active</div></div>
           </div>
-          <div class="referral-desc">Earn <strong>&#8358;5,000</strong> for every friend who signs up and makes their first deposit.</div>
+          <div class="referral-desc">Earn <strong>&#8358;5,000</strong> instant bonus for every partner who registers with your VIP link and activates a VaultX package.</div>
           <div class="referral-link-row">
-            <code class="referral-link-code" id="refLink">crestwealth.ng/ref/USER2026</code>
-            <button class="btn-outline-sm" onclick="doCopy('https://crestwealth.ng/ref/USER2026','Referral link copied!')">Copy Link</button>
+            <code class="referral-link-code" id="refLink">Loading your referral link...</code>
+            <button class="btn-outline-sm" onclick="copyReferralLink()">Copy Link</button>
           </div>
           <div class="share-row">
-            <a href="https://api.whatsapp.com/send?text=Hey!%20I'm%20earning%20daily%20passive%20returns%20with%20Crest%20Wealth.%20Join%20with%20my%20VIP%20link%20to%20get%20%E2%82%A62%2C000%20welcome%20bonus%3A%20https%3A%2F%2Fcrestwealth.com%2Fref%2FADAEZE2026" target="_blank" rel="noopener" class="share-btn share-btn--wa">WhatsApp</a>
-            <a href="https://twitter.com/intent/tweet?text=Growing%20my%20portfolio%20daily%20with%20Crest%20Wealth.%20Join%20using%20my%20code%20ADAEZE2026%20for%20bonus%20yield%3A%20https%3A%2F%2Fcrestwealth.com%2Fref%2FADAEZE2026" target="_blank" rel="noopener" class="share-btn share-btn--x">Share on X</a>
+            <a href="#" id="shareWaBtn" target="_blank" rel="noopener" class="share-btn share-btn--wa">WhatsApp</a>
+            <a href="#" id="shareXBtn" target="_blank" rel="noopener" class="share-btn share-btn--x">Share on X</a>
           </div>
         </div>
       </div>
       <div class="card" style="margin-top:16px;">
         <div class="card-title" style="margin-bottom:16px;">Referral History</div>
         <table class="data-table">
-          <thead><tr><th>Name</th><th>Joined</th><th>First Deposit</th><th>Your Bonus</th><th>Status</th></tr></thead>
-          <tbody>
-            <tr><td>Kunle A.</td><td>Sep 10</td><td>&#8358;100,000</td><td class="credit">+&#8358;5,000</td><td><span class="badge badge--done">Paid</span></td></tr>
-            <tr><td>Ngozi E.</td><td>Sep 14</td><td>&#8358;50,000</td><td class="credit">+&#8358;5,000</td><td><span class="badge badge--done">Paid</span></td></tr>
-            <tr><td>Emeka T.</td><td>Sep 18</td><td>&mdash;</td><td>&#8358;5,000</td><td><span class="badge badge--warn">Pending</span></td></tr>
+          <thead><tr><th>User</th><th>Joined</th><th>Package</th><th>Your Bonus</th><th>Status</th></tr></thead>
+          <tbody id="referralHistoryTableBody">
+            <!-- Rendered dynamically from Supabase database profiles -->
           </tbody>
         </table>
       </div>
@@ -914,6 +854,29 @@
     <svg class="fab-icon-chat" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <span class="fab-text">Support</span>
   </button>
+</div>
+
+<!-- ============ VAULTX LEVELS MODAL ============ -->
+<div class="vaultx-modal-backdrop" id="vaultxModalBackdrop" onclick="if(event.target===this)closeVaultXModal()">
+  <div class="vaultx-modal-card">
+    <div class="vx-modal-header">
+      <div class="vx-brand-wrap">
+        <div class="vx-logo-glow">VAULTX</div>
+        <div class="vx-modal-sub">Affiliate Marketing Plan &bull; Levels 1&ndash;10 VIP Rankings</div>
+      </div>
+      <button class="vx-modal-close" onclick="closeVaultXModal()">&times;</button>
+    </div>
+    
+    <div class="vx-modal-body">
+      <div class="vx-modal-intro">
+        Choose a ranking tier below to start earning daily returns instantly. Welcome bonus is credited to your balance immediately upon activation.
+      </div>
+
+      <div class="vx-tiers-grid" id="vxTiersGrid">
+        <!-- Tiers 1-10 rendered dynamically via JS with VIP skins -->
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- TOAST -->

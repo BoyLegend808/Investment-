@@ -146,8 +146,10 @@ CREATE TRIGGER on_auth_user_created
 -- 10. FIELD PROTECTION TRIGGER (Prevents client-side balance/role tampering)
 CREATE OR REPLACE FUNCTION public.protect_profile_fields()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_is_internal BOOLEAN := COALESCE(current_setting('app.internal_balance_update', true), 'false') = 'true';
 BEGIN
-  IF NOT public.is_admin() THEN
+  IF NOT public.is_admin() AND NOT v_is_internal THEN
     NEW.is_admin := OLD.is_admin;
     NEW.cash_balance := OLD.cash_balance;
     NEW.invested_balance := OLD.invested_balance;
@@ -174,6 +176,8 @@ BEGIN
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'Access denied: Admin privileges required.';
   END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
 
   SELECT * INTO v_dep FROM public.deposits WHERE id = deposit_id FOR UPDATE;
   IF NOT FOUND THEN
@@ -224,6 +228,8 @@ BEGIN
     RAISE EXCEPTION 'Invalid withdrawal amount.';
   END IF;
 
+  PERFORM set_config('app.internal_balance_update', 'true', true);
+
   SELECT cash_balance INTO v_cur_bal FROM public.profiles WHERE id = v_uid FOR UPDATE;
   IF v_cur_bal IS NULL OR v_cur_bal < p_amount THEN
     RAISE EXCEPTION 'Insufficient cash balance.';
@@ -262,6 +268,8 @@ BEGIN
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'Access denied: Admin privileges required.';
   END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
 
   SELECT * INTO v_wth FROM public.withdrawals WHERE id = withdrawal_id FOR UPDATE;
   IF NOT FOUND THEN
@@ -386,3 +394,232 @@ CREATE POLICY "Task proofs upload own" ON storage.objects FOR INSERT TO authenti
   WITH CHECK (bucket_id = 'task-proofs' AND (storage.foldername(name))[1] = auth.uid()::text);
 CREATE POLICY "Task proofs read own or admin" ON storage.objects FOR SELECT TO authenticated
   USING (bucket_id = 'task-proofs' AND ((storage.foldername(name))[1] = auth.uid()::text OR public.is_admin()));
+
+-- 18. REFERRALS, STREAKS & VAULTX ATOMIC PROCEDURES
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES public.profiles(id);
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_streak_day INT DEFAULT 1;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_streak_claim_date TEXT;
+
+-- Auto-populate referral code if null
+UPDATE public.profiles
+SET referral_code = 'CW-' || UPPER(SUBSTRING(id::TEXT, 1, 8))
+WHERE referral_code IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_profiles_referral_code ON public.profiles(referral_code);
+CREATE INDEX IF NOT EXISTS idx_profiles_referred_by ON public.profiles(referred_by);
+
+-- RPC: Claim Daily Streak Reward
+CREATE OR REPLACE FUNCTION public.claim_daily_streak_reward()
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_today TEXT := TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD');
+  v_profile RECORD;
+  v_day INT;
+  v_reward NUMERIC;
+  v_new_bal NUMERIC;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+
+  SELECT * INTO v_profile FROM public.profiles WHERE id = v_uid FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Profile not found.';
+  END IF;
+
+  IF v_profile.last_streak_claim_date = v_today THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Bonus already claimed for today.');
+  END IF;
+
+  v_day := COALESCE(v_profile.daily_streak_day, 1);
+  IF v_day < 1 OR v_day > 7 THEN
+    v_day := 1;
+  END IF;
+
+  IF v_day = 7 THEN
+    v_reward := 1000.00;
+  ELSE
+    v_reward := 200.00;
+  END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
+
+  UPDATE public.profiles
+  SET
+    cash_balance = cash_balance + v_reward,
+    daily_streak_day = CASE WHEN v_day >= 7 THEN 1 ELSE v_day + 1 END,
+    last_streak_claim_date = v_today,
+    updated_at = NOW()
+  WHERE id = v_uid
+  RETURNING cash_balance INTO v_new_bal;
+
+  INSERT INTO public.transactions (user_id, type, amount, description, status)
+  VALUES (v_uid, 'reward', v_reward, 'Daily Login Streak (Day ' || v_day || ')', 'completed');
+
+  INSERT INTO public.notifications (user_id, title, message, type)
+  VALUES (v_uid, 'Daily Reward Claimed', '+₦' || v_reward || ' added to cash balance for Day ' || v_day || ' streak!', 'success');
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'reward', v_reward,
+    'day_claimed', v_day,
+    'next_day', CASE WHEN v_day >= 7 THEN 1 ELSE v_day + 1 END,
+    'new_balance', v_new_bal
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RPC: Claim User Task Reward
+CREATE OR REPLACE FUNCTION public.claim_user_task_reward(
+  p_task_id TEXT,
+  p_reward_amount NUMERIC,
+  p_task_title TEXT,
+  p_proof_url TEXT DEFAULT NULL
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_existing RECORD;
+  v_new_bal NUMERIC;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+
+  IF p_reward_amount <= 0 THEN
+    RAISE EXCEPTION 'Invalid reward amount.';
+  END IF;
+
+  SELECT * INTO v_existing FROM public.user_tasks WHERE user_id = v_uid AND task_id = p_task_id;
+  IF FOUND AND v_existing.completed THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Task already completed.');
+  END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
+
+  INSERT INTO public.user_tasks (user_id, task_id, task_title, reward_amount, status, proof_url, completed, completed_at)
+  VALUES (v_uid, p_task_id, p_task_title, p_reward_amount, 'completed', p_proof_url, true, NOW())
+  ON CONFLICT (user_id, task_id) DO UPDATE
+  SET completed = true, completed_at = NOW(), proof_url = COALESCE(EXCLUDED.proof_url, public.user_tasks.proof_url);
+
+  UPDATE public.profiles
+  SET cash_balance = cash_balance + p_reward_amount, updated_at = NOW()
+  WHERE id = v_uid
+  RETURNING cash_balance INTO v_new_bal;
+
+  INSERT INTO public.transactions (user_id, type, amount, description, status)
+  VALUES (v_uid, 'reward', p_reward_amount, 'Task Reward — ' || p_task_title, 'completed');
+
+  INSERT INTO public.notifications (user_id, title, message, type)
+  VALUES (v_uid, 'Task Reward Credited', '+₦' || p_reward_amount || ' credited for ' || p_task_title, 'success');
+
+  RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal, 'reward', p_reward_amount);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RPC: Subscribe to VaultX Package (Levels 1–10)
+CREATE OR REPLACE FUNCTION public.subscribe_vaultx_package(p_level INT)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_prof RECORD;
+  v_cost NUMERIC;
+  v_bonus NUMERIC;
+  v_daily NUMERIC;
+  v_rank TEXT;
+  v_new_cash NUMERIC;
+  v_new_inv NUMERIC;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+
+  IF p_level = 1 THEN
+    v_cost := 5000.00;    v_bonus := 250.00;   v_daily := 900.00;   v_rank := 'Bronze VIP';
+  ELSIF p_level = 2 THEN
+    v_cost := 15000.00;   v_bonus := 750.00;   v_daily := 2700.00;  v_rank := 'Silver VIP';
+  ELSIF p_level = 3 THEN
+    v_cost := 30000.00;   v_bonus := 1500.00;  v_daily := 5400.00;  v_rank := 'Gold VIP';
+  ELSIF p_level = 4 THEN
+    v_cost := 50000.00;   v_bonus := 2500.00;  v_daily := 9000.00;  v_rank := 'Platinum VIP';
+  ELSIF p_level = 5 THEN
+    v_cost := 75000.00;   v_bonus := 3750.00;  v_daily := 13500.00; v_rank := 'Emerald VIP';
+  ELSIF p_level = 6 THEN
+    v_cost := 100000.00;  v_bonus := 5000.00;  v_daily := 18000.00; v_rank := 'Ruby VIP';
+  ELSIF p_level = 7 THEN
+    v_cost := 200000.00;  v_bonus := 10000.00; v_daily := 36000.00; v_rank := 'Sapphire VIP';
+  ELSIF p_level = 8 THEN
+    v_cost := 350000.00;  v_bonus := 17500.00; v_daily := 63000.00; v_rank := 'Diamond VIP';
+  ELSIF p_level = 9 THEN
+    v_cost := 500000.00;  v_bonus := 25000.00; v_daily := 90000.00; v_rank := 'Crown Obsidian';
+  ELSIF p_level = 10 THEN
+    v_cost := 1000000.00; v_bonus := 50000.00; v_daily := 180000.00; v_rank := 'Apex Imperial VIP';
+  ELSE
+    RAISE EXCEPTION 'Invalid package level (must be 1 to 10).';
+  END IF;
+
+  SELECT * INTO v_prof FROM public.profiles WHERE id = v_uid FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Profile not found.';
+  END IF;
+
+  IF v_prof.cash_balance < v_cost THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'code', 'INSUFFICIENT_FUNDS',
+      'message', 'Insufficient cash balance (₦' || v_prof.cash_balance || '). Please deposit funds first to activate ' || v_rank || '.'
+    );
+  END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
+
+  UPDATE public.profiles
+  SET
+    cash_balance = cash_balance - v_cost + v_bonus,
+    invested_balance = invested_balance + v_cost,
+    updated_at = NOW()
+  WHERE id = v_uid
+  RETURNING cash_balance, invested_balance INTO v_new_cash, v_new_inv;
+
+  INSERT INTO public.user_investments (
+    user_id, asset_name, asset_type, amount_invested, current_value, return_rate, status, maturity_date
+  ) VALUES (
+    v_uid,
+    'VaultX Level ' || p_level || ' (' || v_rank || ')',
+    'vaultx',
+    v_cost,
+    v_cost,
+    18.00,
+    'active',
+    NOW() + INTERVAL '30 days'
+  );
+
+  INSERT INTO public.transactions (user_id, type, amount, description, status)
+  VALUES
+    (v_uid, 'trade', -v_cost, 'VaultX Level ' || p_level || ' (' || v_rank || ') Activation', 'completed'),
+    (v_uid, 'reward', v_bonus, 'VaultX Welcome Bonus (' || v_rank || ')', 'completed');
+
+  INSERT INTO public.notifications (user_id, title, message, type)
+  VALUES (
+    v_uid,
+    'VaultX ' || v_rank || ' Active!',
+    'Your ' || v_rank || ' (₦' || v_cost || ') is now active. Daily return: ₦' || v_daily || '/day. Welcome bonus of ₦' || v_bonus || ' credited!',
+    'success'
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'level', p_level,
+    'rank', v_rank,
+    'cost', v_cost,
+    'welcome_bonus', v_bonus,
+    'daily_earning', v_daily,
+    'new_cash_balance', v_new_cash,
+    'new_invested_balance', v_new_inv
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+

@@ -1,7 +1,16 @@
-// Unified localStorage access
+// Scoped per-user storage access (prevents data crossover or loss)
 function getCrestStorage(key, defaultVal) {
   try {
-    var val = localStorage.getItem('crest_' + key);
+    var u = window.crestUser;
+    if (!u) {
+      var r = localStorage.getItem('crest_current_user');
+      if (r) { try { u = JSON.parse(r); } catch(e) {} }
+    }
+    var prefix = (u && u.id) ? ('crest_' + u.id + '_') : 'crest_';
+    var val = localStorage.getItem(prefix + key);
+    if (val !== null) return val;
+    // Fallback to legacy or global key
+    val = localStorage.getItem('crest_' + key);
     if (val !== null) return val;
   } catch (e) {}
   return defaultVal;
@@ -9,8 +18,18 @@ function getCrestStorage(key, defaultVal) {
 
 function setCrestStorage(key, val) {
   try {
+    var u = window.crestUser;
+    if (!u) {
+      var r = localStorage.getItem('crest_current_user');
+      if (r) { try { u = JSON.parse(r); } catch(e) {} }
+    }
+    var prefix = (u && u.id) ? ('crest_' + u.id + '_') : 'crest_';
     var strVal = typeof val === 'string' ? val : JSON.stringify(val);
-    localStorage.setItem('crest_' + key, strVal);
+    localStorage.setItem(prefix + key, strVal);
+    // Mirror global configs
+    if (key === 'tasks_config' || key === 'admin_tasks') {
+      localStorage.setItem('crest_' + key, strVal);
+    }
   } catch (e) {}
 }
 
@@ -82,6 +101,7 @@ async function initDashboardUserProfile() {
                  user.full_name ||
                  (user.email ? user.email.split('@')[0] : 'Valued Investor');
   var email = user.email || 'investor@crestwealth.com';
+  var referralCode = 'CW-' + (user.id ? user.id.slice(0, 8).toUpperCase() : 'VIP2026');
 
   if (window.supabaseClient && user.id && typeof user.id === 'string' && !user.id.startsWith('demo_')) {
     try {
@@ -94,6 +114,8 @@ async function initDashboardUserProfile() {
       if (dbProfile) {
         if (dbProfile.full_name) fullName = dbProfile.full_name;
         if (dbProfile.email) email = dbProfile.email;
+        if (dbProfile.referral_code) referralCode = dbProfile.referral_code;
+
         if (dbProfile.cash_balance !== undefined && dbProfile.cash_balance !== null) {
           var b = parseFloat(dbProfile.cash_balance);
           if (!isNaN(b) && typeof S !== 'undefined') {
@@ -106,15 +128,52 @@ async function initDashboardUserProfile() {
             S.investedBalance = ib;
           }
         }
+
+        // Restore streak state from DB
+        if (dbProfile.daily_streak_day !== undefined && dbProfile.daily_streak_day !== null) {
+          var streak = getDailyStreakData();
+          streak.day = parseInt(dbProfile.daily_streak_day, 10) || 1;
+          streak.lastClaimDate = dbProfile.last_streak_claim_date || '';
+          saveDailyStreakData(streak);
+          renderDailyStreak();
+        }
+
         if (typeof S !== 'undefined') {
           saveUserBalance();
           updateBalanceDisplays();
         }
       }
+
+      // Restore user completed tasks from DB
+      const { data: dbTasks } = await window.supabaseClient
+        .from('user_tasks')
+        .select('*')
+        .eq('user_id', user.id);
+
+      if (dbTasks && dbTasks.length > 0 && typeof S !== 'undefined' && S.tasks) {
+        var completedMap = {};
+        dbTasks.forEach(function(dt) {
+          if (dt.completed) {
+            completedMap[dt.task_id] = true;
+          }
+        });
+        S.tasks.forEach(function(t) {
+          if (completedMap[t.id]) t.done = true;
+        });
+        saveUserTasksState();
+        if (typeof renderTasks === 'function') renderTasks();
+      }
     } catch (err) {
       console.warn('[Crest] Supabase profile sync:', err);
     }
   }
+
+  // Set up referral UI and load database-driven portfolio/referrals/txns
+  setupUserReferralUI(referralCode);
+  loadUserInvestmentsFromDB();
+  loadUserReferralsFromDB();
+  loadUserTransactionsFromDB();
+  renderVaultXModal();
 
   var parts = fullName.trim().split(/\s+/);
   var initials = 'CW';
@@ -422,7 +481,7 @@ function updateBalanceDisplays() {
   if ($('totalAccruedVal')) $('totalAccruedVal').textContent = fmt0(totalAccrued);
 }
 
-function creditUserReward(amount, taskTitle) {
+async function creditUserReward(amount, taskTitle, taskId) {
   var amt = parseFloat(amount) || 0;
   if (amt <= 0) return;
   S.cashBalance += amt;
@@ -431,31 +490,30 @@ function creditUserReward(amount, taskTitle) {
 
   var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   var title = taskTitle || 'Prerequisite Complete';
-  prependUserTxn(today, 'Task Reward — ' + title, 'Deposit', '+₦' + amt.toLocaleString('en-NG'), 'Completed');
+  prependUserTxn(today, 'Task Reward — ' + title, 'Reward', '+₦' + amt.toLocaleString('en-NG'), 'Completed');
 
-  // Sync transaction and notification to Supabase DB if user is logged in
+  // Atomic database sync via RPC if logged in
   if (window.supabaseClient) {
     try {
-      window.supabaseClient.auth.getSession().then(function(res) {
-        var u = res && res.data && res.data.session ? res.data.session.user : null;
-        if (u && !u.id.startsWith('demo_')) {
-          window.supabaseClient.from('transactions').insert({
-            user_id: u.id,
-            type: 'reward',
-            amount: amt,
-            description: 'Task Reward — ' + title,
-            status: 'completed'
-          }).then(function() {});
-
-          window.supabaseClient.from('notifications').insert({
-            user_id: u.id,
-            title: 'Task Reward Claimed',
-            message: '+₦' + amt.toLocaleString('en-NG') + ' credited for ' + title,
-            type: 'success'
-          }).then(function() {});
+      var sessRes = await window.supabaseClient.auth.getSession();
+      var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
+      if (u && !u.id.startsWith('demo_')) {
+        var tId = (taskId !== undefined ? taskId : ('task_' + title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase())).toString();
+        var { data: rpcRes } = await window.supabaseClient.rpc('claim_user_task_reward', {
+          p_task_id: tId,
+          p_reward_amount: amt,
+          p_task_title: title
+        });
+        if (rpcRes && rpcRes.success && rpcRes.new_balance !== undefined) {
+          S.cashBalance = parseFloat(rpcRes.new_balance);
+          saveUserBalance();
+          updateBalanceDisplays();
         }
-      });
-    } catch(e) {}
+        loadUserTransactionsFromDB();
+      }
+    } catch(e) {
+      console.warn('creditUserReward sync notice:', e);
+    }
   }
 }
 
@@ -1501,7 +1559,7 @@ function renderDailyStreak() {
   }
 }
 
-function claimDailyStreak() {
+async function claimDailyStreak() {
   var streak = getDailyStreakData();
   var todayStr = new Date().toDateString();
   if (streak.claimedToday && streak.lastClaimDate === todayStr) {
@@ -1509,13 +1567,48 @@ function claimDailyStreak() {
     return;
   }
 
+  var btn = $('claimStreakBtn');
+  if (btn) btn.disabled = true;
+
+  // Supabase atomic DB claim
+  if (window.supabaseClient) {
+    try {
+      var sessRes = await window.supabaseClient.auth.getSession();
+      var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
+      if (u && !u.id.startsWith('demo_')) {
+        var { data: rpcRes } = await window.supabaseClient.rpc('claim_daily_streak_reward');
+        if (rpcRes && rpcRes.success) {
+          S.cashBalance = parseFloat(rpcRes.new_balance);
+          streak.claimedToday = true;
+          streak.lastClaimDate = todayStr;
+          streak.day = rpcRes.next_day;
+          saveDailyStreakData(streak);
+          saveUserBalance();
+          updateBalanceDisplays();
+          renderDailyStreak();
+          loadUserTransactionsFromDB();
+          toast('Claimed Day bonus! +₦' + rpcRes.reward.toLocaleString('en-NG') + ' added to your cash balance!', 'emerald');
+          return;
+        } else if (rpcRes && !rpcRes.success) {
+          toast(rpcRes.message || 'Already claimed today.', 'info');
+          streak.claimedToday = true;
+          renderDailyStreak();
+          return;
+        }
+      }
+    } catch(e) {
+      console.warn('claimDailyStreak rpc error, fallback:', e);
+    }
+  }
+
+  // Fallback for demo or offline mode
   var curReward = STREAK_DAYS[streak.day - 1] ? STREAK_DAYS[streak.day - 1].reward : 200;
-  creditUserReward(curReward, 'Daily Login Streak (Day ' + streak.day + ')');
+  await creditUserReward(curReward, 'Daily Login Streak (Day ' + streak.day + ')', 'streak_' + streak.day);
 
   streak.claimedToday = true;
   streak.lastClaimDate = todayStr;
   if (streak.day < 7) streak.day += 1;
-  else streak.day = 1; // resets after 7-day cycle
+  else streak.day = 1;
   saveDailyStreakData(streak);
   renderDailyStreak();
 
@@ -1933,6 +2026,400 @@ function initSettingsInteractions() {
       });
     }
   });
+}
+
+/* ============================================================
+   VAULTX VIP TIERS, DYNAMIC PORTFOLIO & REFERRALS (DB LINKED)
+   ============================================================ */
+var VAULTX_TIERS = [
+  { level: 1, rank: 'Bronze VIP', badgeCls: 'vx-badge-bronze', package: 5000, welcomeBonus: 250, dailyEarning: 900 },
+  { level: 2, rank: 'Silver VIP', badgeCls: 'vx-badge-silver', package: 15000, welcomeBonus: 750, dailyEarning: 2700 },
+  { level: 3, rank: 'Gold VIP', badgeCls: 'vx-badge-gold', package: 30000, welcomeBonus: 1500, dailyEarning: 5400 },
+  { level: 4, rank: 'Platinum VIP', badgeCls: 'vx-badge-platinum', package: 50000, welcomeBonus: 2500, dailyEarning: 9000 },
+  { level: 5, rank: 'Emerald VIP', badgeCls: 'vx-badge-emerald', package: 75000, welcomeBonus: 3750, dailyEarning: 13500 },
+  { level: 6, rank: 'Ruby VIP', badgeCls: 'vx-badge-ruby', package: 100000, welcomeBonus: 5000, dailyEarning: 18000 },
+  { level: 7, rank: 'Sapphire VIP', badgeCls: 'vx-badge-sapphire', package: 200000, welcomeBonus: 10000, dailyEarning: 36000 },
+  { level: 8, rank: 'Diamond VIP', badgeCls: 'vx-badge-diamond', package: 350000, welcomeBonus: 17500, dailyEarning: 63000 },
+  { level: 9, rank: 'Crown Obsidian', badgeCls: 'vx-badge-crown', package: 500000, welcomeBonus: 25000, dailyEarning: 90000 },
+  { level: 10, rank: 'Apex Imperial VIP', badgeCls: 'vx-badge-apex', package: 1000000, welcomeBonus: 50000, dailyEarning: 180000 }
+];
+
+function renderVaultXModal() {
+  var grid = $('vxTiersGrid');
+  if (!grid) return;
+  var fmt = function(n) { return '₦' + n.toLocaleString('en-NG'); };
+
+  grid.innerHTML = VAULTX_TIERS.map(function(t) {
+    var isFeat = t.level === 3 || t.level === 6 || t.level === 10;
+    return '<div class="vx-tier-card' + (isFeat ? ' featured' : '') + '">' +
+      '<div class="vx-tier-head">' +
+        '<span class="vx-tier-num">Level ' + t.level + '</span>' +
+        '<span class="vx-tier-badge ' + t.badgeCls + '">' + t.rank + '</span>' +
+      '</div>' +
+      '<div class="vx-tier-cost">' + fmt(t.package) + ' <small>Capital</small></div>' +
+      '<div class="vx-tier-metrics">' +
+        '<div class="vx-tm-item"><span class="vx-tm-label">Daily Yield</span><span class="vx-tm-val positive">' + fmt(t.dailyEarning) + '/day</span></div>' +
+        '<div class="vx-tm-item"><span class="vx-tm-label">Bonus</span><span class="vx-tm-val">+' + fmt(t.welcomeBonus) + ' instant</span></div>' +
+      '</div>' +
+      '<button class="vx-btn-activate" onclick="subscribeToVaultXTier(' + t.level + ')">' +
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ' +
+        'Activate ' + t.rank +
+      '</button>' +
+    '</div>';
+  }).join('');
+}
+
+function openVaultXModal() {
+  var m = $('vaultxModalBackdrop');
+  if (m) {
+    m.classList.add('active');
+    renderVaultXModal();
+  }
+}
+
+function closeVaultXModal() {
+  var m = $('vaultxModalBackdrop');
+  if (m) m.classList.remove('active');
+}
+
+async function subscribeToVaultXTier(level) {
+  var tier = VAULTX_TIERS.find(function(t) { return t.level === level; });
+  if (!tier) return;
+
+  if (S.cashBalance < tier.package) {
+    var diff = tier.package - S.cashBalance;
+    toast('Insufficient cash balance. You need ₦' + diff.toLocaleString('en-NG') + ' more to activate ' + tier.rank + '.', 'warn');
+    closeVaultXModal();
+    switchView('deposit');
+    var amtEl = $('depositAmount');
+    if (amtEl) amtEl.value = diff;
+    return;
+  }
+
+  // Database atomic activation via RPC
+  if (window.supabaseClient) {
+    try {
+      var sessRes = await window.supabaseClient.auth.getSession();
+      var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
+      if (u && !u.id.startsWith('demo_')) {
+        toast('Activating ' + tier.rank + ' package...', 'info');
+        var { data: rpcRes } = await window.supabaseClient.rpc('subscribe_vaultx_package', { p_level: level });
+        if (rpcRes && rpcRes.success) {
+          S.cashBalance = parseFloat(rpcRes.new_cash_balance);
+          S.investedBalance = parseFloat(rpcRes.new_invested_balance);
+          saveUserBalance();
+          updateBalanceDisplays();
+          closeVaultXModal();
+          toast('🎉 ' + tier.rank + ' activated successfully! Welcome bonus credited.', 'emerald');
+          loadUserInvestmentsFromDB();
+          loadUserTransactionsFromDB();
+          switchView('portfolio');
+          return;
+        } else if (rpcRes && !rpcRes.success) {
+          toast(rpcRes.message || 'Subscription failed.', 'warn');
+          return;
+        }
+      }
+    } catch(e) {
+      console.warn('subscribeToVaultXTier RPC error, using local fallback:', e);
+    }
+  }
+
+  // Fallback for demo or local session
+  S.cashBalance = S.cashBalance - tier.package + tier.welcomeBonus;
+  S.investedBalance = (S.investedBalance || 0) + tier.package;
+  saveUserBalance();
+  updateBalanceDisplays();
+  closeVaultXModal();
+  toast('🎉 ' + tier.rank + ' activated! +₦' + tier.welcomeBonus.toLocaleString('en-NG') + ' welcome bonus credited.', 'emerald');
+  switchView('portfolio');
+}
+
+/* ── DYNAMIC USER PORTFOLIO HOLDINGS ─────────────────── */
+async function loadUserInvestmentsFromDB() {
+  var list = $('portfolioInvestmentsList');
+  if (!list) return;
+
+  var user = window.crestUser;
+  if (!user || !user.id || user.id.startsWith('demo_') || !window.supabaseClient) {
+    renderLocalOrEmptyPortfolio();
+    return;
+  }
+
+  try {
+    var { data: invRows, error } = await window.supabaseClient
+      .from('user_investments')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error || !invRows || invRows.length === 0) {
+      renderEmptyPortfolioState();
+      return;
+    }
+
+    var totalInvested = 0;
+    var totalAccrued = 0;
+
+    var html = invRows.map(function(inv) {
+      var principal = parseFloat(inv.amount_invested) || 0;
+      totalInvested += principal;
+
+      var daysActive = 1;
+      if (inv.created_at) {
+        var diffMs = Date.now() - new Date(inv.created_at).getTime();
+        daysActive = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+      }
+      var dailyYield = principal * 0.18;
+      var accrued = dailyYield * daysActive;
+      totalAccrued += accrued;
+
+      var daysMatures = 30;
+      var pct = Math.min(100, Math.round((daysActive / daysMatures) * 100));
+
+      return '<div class="inv-card inv-card--featured">' +
+        '<div class="inv-card-header">' +
+          '<div class="inv-icon inv-icon-ember">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '</div>' +
+          '<div>' +
+            '<div class="inv-name">' + (inv.asset_name || 'VaultX VIP Package') + '</div>' +
+            '<div class="inv-meta">Day ' + daysActive + ' of 30 &bull; Earning ₦' + dailyYield.toLocaleString('en-NG') + '/day</div>' +
+          '</div>' +
+          '<span class="badge badge--active">Active</span>' +
+        '</div>' +
+        '<div class="inv-metrics">' +
+          '<div><div class="inv-metric-label">Capital</div><div class="inv-metric-val">₦' + principal.toLocaleString('en-NG') + '</div></div>' +
+          '<div><div class="inv-metric-label">Daily Rate</div><div class="inv-metric-val positive">18.0%/day</div></div>' +
+          '<div><div class="inv-metric-label">Accrued Yield</div><div class="inv-metric-val positive">+₦' + Math.round(accrued).toLocaleString('en-NG') + '</div></div>' +
+          '<div><div class="inv-metric-label">Status</div><div class="inv-metric-val" style="color:#10B981">Auto-Compounding</div></div>' +
+        '</div>' +
+        '<div class="inv-progress">' +
+          '<div class="inv-progress-labels"><span>30-Day Cycle Progress</span><span>' + pct + '%</span></div>' +
+          '<div class="inv-progress-track"><div class="inv-progress-fill" style="width:' + pct + '%;background:#10B981"></div></div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    list.innerHTML = html;
+
+    S.investedBalance = totalInvested;
+    S.accruedInterest = totalAccrued;
+    var totalVal = S.cashBalance + totalInvested + totalAccrued;
+    if ($('portfolioTotalValue')) $('portfolioTotalValue').textContent = '₦' + Math.round(totalVal).toLocaleString('en-NG');
+    if ($('portfolioTotalInvested')) $('portfolioTotalInvested').textContent = '₦' + Math.round(totalInvested).toLocaleString('en-NG');
+    if ($('portfolioTotalReturns')) $('portfolioTotalReturns').textContent = '+₦' + Math.round(totalAccrued).toLocaleString('en-NG');
+    updateBalanceDisplays();
+  } catch(e) {
+    console.warn('loadUserInvestmentsFromDB error:', e);
+    renderEmptyPortfolioState();
+  }
+}
+
+function renderEmptyPortfolioState() {
+  var list = $('portfolioInvestmentsList');
+  if (!list) return;
+  list.innerHTML = '<div class="portfolio-empty-card">' +
+    '<div class="empty-icon-wrap">' +
+      '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' +
+    '</div>' +
+    '<div class="empty-title">No Active Investments Yet</div>' +
+    '<div class="empty-desc">You do not have any active VaultX packages. Subscribe to any of our 10 VIP tiers starting from ₦5,000 to earn up to 18% daily returns.</div>' +
+    '<button class="btn-primary" onclick="openVaultXModal()">+ Choose a VaultX Plan</button>' +
+  '</div>';
+
+  if ($('portfolioTotalValue')) $('portfolioTotalValue').textContent = '₦' + Math.round(S.cashBalance).toLocaleString('en-NG');
+  if ($('portfolioTotalInvested')) $('portfolioTotalInvested').textContent = '₦0';
+  if ($('portfolioTotalReturns')) $('portfolioTotalReturns').textContent = '₦0';
+}
+
+function renderLocalOrEmptyPortfolio() {
+  if (S.investedBalance && S.investedBalance > 0) {
+    var list = $('portfolioInvestmentsList');
+    if (list) {
+      list.innerHTML = '<div class="inv-card inv-card--featured">' +
+        '<div class="inv-card-header">' +
+          '<div class="inv-icon inv-icon-ember"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>' +
+          '<div><div class="inv-name">VaultX Active Portfolio</div><div class="inv-meta">Auto-Compounding &bull; 18.0% Daily</div></div>' +
+          '<span class="badge badge--active">Active</span>' +
+        '</div>' +
+        '<div class="inv-metrics">' +
+          '<div><div class="inv-metric-label">Capital</div><div class="inv-metric-val">₦' + S.investedBalance.toLocaleString('en-NG') + '</div></div>' +
+          '<div><div class="inv-metric-label">Rate</div><div class="inv-metric-val positive">18.0%/day</div></div>' +
+          '<div><div class="inv-metric-label">Daily Yield</div><div class="inv-metric-val positive">+₦' + Math.round(S.investedBalance * 0.18).toLocaleString('en-NG') + '</div></div>' +
+          '<div><div class="inv-metric-label">Term</div><div class="inv-metric-val">30 Days</div></div>' +
+        '</div>' +
+      '</div>';
+    }
+  } else {
+    renderEmptyPortfolioState();
+  }
+}
+
+/* ── DYNAMIC REFERRALS SYSTEM ───────────────────────── */
+var userReferralUrl = '';
+function setupUserReferralUI(refCode) {
+  var code = refCode || 'CW-VIP2026';
+  var host = window.location.origin || 'https://investment-wheat-alpha.vercel.app';
+  userReferralUrl = host + '/index/index.html?ref=' + encodeURIComponent(code);
+
+  if ($('refLink')) $('refLink').textContent = userReferralUrl;
+
+  var waBtn = $('shareWaBtn');
+  if (waBtn) {
+    waBtn.href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent("Hey! Join VaultX on Crest Wealth and earn daily returns up to 18% passive income. Register with my official VIP link to get an instant welcome bonus: " + userReferralUrl);
+  }
+  var xBtn = $('shareXBtn');
+  if (xBtn) {
+    xBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent("Growing my portfolio daily with VaultX. Use my VIP invite code " + code + " for instant welcome bonus: " + userReferralUrl);
+  }
+}
+
+function copyReferralLink() {
+  if (!userReferralUrl) {
+    var el = $('refLink');
+    userReferralUrl = el ? el.textContent.trim() : window.location.href;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(userReferralUrl).then(function() {
+      toast('VIP Referral link copied to clipboard!', 'emerald');
+    }).catch(function() {
+      doCopy(userReferralUrl, 'VIP Referral link copied!');
+    });
+  } else {
+    doCopy(userReferralUrl, 'VIP Referral link copied!');
+  }
+}
+
+async function loadUserReferralsFromDB() {
+  var tbody = $('referralHistoryTableBody');
+  if (!tbody) return;
+
+  var user = window.crestUser;
+  if (!user || !user.id || user.id.startsWith('demo_') || !window.supabaseClient) {
+    renderEmptyReferralsState();
+    return;
+  }
+
+  try {
+    var { data: refs, error } = await window.supabaseClient
+      .from('profiles')
+      .select('id, full_name, email, invested_balance, created_at')
+      .eq('referred_by', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error || !refs || refs.length === 0) {
+      renderEmptyReferralsState();
+      return;
+    }
+
+    var totalRefs = refs.length;
+    var activeRefs = 0;
+    var totalEarned = 0;
+
+    var rowsHtml = refs.map(function(r) {
+      var inv = parseFloat(r.invested_balance) || 0;
+      var isActive = inv > 0;
+      if (isActive) activeRefs++;
+      var bonus = isActive ? 5000 : 0;
+      totalEarned += bonus;
+
+      var name = r.full_name || (r.email ? r.email.split('@')[0] : 'Partner');
+      var joined = r.created_at ? new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent';
+
+      return '<tr>' +
+        '<td><strong>' + name + '</strong></td>' +
+        '<td>' + joined + '</td>' +
+        '<td>' + (isActive ? ('₦' + inv.toLocaleString('en-NG')) : '&mdash;') + '</td>' +
+        '<td class="credit">' + (isActive ? '+₦5,000' : '₦0') + '</td>' +
+        '<td><span class="badge ' + (isActive ? 'badge--done' : 'badge--warn') + '">' + (isActive ? 'Active' : 'Signed Up') + '</span></td>' +
+      '</tr>';
+    }).join('');
+
+    tbody.innerHTML = rowsHtml;
+    if ($('refTotalCount')) $('refTotalCount').textContent = totalRefs;
+    if ($('refTotalEarned')) $('refTotalEarned').textContent = '₦' + totalEarned.toLocaleString('en-NG');
+    if ($('refActiveCount')) $('refActiveCount').textContent = activeRefs;
+  } catch(e) {
+    console.warn('loadUserReferralsFromDB error:', e);
+    renderEmptyReferralsState();
+  }
+}
+
+function renderEmptyReferralsState() {
+  var tbody = $('referralHistoryTableBody');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:28px;color:#94A3B8;">No partners referred yet. Share your VIP link to earn ₦5,000 for every investor!</td></tr>';
+  }
+  if ($('refTotalCount')) $('refTotalCount').textContent = '0';
+  if ($('refTotalEarned')) $('refTotalEarned').textContent = '₦0';
+  if ($('refActiveCount')) $('refActiveCount').textContent = '0';
+}
+
+/* ── DYNAMIC TRANSACTIONS LEDGER ─────────────────────── */
+var allUserTransactions = [];
+async function loadUserTransactionsFromDB() {
+  var tbody = $('txnTableBody');
+  if (!tbody) return;
+
+  var user = window.crestUser;
+  if (!user || !user.id || user.id.startsWith('demo_') || !window.supabaseClient) {
+    return;
+  }
+
+  try {
+    var { data: txns, error } = await window.supabaseClient
+      .from('transactions')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error || !txns || txns.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8;">No transaction records found yet.</td></tr>';
+      return;
+    }
+
+    allUserTransactions = txns;
+    renderTransactionsTable(txns);
+  } catch(e) {
+    console.warn('loadUserTransactionsFromDB error:', e);
+  }
+}
+
+function renderTransactionsTable(txns) {
+  var tbody = $('txnTableBody');
+  if (!tbody) return;
+
+  tbody.innerHTML = txns.map(function(tx) {
+    var amt = parseFloat(tx.amount) || 0;
+    var isPositive = amt >= 0;
+    var typeTag = tx.type || 'deposit';
+    var tagClass = 'type-tag--' + typeTag.toLowerCase();
+    var dateStr = tx.created_at ? new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
+
+    return '<tr>' +
+      '<td>' + dateStr + '</td>' +
+      '<td>' + (tx.description || 'Account Transaction') + '</td>' +
+      '<td><span class="type-tag ' + tagClass + '">' + typeTag.toUpperCase() + '</span></td>' +
+      '<td class="' + (isPositive ? 'credit' : 'debit') + '">' + (isPositive ? '+' : '') + '₦' + Math.abs(amt).toLocaleString('en-NG') + '</td>' +
+      '<td><span class="badge badge--done">' + (tx.status || 'Completed') + '</span></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function filterTransactionsList() {
+  var search = ($('txnSearch') ? $('txnSearch').value : '').toLowerCase().trim();
+  var filter = ($('txnFilter') ? $('txnFilter').value : 'All');
+
+  var filtered = allUserTransactions.filter(function(tx) {
+    var matchesSearch = !search || (tx.description && tx.description.toLowerCase().includes(search));
+    var matchesFilter = (filter === 'All') || (tx.type && tx.type.toLowerCase() === filter.toLowerCase());
+    return matchesSearch && matchesFilter;
+  });
+
+  renderTransactionsTable(filtered);
 }
 
 /* ── INITIALIZATION ──────────────────────────────────── */

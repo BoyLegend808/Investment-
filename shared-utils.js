@@ -326,8 +326,22 @@ async function crestSignUp(email, password, fullName, phone, pkg) {
     return { success: true, needsConfirmation: true, data: { user: data.user } };
   }
 
+  // Check for pending referral code from URL or storage
+  let refCode = null;
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    refCode = urlParams.get('ref') || localStorage.getItem('crest_ref_code');
+  } catch(e) {}
+
   localStorage.setItem('crest_current_user', JSON.stringify(data.user));
   try {
+    let referrerId = null;
+    if (refCode && sb) {
+      const { data: refProfile } = await sb.from('profiles').select('id').eq('referral_code', refCode.trim()).maybeSingle();
+      if (refProfile && refProfile.id) referrerId = refProfile.id;
+    }
+
+    const myRefCode = 'CW-' + data.user.id.substring(0, 8).toUpperCase();
     await sb.from('profiles').upsert({
       id: data.user.id,
       email: email,
@@ -335,6 +349,9 @@ async function crestSignUp(email, password, fullName, phone, pkg) {
       phone: phone || '',
       cash_balance: 0,
       invested_balance: 0,
+      referral_code: myRefCode,
+      referred_by: referrerId,
+      daily_streak_day: 1,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
   } catch (dbErr) {
@@ -342,6 +359,19 @@ async function crestSignUp(email, password, fullName, phone, pkg) {
   }
   return { success: true, data: { user: data.user, session: data.session } };
 }
+
+/**
+ * Capture referral code in URL automatically on load
+ */
+(function captureReferralCode() {
+  try {
+    if (typeof window !== 'undefined' && window.location) {
+      const p = new URLSearchParams(window.location.search);
+      const r = p.get('ref');
+      if (r) localStorage.setItem('crest_ref_code', r.trim());
+    }
+  } catch(e) {}
+})();
 
 /**
  * Supabase sign-out. Clears local session and redirects.
@@ -352,15 +382,8 @@ async function crestSignOut() {
     try { await sb.auth.signOut(); } catch(e) {}
   }
   
-  // Clear all crest_ variables from localStorage to prevent leaking data between accounts
-  const keysToRemove = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('crest_')) {
-      keysToRemove.push(key);
-    }
-  }
-  keysToRemove.forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem('crest_current_user');
+  window.crestUser = null;
 
   const depth = window.location.pathname.split('/').filter(Boolean).length;
   window.location.href = depth > 1 ? '../index/index.html' : 'index/index.html';
