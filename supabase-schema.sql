@@ -410,8 +410,8 @@ WHERE referral_code IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_profiles_referral_code ON public.profiles(referral_code);
 CREATE INDEX IF NOT EXISTS idx_profiles_referred_by ON public.profiles(referred_by);
 
--- RPC: Claim Daily Streak Reward
-CREATE OR REPLACE FUNCTION public.claim_daily_streak_reward()
+-- RPC: Claim Daily Streak Reward (supports dynamic configured amounts)
+CREATE OR REPLACE FUNCTION public.claim_daily_streak_reward(p_custom_amount NUMERIC DEFAULT NULL)
 RETURNS JSONB AS $$
 DECLARE
   v_uid UUID := auth.uid();
@@ -439,7 +439,10 @@ BEGIN
     v_day := 1;
   END IF;
 
-  IF v_day = 7 THEN
+  -- Use custom amount if supplied, otherwise standard progression
+  IF p_custom_amount IS NOT NULL AND p_custom_amount > 0 THEN
+    v_reward := p_custom_amount;
+  ELSIF v_day = 7 THEN
     v_reward := 1000.00;
   ELSE
     v_reward := 200.00;
@@ -457,7 +460,7 @@ BEGIN
   RETURNING cash_balance INTO v_new_bal;
 
   INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (v_uid, 'reward', v_reward, 'Daily Login Streak (Day ' || v_day || ')', 'completed');
+  VALUES (v_uid, 'reward', v_reward, 'Daily Login Bonus (Day ' || v_day || ')', 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (v_uid, 'Daily Reward Claimed', '+₦' || v_reward || ' added to cash balance for Day ' || v_day || ' streak!', 'success');
@@ -517,6 +520,42 @@ BEGIN
   VALUES (v_uid, 'Task Reward Credited', '+₦' || p_reward_amount || ' credited for ' || p_task_title, 'success');
 
   RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal, 'reward', p_reward_amount);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RPC: Credit User Balance (Dynamic Amount for any task, promo, bonus, or quiz)
+CREATE OR REPLACE FUNCTION public.credit_user_balance(
+  p_amount NUMERIC,
+  p_reason TEXT,
+  p_type TEXT DEFAULT 'reward'
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_new_bal NUMERIC;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+
+  IF p_amount <= 0 THEN
+    RAISE EXCEPTION 'Invalid amount to credit.';
+  END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
+
+  UPDATE public.profiles
+  SET cash_balance = cash_balance + p_amount, updated_at = NOW()
+  WHERE id = v_uid
+  RETURNING cash_balance INTO v_new_bal;
+
+  INSERT INTO public.transactions (user_id, type, amount, description, status)
+  VALUES (v_uid, p_type, p_amount, p_reason, 'completed');
+
+  INSERT INTO public.notifications (user_id, title, message, type)
+  VALUES (v_uid, 'Balance Credited', '+₦' || p_amount || ' credited: ' || p_reason, 'success');
+
+  RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal, 'amount_credited', p_amount);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

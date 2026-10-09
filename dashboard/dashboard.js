@@ -499,12 +499,23 @@ async function creditUserReward(amount, taskTitle, taskId) {
       var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
       if (u && !u.id.startsWith('demo_')) {
         var tId = (taskId !== undefined ? taskId : ('task_' + title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase())).toString();
-        var { data: rpcRes } = await window.supabaseClient.rpc('claim_user_task_reward', {
+        var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('claim_user_task_reward', {
           p_task_id: tId,
           p_reward_amount: amt,
           p_task_title: title
         });
-        if (rpcRes && rpcRes.success && rpcRes.new_balance !== undefined) {
+        if (rpcErr || (rpcRes && !rpcRes.success)) {
+          var { data: credRes } = await window.supabaseClient.rpc('credit_user_balance', {
+            p_amount: amt,
+            p_reason: 'Task Reward — ' + title,
+            p_type: 'reward'
+          });
+          if (credRes && credRes.success && credRes.new_balance !== undefined) {
+            S.cashBalance = parseFloat(credRes.new_balance);
+            saveUserBalance();
+            updateBalanceDisplays();
+          }
+        } else if (rpcRes && rpcRes.success && rpcRes.new_balance !== undefined) {
           S.cashBalance = parseFloat(rpcRes.new_balance);
           saveUserBalance();
           updateBalanceDisplays();
@@ -1570,13 +1581,17 @@ async function claimDailyStreak() {
   var btn = $('claimStreakBtn');
   if (btn) btn.disabled = true;
 
-  // Supabase atomic DB claim
+  var curReward = STREAK_DAYS[streak.day - 1] ? STREAK_DAYS[streak.day - 1].reward : 200;
+
+  // Supabase atomic DB claim with dynamic amount
   if (window.supabaseClient) {
     try {
       var sessRes = await window.supabaseClient.auth.getSession();
       var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
       if (u && !u.id.startsWith('demo_')) {
-        var { data: rpcRes } = await window.supabaseClient.rpc('claim_daily_streak_reward');
+        var { data: rpcRes } = await window.supabaseClient.rpc('claim_daily_streak_reward', {
+          p_custom_amount: curReward
+        });
         if (rpcRes && rpcRes.success) {
           S.cashBalance = parseFloat(rpcRes.new_balance);
           streak.claimedToday = true;
