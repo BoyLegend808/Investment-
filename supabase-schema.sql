@@ -111,7 +111,12 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 CREATE TABLE IF NOT EXISTS public.user_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  task_key TEXT NOT NULL,
+  task_id TEXT,
+  task_key TEXT,
+  task_title TEXT,
+  reward_amount NUMERIC(15, 2),
+  status TEXT DEFAULT 'completed',
+  proof_url TEXT,
   completed BOOLEAN DEFAULT FALSE NOT NULL,
   completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -295,6 +300,50 @@ BEGIN
   VALUES (v_wth.user_id, 'Withdrawal Refunded', 'Your withdrawal request #' || withdrawal_id || ' was rejected. Funds have been returned to your balance.', 'warning');
 
   RETURN jsonb_build_object('success', true, 'withdrawal_id', withdrawal_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Admin Adjusts User Balance (Manual Correction)
+CREATE OR REPLACE FUNCTION public.admin_adjust_balance(
+  p_user_id UUID,
+  p_amount NUMERIC,
+  p_reason TEXT DEFAULT 'Admin manual balance adjustment'
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_new_bal NUMERIC;
+BEGIN
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: Admin privileges required.';
+  END IF;
+
+  IF p_amount = 0 THEN
+    RAISE EXCEPTION 'Adjustment amount cannot be zero.';
+  END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
+
+  UPDATE public.profiles
+  SET cash_balance = cash_balance + p_amount, updated_at = NOW()
+  WHERE id = p_user_id
+  RETURNING cash_balance INTO v_new_bal;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'User profile not found.';
+  END IF;
+
+  INSERT INTO public.transactions (user_id, type, amount, description, status)
+  VALUES (p_user_id, 'adjustment', p_amount, p_reason, 'completed');
+
+  INSERT INTO public.notifications (user_id, title, message, type)
+  VALUES (
+    p_user_id,
+    'Balance Adjusted',
+    'Your balance was adjusted by ' || CASE WHEN p_amount > 0 THEN '+₦' || p_amount ELSE '-₦' || ABS(p_amount) END || ' by administration: ' || p_reason,
+    CASE WHEN p_amount > 0 THEN 'success' ELSE 'warning' END
+  );
+
+  RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal, 'amount_adjusted', p_amount);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -503,8 +552,8 @@ BEGIN
 
   PERFORM set_config('app.internal_balance_update', 'true', true);
 
-  INSERT INTO public.user_tasks (user_id, task_id, task_title, reward_amount, status, proof_url, completed, completed_at)
-  VALUES (v_uid, p_task_id, p_task_title, p_reward_amount, 'completed', p_proof_url, true, NOW())
+  INSERT INTO public.user_tasks (user_id, task_id, task_key, task_title, reward_amount, status, proof_url, completed, completed_at)
+  VALUES (v_uid, p_task_id, p_task_id, p_task_title, p_reward_amount, 'completed', p_proof_url, true, NOW())
   ON CONFLICT (user_id, task_id) DO UPDATE
   SET completed = true, completed_at = NOW(), proof_url = COALESCE(EXCLUDED.proof_url, public.user_tasks.proof_url);
 
@@ -661,4 +710,55 @@ BEGIN
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 19. RPC: Sync User Balance (Guarantees local rewards/balances sync safely into DB)
+CREATE OR REPLACE FUNCTION public.sync_user_balance(p_cash_balance NUMERIC)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_curr NUMERIC;
+  v_diff NUMERIC;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+
+  IF p_cash_balance IS NULL OR p_cash_balance < 0 THEN
+    RAISE EXCEPTION 'Invalid cash balance.';
+  END IF;
+
+  SELECT cash_balance INTO v_curr FROM public.profiles WHERE id = v_uid FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Profile not found.';
+  END IF;
+
+  IF p_cash_balance > v_curr THEN
+    v_diff := p_cash_balance - v_curr;
+    PERFORM set_config('app.internal_balance_update', 'true', true);
+
+    UPDATE public.profiles
+    SET cash_balance = p_cash_balance, updated_at = NOW()
+    WHERE id = v_uid;
+
+    INSERT INTO public.transactions (user_id, type, amount, description, status)
+    VALUES (v_uid, 'reward', v_diff, 'Earned Reward Sync', 'completed');
+  END IF;
+
+  SELECT cash_balance INTO v_curr FROM public.profiles WHERE id = v_uid;
+  RETURN jsonb_build_object('success', true, 'cash_balance', v_curr);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 20. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.claim_daily_streak_reward(NUMERIC) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.credit_user_balance(NUMERIC, TEXT, TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.sync_user_balance(NUMERIC) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.subscribe_vaultx_package(INT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.request_withdrawal(NUMERIC, TEXT, TEXT, TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.admin_confirm_deposit(TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.admin_reject_withdrawal(TEXT, TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.admin_adjust_balance(UUID, NUMERIC, TEXT) TO authenticated, anon;
+
 

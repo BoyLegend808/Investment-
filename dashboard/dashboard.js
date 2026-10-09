@@ -6,6 +6,19 @@ function getCrestStorage(key, defaultVal) {
       var r = localStorage.getItem('crest_current_user');
       if (r) { try { u = JSON.parse(r); } catch(e) {} }
     }
+    if (!u) {
+      for (var k in localStorage) {
+        if (typeof k === 'string' && k.indexOf('auth-token') !== -1) {
+          try {
+            var tok = JSON.parse(localStorage.getItem(k));
+            if (tok && tok.user && tok.user.id) {
+              u = tok.user;
+              break;
+            }
+          } catch(e) {}
+        }
+      }
+    }
     var prefix = (u && u.id) ? ('crest_' + u.id + '_') : 'crest_';
     var val = localStorage.getItem(prefix + key);
     if (val !== null) return val;
@@ -23,11 +36,24 @@ function setCrestStorage(key, val) {
       var r = localStorage.getItem('crest_current_user');
       if (r) { try { u = JSON.parse(r); } catch(e) {} }
     }
+    if (!u) {
+      for (var k in localStorage) {
+        if (typeof k === 'string' && k.indexOf('auth-token') !== -1) {
+          try {
+            var tok = JSON.parse(localStorage.getItem(k));
+            if (tok && tok.user && tok.user.id) {
+              u = tok.user;
+              break;
+            }
+          } catch(e) {}
+        }
+      }
+    }
     var prefix = (u && u.id) ? ('crest_' + u.id + '_') : 'crest_';
     var strVal = typeof val === 'string' ? val : JSON.stringify(val);
     localStorage.setItem(prefix + key, strVal);
-    // Mirror global configs
-    if (key === 'tasks_config' || key === 'admin_tasks') {
+    // Mirror global configs or balances if demo or global fallback
+    if (key === 'tasks_config' || key === 'admin_tasks' || !u || u.id === 'demo_investor') {
       localStorage.setItem('crest_' + key, strVal);
     }
   } catch (e) {}
@@ -116,12 +142,25 @@ async function initDashboardUserProfile() {
         if (dbProfile.email) email = dbProfile.email;
         if (dbProfile.referral_code) referralCode = dbProfile.referral_code;
 
+        var localCash = loadUserBalance();
         if (dbProfile.cash_balance !== undefined && dbProfile.cash_balance !== null) {
-          var b = parseFloat(dbProfile.cash_balance);
-          if (!isNaN(b) && typeof S !== 'undefined') {
-            S.cashBalance = b;
+          var dbCash = parseFloat(dbProfile.cash_balance);
+          if (!isNaN(dbCash) && typeof S !== 'undefined') {
+            // Protect earned rewards: if local storage has a higher balance than DB
+            // (e.g. freshly claimed rewards that haven't finished DB sync or DB held 0),
+            // retain localCash and sync to Supabase so refreshing never resets to 0!
+            if (localCash > dbCash) {
+              S.cashBalance = localCash;
+              syncUserBalanceToDB(localCash);
+            } else {
+              S.cashBalance = dbCash;
+            }
           }
+        } else if (localCash > 0 && typeof S !== 'undefined') {
+          S.cashBalance = localCash;
+          syncUserBalanceToDB(localCash);
         }
+
         if (dbProfile.invested_balance !== undefined && dbProfile.invested_balance !== null) {
           var ib = parseFloat(dbProfile.invested_balance);
           if (!isNaN(ib) && typeof S !== 'undefined') {
@@ -133,7 +172,12 @@ async function initDashboardUserProfile() {
         if (dbProfile.daily_streak_day !== undefined && dbProfile.daily_streak_day !== null) {
           var streak = getDailyStreakData();
           streak.day = parseInt(dbProfile.daily_streak_day, 10) || 1;
-          streak.lastClaimDate = dbProfile.last_streak_claim_date || '';
+          if (dbProfile.last_streak_claim_date) {
+            streak.lastClaimDate = dbProfile.last_streak_claim_date;
+            if (isStreakClaimedForToday(dbProfile.last_streak_claim_date)) {
+              streak.claimedToday = true;
+            }
+          }
           saveDailyStreakData(streak);
           renderDailyStreak();
         }
@@ -434,26 +478,60 @@ function loadUserBalance() {
   return 0;
 }
 
+async function syncUserBalanceToDB(amount) {
+  if (!window.supabaseClient) return;
+  try {
+    var sessRes = await window.supabaseClient.auth.getSession();
+    var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
+    if (!u || (typeof u.id === 'string' && u.id.startsWith('demo_'))) return;
+
+    var amt = (typeof amount === 'number') ? amount : S.cashBalance;
+    if (isNaN(amt) || amt < 0) return;
+
+    // Call atomic sync_user_balance RPC (sets internal_balance_update bypass)
+    var { data, error } = await window.supabaseClient.rpc('sync_user_balance', {
+      p_cash_balance: amt
+    });
+
+    if (error) {
+      // Fallback: try credit_user_balance with diff
+      var { data: pData } = await window.supabaseClient
+        .from('profiles')
+        .select('cash_balance')
+        .eq('id', u.id)
+        .maybeSingle();
+      var curBal = pData ? parseFloat(pData.cash_balance || 0) : 0;
+      if (amt > curBal) {
+        var diff = amt - curBal;
+        var { data: credRes } = await window.supabaseClient.rpc('credit_user_balance', {
+          p_amount: diff,
+          p_reason: 'Balance Synchronization',
+          p_type: 'reward'
+        });
+        if (credRes && credRes.new_balance !== undefined) {
+          S.cashBalance = parseFloat(credRes.new_balance);
+          setCrestStorage('user_balance', S.cashBalance.toString());
+          updateBalanceDisplays();
+        }
+      }
+    } else if (data && data.success && data.cash_balance !== undefined) {
+      S.cashBalance = parseFloat(data.cash_balance);
+      setCrestStorage('user_balance', S.cashBalance.toString());
+      updateBalanceDisplays();
+    }
+  } catch(e) {
+    console.warn('[Crest] syncUserBalanceToDB exception:', e);
+  }
+}
+
 function saveUserBalance() {
   try {
     setCrestStorage('user_balance', S.cashBalance.toString());
     setCrestStorage('invested_balance', (S.investedBalance || 0).toString());
   } catch(e) {}
 
-  // Sync cash_balance to Supabase DB if user is logged in
-  if (window.supabaseClient) {
-    try {
-      window.supabaseClient.auth.getSession().then(function(res) {
-        var u = res && res.data && res.data.session ? res.data.session.user : null;
-        if (u && !u.id.startsWith('demo_')) {
-          window.supabaseClient.from('profiles').update({
-            cash_balance: S.cashBalance
-            // Note: invested_balance is protected by RLS triggers
-          }).eq('id', u.id).then(function() {});
-        }
-      });
-    } catch(e) {}
-  }
+  // Sync cash_balance to Supabase DB via RPC (anti-tamper trigger requires RPC execution)
+  syncUserBalanceToDB(S.cashBalance);
 }
 
 function updateBalanceDisplays() {
@@ -505,19 +583,22 @@ async function creditUserReward(amount, taskTitle, taskId) {
           p_task_title: title
         });
         if (rpcErr || (rpcRes && !rpcRes.success)) {
-          var { data: credRes } = await window.supabaseClient.rpc('credit_user_balance', {
+          var { data: credRes, error: credErr } = await window.supabaseClient.rpc('credit_user_balance', {
             p_amount: amt,
             p_reason: 'Task Reward — ' + title,
             p_type: 'reward'
           });
-          if (credRes && credRes.success && credRes.new_balance !== undefined) {
+          if (!credErr && credRes && credRes.success && credRes.new_balance !== undefined) {
             S.cashBalance = parseFloat(credRes.new_balance);
-            saveUserBalance();
+            setCrestStorage('user_balance', S.cashBalance.toString());
             updateBalanceDisplays();
+          } else {
+            // Also try syncUserBalanceToDB with full new balance
+            syncUserBalanceToDB(S.cashBalance);
           }
         } else if (rpcRes && rpcRes.success && rpcRes.new_balance !== undefined) {
           S.cashBalance = parseFloat(rpcRes.new_balance);
-          saveUserBalance();
+          setCrestStorage('user_balance', S.cashBalance.toString());
           updateBalanceDisplays();
         }
         loadUserTransactionsFromDB();
@@ -918,7 +999,7 @@ function verifyTask(id, proofPath) {
       return m ? parseInt(m, 10) : 2000;
     })();
 
-    creditUserReward(rewardAmt, task.title);
+    creditUserReward(rewardAmt, task.title, task.id);
     refreshTaskUI();
     toast('Task verified! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
   }, 1200);
@@ -1013,7 +1094,7 @@ function answerQ(chosen) {
           task.done = true;
           saveUserTasksState();
           var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : 2500;
-          creditUserReward(rewardAmt, task.title || 'Investment IQ Quiz');
+          creditUserReward(rewardAmt, task.title || 'Investment IQ Quiz', task.id);
           refreshTaskUI();
           toast('Investment IQ Quiz passed! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
         }
@@ -1176,7 +1257,7 @@ function gameTradeAction(action) {
         task.done = true;
         saveUserTasksState();
         var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : 3500;
-        creditUserReward(rewardAmt, task.title || 'Market Timing Mini-Game');
+        creditUserReward(rewardAmt, task.title || 'Market Timing Mini-Game', task.id);
         refreshTaskUI();
         toast('Market Sprint Complete! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
       }
@@ -1517,11 +1598,29 @@ var STREAK_DAYS = [
   { day: 7, label: 'Day 7', reward: 1000, rewardStr: '+₦1,000' }
 ];
 
+function getStreakTodayStr() {
+  var d = new Date();
+  var yr = d.getFullYear();
+  var mo = String(d.getMonth() + 1).padStart(2, '0');
+  var da = String(d.getDate()).padStart(2, '0');
+  return yr + '-' + mo + '-' + da;
+}
+
+function isStreakClaimedForToday(lastClaimDate) {
+  if (!lastClaimDate) return false;
+  var todayIso = getStreakTodayStr();
+  var localDateStr = new Date().toDateString();
+  return lastClaimDate === todayIso || lastClaimDate === localDateStr;
+}
+
 function getDailyStreakData() {
   var defaultData = { day: 1, claimedToday: false, lastClaimDate: '' };
   try {
     var raw = getCrestStorage('daily_streak', null);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (parsed) return parsed;
+    }
   } catch(e) {}
   return defaultData;
 }
@@ -1534,8 +1633,8 @@ function saveDailyStreakData(data) {
 
 function renderDailyStreak() {
   var streak = getDailyStreakData();
-  var todayStr = new Date().toDateString();
-  if (streak.lastClaimDate !== todayStr) {
+  var todayIso = getStreakTodayStr();
+  if (!isStreakClaimedForToday(streak.lastClaimDate)) {
     streak.claimedToday = false;
   }
 
@@ -1572,8 +1671,8 @@ function renderDailyStreak() {
 
 async function claimDailyStreak() {
   var streak = getDailyStreakData();
-  var todayStr = new Date().toDateString();
-  if (streak.claimedToday && streak.lastClaimDate === todayStr) {
+  var todayIso = getStreakTodayStr();
+  if (streak.claimedToday && isStreakClaimedForToday(streak.lastClaimDate)) {
     toast('You have already claimed today\'s login bonus! Come back tomorrow.', 'info');
     return;
   }
@@ -1589,39 +1688,58 @@ async function claimDailyStreak() {
       var sessRes = await window.supabaseClient.auth.getSession();
       var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
       if (u && !u.id.startsWith('demo_')) {
-        var { data: rpcRes } = await window.supabaseClient.rpc('claim_daily_streak_reward', {
+        var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('claim_daily_streak_reward', {
           p_custom_amount: curReward
         });
+
+        if (rpcErr) {
+          console.warn('[Crest] claim_daily_streak_reward error, trying credit_user_balance fallback:', rpcErr);
+          var { data: credRes, error: credErr } = await window.supabaseClient.rpc('credit_user_balance', {
+            p_amount: curReward,
+            p_reason: 'Daily Login Bonus (Day ' + streak.day + ')',
+            p_type: 'reward'
+          });
+          if (!credErr && credRes && credRes.success && credRes.new_balance !== undefined) {
+            rpcRes = {
+              success: true,
+              new_balance: credRes.new_balance,
+              reward: curReward,
+              next_day: (streak.day >= 7 ? 1 : streak.day + 1)
+            };
+          }
+        }
+
         if (rpcRes && rpcRes.success) {
           S.cashBalance = parseFloat(rpcRes.new_balance);
           streak.claimedToday = true;
-          streak.lastClaimDate = todayStr;
-          streak.day = rpcRes.next_day;
+          streak.lastClaimDate = todayIso;
+          streak.day = rpcRes.next_day || (streak.day >= 7 ? 1 : streak.day + 1);
           saveDailyStreakData(streak);
           saveUserBalance();
           updateBalanceDisplays();
           renderDailyStreak();
           loadUserTransactionsFromDB();
-          toast('Claimed Day bonus! +₦' + rpcRes.reward.toLocaleString('en-NG') + ' added to your cash balance!', 'emerald');
+          toast('Claimed Day bonus! +₦' + Number(rpcRes.reward || curReward).toLocaleString('en-NG') + ' added to your cash balance!', 'emerald');
           return;
         } else if (rpcRes && !rpcRes.success) {
           toast(rpcRes.message || 'Already claimed today.', 'info');
           streak.claimedToday = true;
+          streak.lastClaimDate = todayIso;
+          saveDailyStreakData(streak);
           renderDailyStreak();
           return;
         }
       }
     } catch(e) {
-      console.warn('claimDailyStreak rpc error, fallback:', e);
+      console.warn('claimDailyStreak rpc exception, fallback:', e);
     }
   }
 
   // Fallback for demo or offline mode
-  var curReward = STREAK_DAYS[streak.day - 1] ? STREAK_DAYS[streak.day - 1].reward : 200;
   await creditUserReward(curReward, 'Daily Login Streak (Day ' + streak.day + ')', 'streak_' + streak.day);
 
   streak.claimedToday = true;
-  streak.lastClaimDate = todayStr;
+  streak.lastClaimDate = todayIso;
   if (streak.day < 7) streak.day += 1;
   else streak.day = 1;
   saveDailyStreakData(streak);
@@ -1907,7 +2025,7 @@ window.addEventListener('storage', function(e) {
     S.tasks = loadTasksState();
     refreshTaskUI();
   }
-  if (e.key === 'crest_user_balance') {
+  if (e.key && (e.key === 'crest_user_balance' || e.key.indexOf('user_balance') !== -1)) {
     S.cashBalance = loadUserBalance();
     updateBalanceDisplays();
   }
