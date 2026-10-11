@@ -1,4 +1,6 @@
 // Scoped per-user storage access (prevents data crossover or loss)
+var GLOBAL_STORAGE_KEYS = ['tasks_config', 'admin_tasks', 'theme', 'crest_ref_code'];
+
 function getCrestStorage(key, defaultVal) {
   try {
     var u = window.crestUser;
@@ -19,12 +21,19 @@ function getCrestStorage(key, defaultVal) {
         }
       }
     }
-    var prefix = (u && u.id) ? ('crest_' + u.id + '_') : 'crest_';
-    var val = localStorage.getItem(prefix + key);
-    if (val !== null) return val;
-    // Fallback to legacy or global key
-    val = localStorage.getItem('crest_' + key);
-    if (val !== null) return val;
+
+    var isGlobal = GLOBAL_STORAGE_KEYS.indexOf(key) !== -1;
+    if (isGlobal) {
+      var gVal = localStorage.getItem('crest_' + key);
+      if (gVal !== null) return gVal;
+      return defaultVal;
+    }
+
+    // User-specific data: require valid user scope to avoid crossover
+    if (u && u.id) {
+      var userVal = localStorage.getItem('crest_' + u.id + '_' + key);
+      if (userVal !== null) return userVal;
+    }
   } catch (e) {}
   return defaultVal;
 }
@@ -49,12 +58,19 @@ function setCrestStorage(key, val) {
         }
       }
     }
-    var prefix = (u && u.id) ? ('crest_' + u.id + '_') : 'crest_';
+
     var strVal = typeof val === 'string' ? val : JSON.stringify(val);
-    localStorage.setItem(prefix + key, strVal);
-    // Mirror global configs or balances if demo or global fallback
-    if (key === 'tasks_config' || key === 'admin_tasks' || !u || u.id === 'demo_investor') {
+    var isGlobal = GLOBAL_STORAGE_KEYS.indexOf(key) !== -1;
+
+    if (isGlobal) {
       localStorage.setItem('crest_' + key, strVal);
+    }
+
+    if (u && u.id) {
+      localStorage.setItem('crest_' + u.id + '_' + key, strVal);
+    } else if (!isGlobal) {
+      // Temporary unauthenticated fallback for demo user only
+      localStorage.setItem('crest_demo_investor_' + key, strVal);
     }
   } catch (e) {}
 }
@@ -142,23 +158,12 @@ async function initDashboardUserProfile() {
         if (dbProfile.email) email = dbProfile.email;
         if (dbProfile.referral_code) referralCode = dbProfile.referral_code;
 
-        var localCash = loadUserBalance();
         if (dbProfile.cash_balance !== undefined && dbProfile.cash_balance !== null) {
           var dbCash = parseFloat(dbProfile.cash_balance);
           if (!isNaN(dbCash) && typeof S !== 'undefined') {
-            // Protect earned rewards: if local storage has a higher balance than DB
-            // (e.g. freshly claimed rewards that haven't finished DB sync or DB held 0),
-            // retain localCash and sync to Supabase so refreshing never resets to 0!
-            if (localCash > dbCash) {
-              S.cashBalance = localCash;
-              syncUserBalanceToDB(localCash);
-            } else {
-              S.cashBalance = dbCash;
-            }
+            S.cashBalance = dbCash;
+            saveUserBalance();
           }
-        } else if (localCash > 0 && typeof S !== 'undefined') {
-          S.cashBalance = localCash;
-          syncUserBalanceToDB(localCash);
         }
 
         if (dbProfile.invested_balance !== undefined && dbProfile.invested_balance !== null) {
@@ -169,18 +174,22 @@ async function initDashboardUserProfile() {
         }
 
         // Restore streak state from DB
-        if (dbProfile.daily_streak_day !== undefined && dbProfile.daily_streak_day !== null) {
-          var streak = getDailyStreakData();
-          streak.day = parseInt(dbProfile.daily_streak_day, 10) || 1;
-          if (dbProfile.last_streak_claim_date) {
-            streak.lastClaimDate = dbProfile.last_streak_claim_date;
-            if (isStreakClaimedForToday(dbProfile.last_streak_claim_date)) {
-              streak.claimedToday = true;
-            }
-          }
-          saveDailyStreakData(streak);
-          renderDailyStreak();
+        var streak = getDailyStreakData();
+        var dbStreakDay = parseInt(dbProfile.daily_streak_day, 10);
+        if (isNaN(dbStreakDay) || dbStreakDay < 1 || dbStreakDay > 7) {
+          dbStreakDay = 1;
         }
+        streak.day = dbStreakDay;
+        if (dbProfile.last_streak_claim_date) {
+          streak.lastClaimDate = dbProfile.last_streak_claim_date;
+        }
+        var claimedToday = isStreakClaimedForToday(streak.lastClaimDate);
+        streak.claimedToday = claimedToday;
+        if (claimedToday) {
+          streak.lastClaimedDay = (streak.day === 1 ? 7 : streak.day - 1);
+        }
+        saveDailyStreakData(streak);
+        renderDailyStreak();
 
         if (typeof S !== 'undefined') {
           saveUserBalance();
@@ -478,49 +487,29 @@ function loadUserBalance() {
   return 0;
 }
 
-async function syncUserBalanceToDB(amount) {
+async function syncUserBalanceToDB() {
   if (!window.supabaseClient) return;
   try {
     var sessRes = await window.supabaseClient.auth.getSession();
     var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
     if (!u || (typeof u.id === 'string' && u.id.startsWith('demo_'))) return;
 
-    var amt = (typeof amount === 'number') ? amount : S.cashBalance;
-    if (isNaN(amt) || amt < 0) return;
+    var { data: pData } = await window.supabaseClient
+      .from('profiles')
+      .select('cash_balance')
+      .eq('id', u.id)
+      .maybeSingle();
 
-    // Call atomic sync_user_balance RPC (sets internal_balance_update bypass)
-    var { data, error } = await window.supabaseClient.rpc('sync_user_balance', {
-      p_cash_balance: amt
-    });
-
-    if (error) {
-      // Fallback: try credit_user_balance with diff
-      var { data: pData } = await window.supabaseClient
-        .from('profiles')
-        .select('cash_balance')
-        .eq('id', u.id)
-        .maybeSingle();
-      var curBal = pData ? parseFloat(pData.cash_balance || 0) : 0;
-      if (amt > curBal) {
-        var diff = amt - curBal;
-        var { data: credRes } = await window.supabaseClient.rpc('credit_user_balance', {
-          p_amount: diff,
-          p_reason: 'Balance Synchronization',
-          p_type: 'reward'
-        });
-        if (credRes && credRes.new_balance !== undefined) {
-          S.cashBalance = parseFloat(credRes.new_balance);
-          setCrestStorage('user_balance', S.cashBalance.toString());
-          updateBalanceDisplays();
-        }
+    if (pData && pData.cash_balance !== undefined && pData.cash_balance !== null) {
+      var realBal = parseFloat(pData.cash_balance);
+      if (!isNaN(realBal)) {
+        S.cashBalance = realBal;
+        setCrestStorage('user_balance', S.cashBalance.toString());
+        updateBalanceDisplays();
       }
-    } else if (data && data.success && data.cash_balance !== undefined) {
-      S.cashBalance = parseFloat(data.cash_balance);
-      setCrestStorage('user_balance', S.cashBalance.toString());
-      updateBalanceDisplays();
     }
   } catch(e) {
-    console.warn('[Crest] syncUserBalanceToDB exception:', e);
+    console.warn('[Crest] syncUserBalanceToDB notice:', e);
   }
 }
 
@@ -529,9 +518,6 @@ function saveUserBalance() {
     setCrestStorage('user_balance', S.cashBalance.toString());
     setCrestStorage('invested_balance', (S.investedBalance || 0).toString());
   } catch(e) {}
-
-  // Sync cash_balance to Supabase DB via RPC (anti-tamper trigger requires RPC execution)
-  syncUserBalanceToDB(S.cashBalance);
 }
 
 function updateBalanceDisplays() {
@@ -557,6 +543,23 @@ function updateBalanceDisplays() {
   
   if ($('totalInvestedVal')) $('totalInvestedVal').textContent = fmt0(totalInvested);
   if ($('totalAccruedVal')) $('totalAccruedVal').textContent = fmt0(totalAccrued);
+
+  var planCount = (S.investments && Array.isArray(S.investments) && S.investments.length > 0)
+    ? S.investments.length
+    : (totalInvested > 0 ? 1 : 0);
+  if ($('activePlansCountSub')) {
+    $('activePlansCountSub').textContent = planCount + (planCount === 1 ? ' active plan' : ' active plans');
+  }
+
+  if ($('portfolioGrowthSub')) {
+    var estMonthly = totalInvested > 0 ? Math.round((totalInvested * 0.14) / 12) : 0;
+    $('portfolioGrowthSub').textContent = estMonthly > 0 ? ('+₦' + estMonthly.toLocaleString('en-NG') + ' est. monthly') : 'No active yield';
+  }
+
+  if ($('accruedTodaySub')) {
+    var estDaily = totalInvested > 0 ? Math.round((totalInvested * 0.14) / 365) : 0;
+    $('accruedTodaySub').textContent = estDaily > 0 ? ('+₦' + estDaily.toLocaleString('en-NG') + ' today') : '+₦0.00 today';
+  }
 }
 
 async function creditUserReward(amount, taskTitle, taskId) {
@@ -1462,9 +1465,11 @@ function copyDepAccount() {
   });
 }
 
+var depositReceiptFile = null;
 function handleReceiptUpload(e) {
   var file = e.target.files && e.target.files[0];
   if (!file) return;
+  depositReceiptFile = file;
   var reader = new FileReader();
   reader.onload = function(evt) {
     depositReceiptData = evt.target.result;
@@ -1480,6 +1485,7 @@ function handleReceiptUpload(e) {
 function removeReceipt(e) {
   if (e) e.stopPropagation();
   depositReceiptData = null;
+  depositReceiptFile = null;
   if ($('popFileInput')) $('popFileInput').value = '';
   if ($('popPrompt')) $('popPrompt').style.display = 'block';
   if ($('popPreview')) $('popPreview').style.display = 'none';
@@ -1491,12 +1497,23 @@ function startDepositSessionTimer() {
   if (depositTimerInterval) clearInterval(depositTimerInterval);
   depositTimerInterval = setInterval(function() {
     depositSecondsRemaining--;
-    if (depositSecondsRemaining <= 0) depositSecondsRemaining = 900;
+    if (depositSecondsRemaining <= 0) {
+      clearInterval(depositTimerInterval);
+      if ($('depositTimer')) $('depositTimer').textContent = 'Session Expired';
+      toast('Deposit session expired. Click to refresh payment session.', 'warn');
+      return;
+    }
     var m = Math.floor(depositSecondsRemaining / 60);
     var s = depositSecondsRemaining % 60;
     var str = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
     if ($('depositTimer')) $('depositTimer').textContent = str;
   }, 1000);
+}
+
+function refreshDepositSession() {
+  depositSecondsRemaining = 900;
+  startDepositSessionTimer();
+  toast('Deposit payment window refreshed.', 'emerald');
 }
 
 function calcReturns() {
@@ -1516,7 +1533,7 @@ function setPick(n) {
   if (el) { el.value = n; calcReturns(); }
 }
 
-function submitDeposit() {
+async function submitDeposit() {
   var amtEl = $('depAmount');
   var amt = parseFloat(amtEl ? amtEl.value : 0);
   if (!amt || amt < 500) { toast('Minimum deposit is ₦500', 'warn'); return; }
@@ -1534,15 +1551,38 @@ function submitDeposit() {
   var planName = planMap[planRate] || 'Crest Stash (11.5%)';
   var bInfo = DEPOSIT_BANKS[currentDepositBank] || DEPOSIT_BANKS.opay;
 
+  var currentUserName = (window.crestUser && window.crestUser.user_metadata && window.crestUser.user_metadata.full_name) ||
+                        (window.crestUser && window.crestUser.full_name) ||
+                        (window.crestUser && window.crestUser.email ? window.crestUser.email.split('@')[0] : 'Valued Investor');
+  var currentUserEmail = (window.crestUser && window.crestUser.email) || 'investor@crestwealth.com';
+
+  var receiptUrl = null;
+  if (window.supabaseClient && depositReceiptFile) {
+    try {
+      var ext = depositReceiptFile.name ? depositReceiptFile.name.split('.').pop() : 'png';
+      var filePath = 'receipts/' + refId + '_' + Date.now() + '.' + ext;
+      var { data: upData, error: upErr } = await window.supabaseClient.storage
+        .from('receipts')
+        .upload(filePath, depositReceiptFile, { upsert: true });
+      if (!upErr && upData) {
+        var { data: pubData } = window.supabaseClient.storage.from('receipts').getPublicUrl(filePath);
+        if (pubData) receiptUrl = pubData.publicUrl;
+      }
+    } catch(err) {
+      console.warn('[Crest] Supabase storage upload notice:', err);
+    }
+  }
+
   var newDep = {
     id: refId,
-    user: 'Adaeze Okonkwo',
-    email: 'adaeze.okonkwo@email.com',
+    user: currentUserName,
+    email: currentUserEmail,
     amount: amt,
     plan: planName,
     bank: bInfo.name,
     acctNum: bInfo.acctNum,
-    receiptData: depositReceiptData,
+    receiptData: receiptUrl || depositReceiptData,
+    proofUrl: receiptUrl,
     method: 'BANK TRANSFER (' + bInfo.name.toUpperCase() + ')',
     date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     status: 'Pending Confirmation'
@@ -1558,23 +1598,22 @@ function submitDeposit() {
   // Sync to Supabase DB if user is logged in
   if (window.supabaseClient) {
     try {
-      window.supabaseClient.auth.getSession().then(function(res) {
-        var u = res && res.data && res.data.session ? res.data.session.user : null;
-        if (u) {
-          window.supabaseClient.from('deposits').insert({
-            id: refId,
-            user_id: u.id,
-            user_email: u.email,
-            amount: amt,
-            plan: planName,
-            bank_name: bInfo.name,
-            account_number: bInfo.acctNum,
-            status: 'Pending'
-          }).then(function(dbRes) {
-            if (dbRes.error) console.warn('Supabase deposit sync notice:', dbRes.error);
-          });
-        }
-      });
+      var sess = await window.supabaseClient.auth.getSession();
+      var u = sess && sess.data && sess.data.session ? sess.data.session.user : null;
+      if (u) {
+        var { error: depErr } = await window.supabaseClient.from('deposits').insert({
+          id: refId,
+          user_id: u.id,
+          user_email: u.email,
+          amount: amt,
+          plan: planName,
+          bank_name: bInfo.name,
+          account_number: bInfo.acctNum,
+          proof_url: receiptUrl || (depositReceiptData ? 'base64_attached' : null),
+          status: 'Pending'
+        });
+        if (depErr) console.warn('Supabase deposit sync notice:', depErr);
+      }
     } catch(e) {}
   }
 
@@ -1600,26 +1639,33 @@ var STREAK_DAYS = [
 
 function getStreakTodayStr() {
   var d = new Date();
-  var yr = d.getFullYear();
-  var mo = String(d.getMonth() + 1).padStart(2, '0');
-  var da = String(d.getDate()).padStart(2, '0');
+  var yr = d.getUTCFullYear();
+  var mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  var da = String(d.getUTCDate()).padStart(2, '0');
   return yr + '-' + mo + '-' + da;
 }
 
 function isStreakClaimedForToday(lastClaimDate) {
   if (!lastClaimDate) return false;
-  var todayIso = getStreakTodayStr();
-  var localDateStr = new Date().toDateString();
-  return lastClaimDate === todayIso || lastClaimDate === localDateStr;
+  var utcTodayIso = getStreakTodayStr();
+  var d = new Date();
+  var localTodayIso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  var localDateStr = d.toDateString();
+  var dateOnly = String(lastClaimDate).trim().slice(0, 10);
+  return dateOnly === utcTodayIso || dateOnly === localTodayIso || lastClaimDate === utcTodayIso || lastClaimDate === localTodayIso || lastClaimDate === localDateStr;
 }
 
 function getDailyStreakData() {
-  var defaultData = { day: 1, claimedToday: false, lastClaimDate: '' };
+  var defaultData = { day: 1, claimedToday: false, lastClaimDate: '', lastClaimedDay: 0 };
   try {
     var raw = getCrestStorage('daily_streak', null);
     if (raw) {
       var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      if (parsed) return parsed;
+      if (parsed) {
+        if (typeof parsed.day !== 'number' || parsed.day < 1 || parsed.day > 7) parsed.day = 1;
+        parsed.claimedToday = isStreakClaimedForToday(parsed.lastClaimDate);
+        return parsed;
+      }
     }
   } catch(e) {}
   return defaultData;
@@ -1633,16 +1679,29 @@ function saveDailyStreakData(data) {
 
 function renderDailyStreak() {
   var streak = getDailyStreakData();
-  var todayIso = getStreakTodayStr();
-  if (!isStreakClaimedForToday(streak.lastClaimDate)) {
-    streak.claimedToday = false;
-  }
+  var claimedToday = isStreakClaimedForToday(streak.lastClaimDate);
+  streak.claimedToday = claimedToday;
+
+  // If claimed today, what day was claimed?
+  var claimedDay = streak.lastClaimedDay || (streak.day === 1 ? 7 : streak.day - 1);
+  if (claimedDay < 1 || claimedDay > 7) claimedDay = 1;
 
   var track = $('streakDaysTrack');
   if (track) {
     track.innerHTML = STREAK_DAYS.map(function(item) {
-      var isDone = item.day < streak.day || (item.day === streak.day && streak.claimedToday);
-      var isToday = item.day === streak.day && !streak.claimedToday;
+      var isDone = false;
+      var isToday = false;
+
+      if (claimedToday) {
+        // All days up to and including claimedDay are done
+        isDone = item.day <= claimedDay;
+        isToday = false;
+      } else {
+        // Not claimed yet today: all previous days are done, streak.day is Available today
+        isDone = item.day < streak.day;
+        isToday = item.day === streak.day;
+      }
+
       var cls = 'streak-day-item' + (isDone ? ' done' : '') + (isToday ? ' today' : '');
       var statusTxt = isDone ? 'Claimed ✓' : (isToday ? 'Available' : 'Locked');
       return '<div class="' + cls + '">' +
@@ -1656,10 +1715,10 @@ function renderDailyStreak() {
   var btn = $('claimStreakBtn');
   var btnTxt = $('claimStreakBtnText');
   if (btn && btnTxt) {
-    if (streak.claimedToday) {
+    if (claimedToday) {
       btn.className = 'btn-claim-streak claimed';
       btn.disabled = true;
-      btnTxt.textContent = 'Day ' + streak.day + ' Claimed Today ✓';
+      btnTxt.textContent = 'Day ' + claimedDay + ' Claimed Today ✓';
     } else {
       btn.className = 'btn-claim-streak';
       btn.disabled = false;
@@ -1672,7 +1731,7 @@ function renderDailyStreak() {
 async function claimDailyStreak() {
   var streak = getDailyStreakData();
   var todayIso = getStreakTodayStr();
-  if (streak.claimedToday && isStreakClaimedForToday(streak.lastClaimDate)) {
+  if (streak.claimedToday || isStreakClaimedForToday(streak.lastClaimDate)) {
     toast('You have already claimed today\'s login bonus! Come back tomorrow.', 'info');
     return;
   }
@@ -1704,6 +1763,7 @@ async function claimDailyStreak() {
               success: true,
               new_balance: credRes.new_balance,
               reward: curReward,
+              day_claimed: streak.day,
               next_day: (streak.day >= 7 ? 1 : streak.day + 1)
             };
           }
@@ -1711,15 +1771,18 @@ async function claimDailyStreak() {
 
         if (rpcRes && rpcRes.success) {
           S.cashBalance = parseFloat(rpcRes.new_balance);
+          var dayClaimed = rpcRes.day_claimed || streak.day;
+          var nextDay = rpcRes.next_day || (dayClaimed >= 7 ? 1 : dayClaimed + 1);
           streak.claimedToday = true;
           streak.lastClaimDate = todayIso;
-          streak.day = rpcRes.next_day || (streak.day >= 7 ? 1 : streak.day + 1);
+          streak.lastClaimedDay = dayClaimed;
+          streak.day = nextDay;
           saveDailyStreakData(streak);
           saveUserBalance();
           updateBalanceDisplays();
           renderDailyStreak();
           loadUserTransactionsFromDB();
-          toast('Claimed Day bonus! +₦' + Number(rpcRes.reward || curReward).toLocaleString('en-NG') + ' added to your cash balance!', 'emerald');
+          toast('Claimed Day ' + dayClaimed + ' bonus! +₦' + Number(rpcRes.reward || curReward).toLocaleString('en-NG') + ' added to your cash balance!', 'emerald');
           return;
         } else if (rpcRes && !rpcRes.success) {
           toast(rpcRes.message || 'Already claimed today.', 'info');
@@ -1736,16 +1799,18 @@ async function claimDailyStreak() {
   }
 
   // Fallback for demo or offline mode
-  await creditUserReward(curReward, 'Daily Login Streak (Day ' + streak.day + ')', 'streak_' + streak.day);
+  var dayClaimedFallback = streak.day;
+  var nextDayFallback = (streak.day >= 7 ? 1 : streak.day + 1);
+  await creditUserReward(curReward, 'Daily Login Streak (Day ' + dayClaimedFallback + ')', 'streak_' + dayClaimedFallback);
 
   streak.claimedToday = true;
   streak.lastClaimDate = todayIso;
-  if (streak.day < 7) streak.day += 1;
-  else streak.day = 1;
+  streak.lastClaimedDay = dayClaimedFallback;
+  streak.day = nextDayFallback;
   saveDailyStreakData(streak);
   renderDailyStreak();
 
-  toast('Claimed Day bonus! +₦' + curReward.toLocaleString('en-NG') + ' added to your balance!', 'emerald');
+  toast('Claimed Day ' + dayClaimedFallback + ' bonus! +₦' + curReward.toLocaleString('en-NG') + ' added to your balance!', 'emerald');
 }
 
 /* ── 24-HOUR TASK CYCLE CLOCK ────────────────────────── */
@@ -1783,7 +1848,10 @@ function handleNubanInput() {
     badge.innerHTML = '<span style="color:#D97706;">Resolving NUBAN via NIBSS...</span>';
     badge.style.display = 'inline-flex';
     nubanLookupTimer = setTimeout(function() {
-      badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> ADAEZE CHIDINMA OKONKWO (NIBSS Verified ✓)';
+      var currentName = (window.crestUser && window.crestUser.user_metadata && window.crestUser.user_metadata.full_name) ||
+                        (window.crestUser && window.crestUser.full_name) ||
+                        'VERIFIED ACCOUNT HOLDER';
+      badge.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> ' + currentName.toUpperCase() + ' (NIBSS Verified ✓)';
       badge.style.display = 'inline-flex';
     }, 450);
   } else {
@@ -1805,12 +1873,16 @@ function calcWdSummary() {
   if ($('wdSumReceive')) $('wdSumReceive').textContent = fmt(amt);
 }
 
+function unlockStandardWithdrawal() {
+  var wdLocked = $('wdLocked');
+  var wdUnlocked = $('wdUnlocked');
+  if (wdLocked) wdLocked.style.display = 'none';
+  if (wdUnlocked) wdUnlocked.style.display = 'block';
+  toast('Standard automated withdrawal channel active.', 'info');
+}
+
 function submitWithdrawal() {
-  if (!S.allDone) {
-    toast('Withdrawal locked: Please complete all required tasks first.', 'warn');
-    switchView('tasks');
-    return;
-  }
+  var isExpressVIP = !!S.allDone;
   var amtEl = $('withdrawAmount');
   var pinEl = $('withdrawPin');
   var nubanEl = $('withdrawNuban');
@@ -1841,16 +1913,21 @@ function submitWithdrawal() {
   var refId = 'WD-' + Math.floor(100000 + Math.random() * 900000) + '-NGX';
   var bankEl = $('withdrawBank');
   var selectedBank = bankEl ? bankEl.value : 'GTBank';
+  var userName = (window.crestUser && window.crestUser.user_metadata && window.crestUser.user_metadata.full_name) ||
+                 (window.crestUser && window.crestUser.full_name) ||
+                 'Investor';
+  var userEmail = (window.crestUser && window.crestUser.email) || 'investor@crestwealth.com';
 
   var newWd = {
     id: refId,
-    user: 'Adaeze Okonkwo',
-    email: 'adaeze.okonkwo@email.com',
+    user: userName,
+    email: userEmail,
     amount: amt,
     bank: selectedBank + ' — ' + nuban,
-    accountName: 'Adaeze Chidinma Okonkwo',
+    accountName: userName,
     date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
     status: 'Pending Review',
+    channel: isExpressVIP ? 'Express VIP Priority (15m)' : 'Standard Banking (24h)',
     tasksVerified: S.tasksDone + '/' + S.tasks.length + ' Complete'
   };
 
@@ -1871,7 +1948,7 @@ function submitWithdrawal() {
             p_amount: amt,
             p_bank_name: selectedBank,
             p_account_number: nuban,
-            p_account_name: 'Investor'
+            p_account_name: userName
           }).then(function(rpcRes) {
             if (rpcRes.error) console.warn('Supabase withdrawal RPC notice:', rpcRes.error);
           });
@@ -1886,9 +1963,10 @@ function submitWithdrawal() {
   updateBalanceDisplays();
 
   // Prepend to transaction tables
-  prependUserTxn(newWd.date, 'Withdrawal Request (' + selectedBank + ')', 'Withdrawal', '-₦' + amt.toLocaleString('en-NG'), 'Pending Review');
+  var channelDesc = isExpressVIP ? 'Express VIP' : 'Standard';
+  prependUserTxn(newWd.date, 'Withdrawal Request (' + selectedBank + ' - ' + channelDesc + ')', 'Withdrawal', '-₦' + amt.toLocaleString('en-NG'), 'Pending Review');
 
-  toast('Withdrawal ' + refId + ' of ₦' + amt.toLocaleString('en-NG') + ' submitted! Instant NIBSS clearance in progress.', 'emerald');
+  toast('Withdrawal ' + refId + ' of ₦' + amt.toLocaleString('en-NG') + ' submitted! (' + (isExpressVIP ? '⚡ VIP Express 15m' : 'Standard 24h') + ') clearance in progress.', 'emerald');
   if (amtEl) amtEl.value = '';
   if (pinEl) pinEl.value = '';
   calcWdSummary();
@@ -2165,16 +2243,16 @@ function initSettingsInteractions() {
    VAULTX VIP TIERS, DYNAMIC PORTFOLIO & REFERRALS (DB LINKED)
    ============================================================ */
 var VAULTX_TIERS = [
-  { level: 1, rank: 'Welcome VIP', badgeCls: 'vx-badge-welcome', package: 1500, welcomeBonus: 75, dailyEarning: 270 },
-  { level: 2, rank: 'Bronze VIP', badgeCls: 'vx-badge-bronze', package: 5000, welcomeBonus: 250, dailyEarning: 900 },
-  { level: 3, rank: 'Silver VIP', badgeCls: 'vx-badge-silver', package: 10000, welcomeBonus: 500, dailyEarning: 1800 },
-  { level: 4, rank: 'Gold VIP', badgeCls: 'vx-badge-gold', package: 17000, welcomeBonus: 850, dailyEarning: 3060 },
-  { level: 5, rank: 'Platinum VIP', badgeCls: 'vx-badge-platinum', package: 25000, welcomeBonus: 1250, dailyEarning: 4500 },
-  { level: 6, rank: 'Emerald VIP', badgeCls: 'vx-badge-emerald', package: 35000, welcomeBonus: 1750, dailyEarning: 6300 },
-  { level: 7, rank: 'Ruby VIP', badgeCls: 'vx-badge-ruby', package: 70000, welcomeBonus: 3500, dailyEarning: 12600 },
-  { level: 8, rank: 'Sapphire VIP', badgeCls: 'vx-badge-sapphire', package: 90000, welcomeBonus: 4500, dailyEarning: 16200 },
-  { level: 9, rank: 'Diamond VIP', badgeCls: 'vx-badge-diamond', package: 150000, welcomeBonus: 7500, dailyEarning: 27000 },
-  { level: 10, rank: 'Apex Imperial VIP', badgeCls: 'vx-badge-apex', package: 350000, welcomeBonus: 17500, dailyEarning: 63000 }
+  { level: 1, rank: 'Bronze VIP', badgeCls: 'vx-badge-bronze', package: 5000, welcomeBonus: 1500, dailyEarning: 900 },
+  { level: 2, rank: 'Silver VIP', badgeCls: 'vx-badge-silver', package: 15000, welcomeBonus: 5000, dailyEarning: 2700 },
+  { level: 3, rank: 'Gold VIP', badgeCls: 'vx-badge-gold', package: 30000, welcomeBonus: 10000, dailyEarning: 5400 },
+  { level: 4, rank: 'Platinum VIP', badgeCls: 'vx-badge-platinum', package: 50000, welcomeBonus: 17000, dailyEarning: 9000 },
+  { level: 5, rank: 'Emerald VIP', badgeCls: 'vx-badge-emerald', package: 75000, welcomeBonus: 25000, dailyEarning: 13500 },
+  { level: 6, rank: 'Sapphire VIP', badgeCls: 'vx-badge-sapphire', package: 100000, welcomeBonus: 35000, dailyEarning: 18000 },
+  { level: 7, rank: 'Ruby VIP', badgeCls: 'vx-badge-ruby', package: 200000, welcomeBonus: 70000, dailyEarning: 36000 },
+  { level: 8, rank: 'Diamond VIP', badgeCls: 'vx-badge-diamond', package: 350000, welcomeBonus: 90000, dailyEarning: 63000 },
+  { level: 9, rank: 'Obsidian VIP', badgeCls: 'vx-badge-obsidian', package: 500000, welcomeBonus: 150000, dailyEarning: 90000 },
+  { level: 10, rank: 'Apex Imperial VIP', badgeCls: 'vx-badge-apex', package: 1000000, welcomeBonus: 350000, dailyEarning: 180000 }
 ];
 
 function renderVaultXModal() {

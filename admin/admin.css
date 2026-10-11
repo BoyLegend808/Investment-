@@ -1,8 +1,15 @@
-﻿/* ==========================================================================
-   NOVARA CAPITAL — ADMINISTRATIVE OBSERVATORY & GATEKEEPER CSS
+/* ==========================================================================
+   CREST WEALTH — ADMINISTRATIVE OBSERVATORY & GATEKEEPER CSS
    Editorial Data Observatory on Warm Paper & Obsidian Midnight
    Hybrid Ventriloc + Slash Design System
    ========================================================================== */
+
+html {
+  visibility: hidden;
+}
+html.admin-authorized {
+  visibility: visible;
+}
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@500;600;700&display=swap');
 

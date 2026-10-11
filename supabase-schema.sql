@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.deposits (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   confirmed_at TIMESTAMPTZ
 );
+ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS proof_url TEXT;
 
 -- 4. WITHDRAWALS TABLE
 CREATE TABLE IF NOT EXISTS public.withdrawals (
@@ -154,10 +155,18 @@ RETURNS TRIGGER AS $$
 DECLARE
   v_is_internal BOOLEAN := COALESCE(current_setting('app.internal_balance_update', true), 'false') = 'true';
 BEGIN
-  IF NOT public.is_admin() AND NOT v_is_internal THEN
-    NEW.is_admin := OLD.is_admin;
-    NEW.cash_balance := OLD.cash_balance;
-    NEW.invested_balance := OLD.invested_balance;
+  IF TG_OP = 'INSERT' THEN
+    IF NOT public.is_admin() THEN
+      NEW.is_admin := FALSE;
+      NEW.cash_balance := 0.00;
+      NEW.invested_balance := 0.00;
+    END IF;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NOT public.is_admin() AND NOT v_is_internal THEN
+      NEW.is_admin := OLD.is_admin;
+      NEW.cash_balance := OLD.cash_balance;
+      NEW.invested_balance := OLD.invested_balance;
+    END IF;
   END IF;
   NEW.updated_at := NOW();
   RETURN NEW;
@@ -166,7 +175,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS tr_protect_profile_fields ON public.profiles;
 CREATE TRIGGER tr_protect_profile_fields
-  BEFORE UPDATE ON public.profiles
+  BEFORE INSERT OR UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.protect_profile_fields();
 
 -- 11. ATOMIC FINANCIAL RPC PROCEDURES
@@ -450,6 +459,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES public.profiles(id);
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_streak_day INT DEFAULT 1;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_streak_claim_date TEXT;
+UPDATE public.profiles SET daily_streak_day = 1 WHERE daily_streak_day IS NULL;
 
 -- Auto-populate referral code if null
 UPDATE public.profiles
@@ -572,20 +582,28 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- RPC: Credit User Balance (Dynamic Amount for any task, promo, bonus, or quiz)
+-- RPC: Credit User Balance (Protected: Requires Admin Privileges)
 CREATE OR REPLACE FUNCTION public.credit_user_balance(
   p_amount NUMERIC,
   p_reason TEXT,
-  p_type TEXT DEFAULT 'reward'
+  p_type TEXT DEFAULT 'reward',
+  p_target_user_id UUID DEFAULT NULL
 )
 RETURNS JSONB AS $$
 DECLARE
-  v_uid UUID := auth.uid();
+  v_caller UUID := auth.uid();
+  v_target UUID;
   v_new_bal NUMERIC;
 BEGIN
-  IF v_uid IS NULL THEN
+  IF v_caller IS NULL THEN
     RAISE EXCEPTION 'Authentication required.';
   END IF;
+
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: Administrator privileges required to directly credit user balances.';
+  END IF;
+
+  v_target := COALESCE(p_target_user_id, v_caller);
 
   IF p_amount <= 0 THEN
     RAISE EXCEPTION 'Invalid amount to credit.';
@@ -595,14 +613,14 @@ BEGIN
 
   UPDATE public.profiles
   SET cash_balance = cash_balance + p_amount, updated_at = NOW()
-  WHERE id = v_uid
+  WHERE id = v_target
   RETURNING cash_balance INTO v_new_bal;
 
   INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (v_uid, p_type, p_amount, p_reason, 'completed');
+  VALUES (v_target, p_type, p_amount, p_reason, 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
-  VALUES (v_uid, 'Balance Credited', '+₦' || p_amount || ' credited: ' || p_reason, 'success');
+  VALUES (v_target, 'Balance Credited', '+₦' || p_amount || ' credited: ' || p_reason, 'success');
 
   RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal, 'amount_credited', p_amount);
 END;
@@ -627,25 +645,25 @@ BEGIN
   END IF;
 
   IF p_level = 1 THEN
-    v_cost := 1500.00;    v_bonus := 75.00;     v_daily := 270.00;    v_rank := 'Welcome VIP';
+    v_cost := 5000.00;    v_bonus := 1500.00;   v_daily := 900.00;    v_rank := 'Bronze VIP';
   ELSIF p_level = 2 THEN
-    v_cost := 5000.00;    v_bonus := 250.00;    v_daily := 900.00;    v_rank := 'Bronze VIP';
+    v_cost := 15000.00;   v_bonus := 5000.00;   v_daily := 2700.00;   v_rank := 'Silver VIP';
   ELSIF p_level = 3 THEN
-    v_cost := 10000.00;   v_bonus := 500.00;    v_daily := 1800.00;   v_rank := 'Silver VIP';
+    v_cost := 30000.00;   v_bonus := 10000.00;  v_daily := 5400.00;   v_rank := 'Gold VIP';
   ELSIF p_level = 4 THEN
-    v_cost := 17000.00;   v_bonus := 850.00;    v_daily := 3060.00;   v_rank := 'Gold VIP';
+    v_cost := 50000.00;   v_bonus := 17000.00;  v_daily := 9000.00;   v_rank := 'Platinum VIP';
   ELSIF p_level = 5 THEN
-    v_cost := 25000.00;   v_bonus := 1250.00;   v_daily := 4500.00;   v_rank := 'Platinum VIP';
+    v_cost := 75000.00;   v_bonus := 25000.00;  v_daily := 13500.00;  v_rank := 'Emerald VIP';
   ELSIF p_level = 6 THEN
-    v_cost := 35000.00;   v_bonus := 1750.00;   v_daily := 6300.00;   v_rank := 'Emerald VIP';
+    v_cost := 100000.00;  v_bonus := 35000.00;  v_daily := 18000.00;  v_rank := 'Sapphire VIP';
   ELSIF p_level = 7 THEN
-    v_cost := 70000.00;   v_bonus := 3500.00;   v_daily := 12600.00;  v_rank := 'Ruby VIP';
+    v_cost := 200000.00;  v_bonus := 70000.00;  v_daily := 36000.00;  v_rank := 'Ruby VIP';
   ELSIF p_level = 8 THEN
-    v_cost := 90000.00;   v_bonus := 4500.00;   v_daily := 16200.00;  v_rank := 'Sapphire VIP';
+    v_cost := 350000.00;  v_bonus := 90000.00;  v_daily := 63000.00;  v_rank := 'Diamond VIP';
   ELSIF p_level = 9 THEN
-    v_cost := 150000.00;  v_bonus := 7500.00;   v_daily := 27000.00;  v_rank := 'Diamond VIP';
+    v_cost := 500000.00;  v_bonus := 150000.00; v_daily := 90000.00;  v_rank := 'Obsidian VIP';
   ELSIF p_level = 10 THEN
-    v_cost := 350000.00;  v_bonus := 17500.00;  v_daily := 63000.00;  v_rank := 'Apex Imperial VIP';
+    v_cost := 1000000.00; v_bonus := 350000.00; v_daily := 180000.00; v_rank := 'Apex Imperial VIP';
   ELSE
     RAISE EXCEPTION 'Invalid package level (must be 1 to 10).';
   END IF;
@@ -738,40 +756,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 19. RPC: Sync User Balance (Guarantees local rewards/balances sync safely into DB)
-CREATE OR REPLACE FUNCTION public.sync_user_balance(p_cash_balance NUMERIC)
+-- 19. RPC: Sync User Balance (Read-only authoritative fetch; prevents client tampering)
+CREATE OR REPLACE FUNCTION public.sync_user_balance(p_cash_balance NUMERIC DEFAULT NULL)
 RETURNS JSONB AS $$
 DECLARE
   v_uid UUID := auth.uid();
   v_curr NUMERIC;
-  v_diff NUMERIC;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Authentication required.';
   END IF;
 
-  IF p_cash_balance IS NULL OR p_cash_balance < 0 THEN
-    RAISE EXCEPTION 'Invalid cash balance.';
-  END IF;
-
-  SELECT cash_balance INTO v_curr FROM public.profiles WHERE id = v_uid FOR UPDATE;
+  SELECT cash_balance INTO v_curr FROM public.profiles WHERE id = v_uid;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Profile not found.';
   END IF;
 
-  IF p_cash_balance > v_curr THEN
-    v_diff := p_cash_balance - v_curr;
-    PERFORM set_config('app.internal_balance_update', 'true', true);
-
-    UPDATE public.profiles
-    SET cash_balance = p_cash_balance, updated_at = NOW()
-    WHERE id = v_uid;
-
-    INSERT INTO public.transactions (user_id, type, amount, description, status)
-    VALUES (v_uid, 'reward', v_diff, 'Earned Reward Sync', 'completed');
-  END IF;
-
-  SELECT cash_balance INTO v_curr FROM public.profiles WHERE id = v_uid;
+  -- The database is the single authoritative source of truth.
   RETURN jsonb_build_object('success', true, 'cash_balance', v_curr);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

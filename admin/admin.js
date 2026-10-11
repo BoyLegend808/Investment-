@@ -39,11 +39,12 @@ if (!window.crestSession) {
   }
 
   window.crestUser = session.user;
+  document.documentElement.classList.add('admin-authorized');
   document.documentElement.style.visibility = '';
 })();
 
 /* ==========================================================================
-   NOVARA CAPITAL — ADMINISTRATIVE OBSERVATORY & GATEKEEPER JS
+   CREST WEALTH — ADMINISTRATIVE OBSERVATORY & GATEKEEPER JS
    Complete SPA Controller & State Synchronization
    - Withdrawal Task Gatekeeper Management (CRUD + Live Sync)
    - Withdrawal Review & Instant Settlement Payout

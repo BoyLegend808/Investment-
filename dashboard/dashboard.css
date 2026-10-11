@@ -1,5 +1,5 @@
 /* ============================================================
-   NOVARA CAPITAL — USER DASHBOARD
+   CREST WEALTH — USER DASHBOARD
    Design principles:
    - Data hierarchy first (numbers lead, labels follow)
    - One accent colour (green), one warning (orange), one error (red)
@@ -2501,6 +2501,7 @@ body {
 .vx-badge-ruby     { background: rgba(239, 68, 68, 0.15);   color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.5); }
 .vx-badge-sapphire { background: rgba(59, 130, 246, 0.15);  color: #3B82F6; border: 1px solid rgba(59, 130, 246, 0.5); }
 .vx-badge-diamond  { background: rgba(168, 85, 247, 0.15);  color: #A855F7; border: 1px solid rgba(168, 85, 247, 0.5); }
+.vx-badge-obsidian { background: rgba(30, 41, 59, 0.7);    color: #F8FAFC; border: 1px solid rgba(148, 163, 184, 0.7); box-shadow: 0 0 10px rgba(100, 116, 139, 0.4); }
 .vx-badge-apex     { background: rgba(225, 29, 72, 0.22);   color: #FB7185; border: 1px solid rgba(225, 29, 72, 0.65); box-shadow: 0 0 10px rgba(225, 29, 72, 0.4); }
 
 .vx-tier-cost {
