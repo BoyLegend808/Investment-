@@ -182,16 +182,17 @@ async function initDashboardUserProfile() {
         var claimedToday = isStreakClaimedForToday(dbLastDate);
         var dbLastClaimedDay = parseInt(dbProfile.last_claimed_streak_day, 10) || 0;
 
+        if (!claimedToday || dbLastClaimedDay <= 0) {
+          claimedToday = false;
+          dbLastClaimedDay = 0;
+        }
+
         var streak = {
           day: dbStreakDay,
           claimedToday: claimedToday,
           lastClaimDate: dbLastDate,
-          lastClaimedDay: claimedToday ? (dbLastClaimedDay > 0 ? dbLastClaimedDay : (dbStreakDay > 1 ? dbStreakDay - 1 : (dbLastDate ? 7 : 0))) : 0
+          lastClaimedDay: dbLastClaimedDay
         };
-
-        if (claimedToday && streak.lastClaimedDay === 0) {
-          streak.claimedToday = false;
-        }
 
         saveDailyStreakData(streak);
         renderDailyStreak();
@@ -1648,7 +1649,7 @@ async function submitDeposit() {
   calcReturns();
 }
 
-/* ── DAILY LOGIN BONUS STREAK ────────────────────────── */
+/* ── DAILY LOGIN BONUS STREAK (REBUILT FROM SCRATCH) ────────── */
 var STREAK_DAYS = [
   { day: 1, label: 'Day 1', reward: 200, rewardStr: '+₦200' },
   { day: 2, label: 'Day 2', reward: 200, rewardStr: '+₦200' },
@@ -1661,20 +1662,19 @@ var STREAK_DAYS = [
 
 function getStreakTodayStr() {
   var d = new Date();
-  var yr = d.getUTCFullYear();
-  var mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-  var da = String(d.getUTCDate()).padStart(2, '0');
+  var yr = d.getFullYear();
+  var mo = String(d.getMonth() + 1).padStart(2, '0');
+  var da = String(d.getDate()).padStart(2, '0');
   return yr + '-' + mo + '-' + da;
 }
 
 function isStreakClaimedForToday(lastClaimDate) {
   if (!lastClaimDate) return false;
-  var utcTodayIso = getStreakTodayStr();
   var d = new Date();
-  var localTodayIso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-  var localDateStr = d.toDateString();
-  var dateOnly = String(lastClaimDate).trim().slice(0, 10);
-  return dateOnly === utcTodayIso || dateOnly === localTodayIso || lastClaimDate === utcTodayIso || lastClaimDate === localTodayIso || lastClaimDate === localDateStr;
+  var localToday = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  var utcToday = d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+  var rawDate = String(lastClaimDate).trim().slice(0, 10);
+  return rawDate === localToday || rawDate === utcToday;
 }
 
 function getDailyStreakData() {
@@ -1683,11 +1683,20 @@ function getDailyStreakData() {
     var raw = getCrestStorage('daily_streak', null);
     if (raw) {
       var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      if (parsed) {
-        if (typeof parsed.day !== 'number' || parsed.day < 1 || parsed.day > 7) parsed.day = 1;
-        parsed.claimedToday = !!parsed.lastClaimDate && isStreakClaimedForToday(parsed.lastClaimDate);
-        if (!parsed.claimedToday) parsed.lastClaimedDay = 0;
-        return parsed;
+      if (parsed && typeof parsed === 'object') {
+        var day = parseInt(parsed.day, 10);
+        if (isNaN(day) || day < 1 || day > 7) day = 1;
+        var claimedToday = isStreakClaimedForToday(parsed.lastClaimDate);
+        var lastClaimedDay = parseInt(parsed.lastClaimedDay, 10) || 0;
+        if (!claimedToday) {
+          lastClaimedDay = 0;
+        }
+        return {
+          day: day,
+          claimedToday: claimedToday,
+          lastClaimDate: parsed.lastClaimDate || '',
+          lastClaimedDay: lastClaimedDay
+        };
       }
     }
   } catch(e) {}
@@ -1702,41 +1711,27 @@ function saveDailyStreakData(data) {
 
 function renderDailyStreak() {
   var streak = getDailyStreakData();
-  var claimedToday = isStreakClaimedForToday(streak.lastClaimDate);
-
-  // If claimed today, what day was claimed?
-  var claimedDay = streak.lastClaimedDay || 0;
-  if (!claimedDay && claimedToday) {
-    if (streak.day > 1) claimedDay = streak.day - 1;
-    else if (streak.day === 1 && streak.lastClaimDate) claimedDay = 7;
-  }
-
-  // If claimedDay is 0 or no valid claim date, claimedToday is strictly FALSE
-  if (!claimedDay || !streak.lastClaimDate) {
-    claimedToday = false;
-    claimedDay = 0;
-  }
-  streak.claimedToday = claimedToday;
-  if (claimedDay < 0 || claimedDay > 7) claimedDay = 0;
-
   var track = $('streakDaysTrack');
+  var btn = $('claimStreakBtn');
+  var btnTxt = $('claimStreakBtnText');
+
   if (track) {
     track.innerHTML = STREAK_DAYS.map(function(item) {
       var isDone = false;
-      var isToday = false;
+      var isAvailable = false;
 
-      if (claimedToday) {
-        // All days up to and including claimedDay are done
-        isDone = item.day <= claimedDay;
-        isToday = false;
+      if (streak.claimedToday) {
+        // If claimed today, all days up to the one claimed today are green checkmarks
+        isDone = item.day <= streak.lastClaimedDay;
       } else {
-        // Not claimed yet today: all previous days are done, streak.day is Available today
+        // Not claimed today yet: days before current streak day are done, current day is available
         isDone = item.day < streak.day;
-        isToday = item.day === streak.day;
+        isAvailable = item.day === streak.day;
       }
 
-      var cls = 'streak-day-item' + (isDone ? ' done' : '') + (isToday ? ' today' : '');
-      var statusTxt = isDone ? 'Claimed ✓' : (isToday ? 'Available' : 'Locked');
+      var cls = 'streak-day-item' + (isDone ? ' done' : '') + (isAvailable ? ' today' : '');
+      var statusTxt = isDone ? 'Claimed ✓' : (isAvailable ? 'Available' : 'Locked');
+
       return '<div class="' + cls + '">' +
         '<div class="sdi-day">' + item.label + '</div>' +
         '<div class="sdi-reward">' + item.rewardStr + '</div>' +
@@ -1745,105 +1740,108 @@ function renderDailyStreak() {
     }).join('');
   }
 
-  var btn = $('claimStreakBtn');
-  var btnTxt = $('claimStreakBtnText');
   if (btn && btnTxt) {
-    if (claimedToday) {
+    if (streak.claimedToday) {
       btn.className = 'btn-claim-streak claimed';
       btn.disabled = true;
-      btnTxt.textContent = 'Day ' + claimedDay + ' Claimed Today ✓';
+      btnTxt.textContent = 'Day ' + (streak.lastClaimedDay || 1) + ' Claimed Today ✓';
     } else {
       btn.className = 'btn-claim-streak';
       btn.disabled = false;
-      var curReward = STREAK_DAYS[streak.day - 1] ? STREAK_DAYS[streak.day - 1].rewardStr : '+₦200';
-      btnTxt.textContent = 'Claim Day ' + streak.day + ' (' + curReward + ')';
+      var curRewardStr = (STREAK_DAYS[streak.day - 1] && STREAK_DAYS[streak.day - 1].rewardStr) ? STREAK_DAYS[streak.day - 1].rewardStr : '+₦200';
+      btnTxt.textContent = 'Claim Day ' + streak.day + ' (' + curRewardStr + ')';
     }
   }
 }
 
 async function claimDailyStreak() {
   var streak = getDailyStreakData();
-  var todayIso = getStreakTodayStr();
-  if (streak.claimedToday || isStreakClaimedForToday(streak.lastClaimDate)) {
-    toast('You have already claimed today\'s login bonus! Come back tomorrow.', 'info');
+  if (streak.claimedToday) {
+    toast('You have already claimed today\'s login bonus! Please come back tomorrow.', 'info');
     return;
   }
 
   var btn = $('claimStreakBtn');
+  var btnTxt = $('claimStreakBtnText');
   if (btn) btn.disabled = true;
+  if (btnTxt) btnTxt.textContent = 'Claiming Bonus...';
 
-  var curReward = STREAK_DAYS[streak.day - 1] ? STREAK_DAYS[streak.day - 1].reward : 200;
+  var curDay = streak.day || 1;
+  var curReward = (STREAK_DAYS[curDay - 1] && STREAK_DAYS[curDay - 1].reward) ? STREAK_DAYS[curDay - 1].reward : 200;
+  var curRewardStr = (STREAK_DAYS[curDay - 1] && STREAK_DAYS[curDay - 1].rewardStr) ? STREAK_DAYS[curDay - 1].rewardStr : '+₦200';
 
-  // Supabase atomic DB claim with dynamic amount
+  // 1. Authenticated Supabase flow
   if (window.supabaseClient) {
     try {
       var sessRes = await window.supabaseClient.auth.getSession();
       var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
-      if (u && !u.id.startsWith('demo_')) {
+      if (u && typeof u.id === 'string' && !u.id.startsWith('demo_')) {
         var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('claim_daily_streak_reward', {
           p_custom_amount: curReward
         });
 
-        if (rpcErr) {
-          console.warn('[Crest] claim_daily_streak_reward error, trying credit_user_balance fallback:', rpcErr);
-          var { data: credRes, error: credErr } = await window.supabaseClient.rpc('credit_user_balance', {
-            p_amount: curReward,
-            p_reason: 'Daily Login Bonus (Day ' + streak.day + ')',
-            p_type: 'reward'
-          });
-          if (!credErr && credRes && credRes.success && credRes.new_balance !== undefined) {
-            rpcRes = {
-              success: true,
-              new_balance: credRes.new_balance,
-              reward: curReward,
-              day_claimed: streak.day,
-              next_day: (streak.day >= 7 ? 1 : streak.day + 1)
-            };
-          }
+        if (rpcErr || !rpcRes || !rpcRes.success) {
+          console.error('[Crest Streak] RPC failure:', rpcErr || rpcRes);
+          // Re-enable claim button so user is never stuck in false claimed state
+          if (btn) btn.disabled = false;
+          renderDailyStreak();
+          var errMsg = (rpcRes && rpcRes.message) || (rpcErr && rpcErr.message) || 'Failed to claim streak bonus. Please verify your database functions or try again.';
+          toast(errMsg, 'error');
+          return;
         }
 
-        if (rpcRes && rpcRes.success) {
-          S.cashBalance = parseFloat(rpcRes.new_balance);
-          var dayClaimed = rpcRes.day_claimed || streak.day;
-          var nextDay = rpcRes.next_day || (dayClaimed >= 7 ? 1 : dayClaimed + 1);
-          streak.claimedToday = true;
-          streak.lastClaimDate = todayIso;
-          streak.lastClaimedDay = dayClaimed;
-          streak.day = nextDay;
-          saveDailyStreakData(streak);
+        // RPC succeeded! Database has atomically updated balance and streak tracking
+        var dayClaimed = rpcRes.day_claimed || curDay;
+        var nextDay = rpcRes.next_day || (dayClaimed >= 7 ? 1 : dayClaimed + 1);
+        var newBal = parseFloat(rpcRes.new_balance);
+
+        if (!isNaN(newBal)) {
+          S.cashBalance = newBal;
           saveUserBalance();
-          updateBalanceDisplays();
-          renderDailyStreak();
-          loadUserTransactionsFromDB();
-          toast('Claimed Day ' + dayClaimed + ' bonus! +₦' + Number(rpcRes.reward || curReward).toLocaleString('en-NG') + ' added to your cash balance!', 'emerald');
-          return;
-        } else if (rpcRes && !rpcRes.success) {
-          toast(rpcRes.message || 'Already claimed today.', 'info');
-          streak.claimedToday = true;
-          streak.lastClaimDate = todayIso;
-          saveDailyStreakData(streak);
-          renderDailyStreak();
-          return;
         }
+
+        var updatedStreak = {
+          day: nextDay,
+          claimedToday: true,
+          lastClaimDate: getStreakTodayStr(),
+          lastClaimedDay: dayClaimed
+        };
+        saveDailyStreakData(updatedStreak);
+        updateBalanceDisplays();
+        renderDailyStreak();
+        if (typeof loadUserTransactionsFromDB === 'function') {
+          loadUserTransactionsFromDB();
+        }
+
+        toast('🎉 Claimed Day ' + dayClaimed + ' bonus! +₦' + Number(rpcRes.reward || curReward).toLocaleString('en-NG') + ' added to your cash balance!', 'emerald');
+        return;
       }
-    } catch(e) {
-      console.warn('claimDailyStreak rpc exception, fallback:', e);
+    } catch(err) {
+      console.error('[Crest Streak] Exception during claim:', err);
+      if (btn) btn.disabled = false;
+      renderDailyStreak();
+      toast('Network error claiming bonus: ' + err.message, 'error');
+      return;
     }
   }
 
-  // Fallback for demo or offline mode
-  var dayClaimedFallback = streak.day;
-  var nextDayFallback = (streak.day >= 7 ? 1 : streak.day + 1);
-  await creditUserReward(curReward, 'Daily Login Streak (Day ' + dayClaimedFallback + ')', 'streak_' + dayClaimedFallback);
+  // 2. Demo / Guest / Offline mode fallback
+  var offlineClaimedDay = curDay;
+  var offlineNextDay = (curDay >= 7 ? 1 : curDay + 1);
+  S.cashBalance = (S.cashBalance || 0) + curReward;
+  saveUserBalance();
 
-  streak.claimedToday = true;
-  streak.lastClaimDate = todayIso;
-  streak.lastClaimedDay = dayClaimedFallback;
-  streak.day = nextDayFallback;
-  saveDailyStreakData(streak);
+  var offlineStreak = {
+    day: offlineNextDay,
+    claimedToday: true,
+    lastClaimDate: getStreakTodayStr(),
+    lastClaimedDay: offlineClaimedDay
+  };
+  saveDailyStreakData(offlineStreak);
+  updateBalanceDisplays();
   renderDailyStreak();
 
-  toast('Claimed Day ' + dayClaimedFallback + ' bonus! +₦' + curReward.toLocaleString('en-NG') + ' added to your balance!', 'emerald');
+  toast('🎉 Claimed Day ' + offlineClaimedDay + ' bonus! +₦' + curReward.toLocaleString('en-NG') + ' added to your balance!', 'emerald');
 }
 
 /* ── 24-HOUR TASK CYCLE CLOCK ────────────────────────── */
