@@ -459,6 +459,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES public.profiles(id);
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_streak_day INT DEFAULT 1;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_streak_claim_date TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_claimed_streak_day INT DEFAULT 0;
 UPDATE public.profiles SET daily_streak_day = 1 WHERE daily_streak_day IS NULL;
 
 -- Auto-populate referral code if null
@@ -514,6 +515,7 @@ BEGIN
     cash_balance = cash_balance + v_reward,
     daily_streak_day = CASE WHEN v_day >= 7 THEN 1 ELSE v_day + 1 END,
     last_streak_claim_date = v_today,
+    last_claimed_streak_day = v_day,
     updated_at = NOW()
   WHERE id = v_uid
   RETURNING cash_balance INTO v_new_bal;

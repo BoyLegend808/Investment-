@@ -173,21 +173,26 @@ async function initDashboardUserProfile() {
           }
         }
 
-        // Restore streak state from DB
-        var streak = getDailyStreakData();
+        // Restore streak state strictly from DB
         var dbStreakDay = parseInt(dbProfile.daily_streak_day, 10);
         if (isNaN(dbStreakDay) || dbStreakDay < 1 || dbStreakDay > 7) {
           dbStreakDay = 1;
         }
-        streak.day = dbStreakDay;
-        if (dbProfile.last_streak_claim_date) {
-          streak.lastClaimDate = dbProfile.last_streak_claim_date;
+        var dbLastDate = dbProfile.last_streak_claim_date ? String(dbProfile.last_streak_claim_date).trim() : '';
+        var claimedToday = isStreakClaimedForToday(dbLastDate);
+        var dbLastClaimedDay = parseInt(dbProfile.last_claimed_streak_day, 10) || 0;
+
+        var streak = {
+          day: dbStreakDay,
+          claimedToday: claimedToday,
+          lastClaimDate: dbLastDate,
+          lastClaimedDay: claimedToday ? (dbLastClaimedDay > 0 ? dbLastClaimedDay : (dbStreakDay > 1 ? dbStreakDay - 1 : (dbLastDate ? 7 : 0))) : 0
+        };
+
+        if (claimedToday && streak.lastClaimedDay === 0) {
+          streak.claimedToday = false;
         }
-        var claimedToday = isStreakClaimedForToday(streak.lastClaimDate);
-        streak.claimedToday = claimedToday;
-        if (claimedToday) {
-          streak.lastClaimedDay = (streak.day === 1 ? 7 : streak.day - 1);
-        }
+
         saveDailyStreakData(streak);
         renderDailyStreak();
 
@@ -748,7 +753,7 @@ function refreshTaskUI() {
 
   if ($('tpbScore')) $('tpbScore').textContent = done + '/' + total;
   if ($('tpbSub')) $('tpbSub').textContent = S.allDone
-    ? 'All tasks complete — Withdrawal unlocked!'
+    ? 'All tasks complete — ⚡ Express VIP Settlement active!'
     : remaining + ' task' + (remaining !== 1 ? 's' : '') + ' remaining';
   if ($('lockedProgLabel')) $('lockedProgLabel').textContent = done + '/' + total;
   if ($('noticeTaskCount')) $('noticeTaskCount').textContent = remaining + ' remaining';
@@ -1663,7 +1668,8 @@ function getDailyStreakData() {
       var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (parsed) {
         if (typeof parsed.day !== 'number' || parsed.day < 1 || parsed.day > 7) parsed.day = 1;
-        parsed.claimedToday = isStreakClaimedForToday(parsed.lastClaimDate);
+        parsed.claimedToday = !!parsed.lastClaimDate && isStreakClaimedForToday(parsed.lastClaimDate);
+        if (!parsed.claimedToday) parsed.lastClaimedDay = 0;
         return parsed;
       }
     }
@@ -1680,11 +1686,21 @@ function saveDailyStreakData(data) {
 function renderDailyStreak() {
   var streak = getDailyStreakData();
   var claimedToday = isStreakClaimedForToday(streak.lastClaimDate);
-  streak.claimedToday = claimedToday;
 
   // If claimed today, what day was claimed?
-  var claimedDay = streak.lastClaimedDay || (streak.day === 1 ? 7 : streak.day - 1);
-  if (claimedDay < 1 || claimedDay > 7) claimedDay = 1;
+  var claimedDay = streak.lastClaimedDay || 0;
+  if (!claimedDay && claimedToday) {
+    if (streak.day > 1) claimedDay = streak.day - 1;
+    else if (streak.day === 1 && streak.lastClaimDate) claimedDay = 7;
+  }
+
+  // If claimedDay is 0 or no valid claim date, claimedToday is strictly FALSE
+  if (!claimedDay || !streak.lastClaimDate) {
+    claimedToday = false;
+    claimedDay = 0;
+  }
+  streak.claimedToday = claimedToday;
+  if (claimedDay < 0 || claimedDay > 7) claimedDay = 0;
 
   var track = $('streakDaysTrack');
   if (track) {
