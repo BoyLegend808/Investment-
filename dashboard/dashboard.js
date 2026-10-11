@@ -753,10 +753,27 @@ function refreshTaskUI() {
 
   if ($('tpbScore')) $('tpbScore').textContent = done + '/' + total;
   if ($('tpbSub')) $('tpbSub').textContent = S.allDone
-    ? 'All tasks complete — ⚡ Express VIP Settlement active!'
+    ? 'All tasks complete — Withdrawal unlocked!'
     : remaining + ' task' + (remaining !== 1 ? 's' : '') + ' remaining';
   if ($('lockedProgLabel')) $('lockedProgLabel').textContent = done + '/' + total;
+
+  // Dynamic countdown message: "Complete the 5 tasks to unlock withdraw" -> "Complete the remaining 4 tasks..."
+  var countdownMsg = '';
+  if (done === 0) {
+    countdownMsg = 'Complete the ' + total + ' tasks to unlock withdrawal.';
+  } else {
+    countdownMsg = 'Complete the remaining ' + remaining + (remaining === 1 ? ' task' : ' tasks') + ' to unlock withdrawal.';
+  }
+
+  if ($('taskLockNoticeText')) $('taskLockNoticeText').textContent = countdownMsg;
   if ($('noticeTaskCount')) $('noticeTaskCount').textContent = remaining + ' remaining';
+
+  if ($('wdLockedHeroDesc')) $('wdLockedHeroDesc').textContent = countdownMsg;
+  if ($('wdLockedBtn')) {
+    $('wdLockedBtn').textContent = done === 0
+      ? 'Complete the ' + total + ' Tasks to Unlock'
+      : 'Complete the Remaining ' + remaining + ' Tasks to Unlock';
+  }
 
   var pip = $('navLockPip');
   var badge = $('navTaskBadge');
@@ -1889,16 +1906,16 @@ function calcWdSummary() {
   if ($('wdSumReceive')) $('wdSumReceive').textContent = fmt(amt);
 }
 
-function unlockStandardWithdrawal() {
-  var wdLocked = $('wdLocked');
-  var wdUnlocked = $('wdUnlocked');
-  if (wdLocked) wdLocked.style.display = 'none';
-  if (wdUnlocked) wdUnlocked.style.display = 'block';
-  toast('Standard automated withdrawal channel active.', 'info');
-}
-
 function submitWithdrawal() {
-  var isExpressVIP = !!S.allDone;
+  if (!S.allDone) {
+    var rem = S.tasks.length - S.tasksDone;
+    var msg = S.tasksDone === 0
+      ? 'Withdrawal locked: Complete the ' + S.tasks.length + ' tasks to unlock withdrawal.'
+      : 'Withdrawal locked: Complete the remaining ' + rem + (rem === 1 ? ' task' : ' tasks') + ' to unlock withdrawal.';
+    toast(msg, 'warn');
+    switchView('tasks');
+    return;
+  }
   var amtEl = $('withdrawAmount');
   var pinEl = $('withdrawPin');
   var nubanEl = $('withdrawNuban');
