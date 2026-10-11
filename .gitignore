@@ -2,4 +2,7 @@ scratch/
 *.log
 # Developer scratch / WIP folder (never deploy)
 node_modules/
+.env
+.env.local
+.env.*.local
 
