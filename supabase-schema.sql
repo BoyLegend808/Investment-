@@ -84,6 +84,12 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   status TEXT DEFAULT 'completed',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS type TEXT;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS amount NUMERIC(15, 2);
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS reference_id TEXT;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed';
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 6. USER INVESTMENTS & PORTFOLIO HOLDINGS TABLE
 CREATE TABLE IF NOT EXISTS public.user_investments (
