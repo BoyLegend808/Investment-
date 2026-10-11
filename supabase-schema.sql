@@ -831,6 +831,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 21. ATOMIC DAILY LOGIN STREAK RPC (Guaranteed internal bypass, single source of truth)
+DROP FUNCTION IF EXISTS public.claim_daily_streak_reward(NUMERIC);
 CREATE OR REPLACE FUNCTION public.claim_daily_streak_reward(p_custom_amount NUMERIC DEFAULT NULL)
 RETURNS JSONB AS $$
 DECLARE
@@ -947,6 +948,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 22. ATOMIC USER TASK REWARD RPC
+DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC);
 CREATE OR REPLACE FUNCTION public.claim_user_task_reward(
   p_task_id TEXT,
   p_reward_amount NUMERIC,
@@ -994,6 +998,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 23. ATOMIC USER CREDIT BALANCE RPC
+DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC);
 CREATE OR REPLACE FUNCTION public.credit_user_balance(
   p_amount NUMERIC,
   p_reason TEXT DEFAULT 'Balance Credit',
