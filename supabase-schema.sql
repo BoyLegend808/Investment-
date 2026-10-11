@@ -840,7 +840,9 @@ DECLARE
   v_next_day INT;
   v_reward NUMERIC;
   v_new_bal NUMERIC;
-  v_today DATE := CURRENT_DATE;
+  v_today_str TEXT := TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD');
+  v_yesterday_str TEXT := TO_CHAR(CURRENT_DATE - INTERVAL '1 day', 'YYYY-MM-DD');
+  v_last_claim_str TEXT;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
@@ -855,8 +857,15 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'message', 'Profile not found.');
   END IF;
 
-  -- Check if already claimed today
-  IF v_prof.last_streak_claim_date IS NOT NULL AND v_prof.last_streak_claim_date = v_today THEN
+  -- Normalize last claim date to YYYY-MM-DD text string
+  IF v_prof.last_streak_claim_date IS NOT NULL THEN
+    v_last_claim_str := SUBSTRING(v_prof.last_streak_claim_date::text FROM 1 FOR 10);
+  ELSE
+    v_last_claim_str := NULL;
+  END IF;
+
+  -- Check if already claimed today (safe text comparison)
+  IF v_last_claim_str IS NOT NULL AND v_last_claim_str = v_today_str THEN
     RETURN jsonb_build_object(
       'success', false,
       'message', 'You have already claimed today''s login streak reward! Come back tomorrow.',
@@ -869,7 +878,7 @@ BEGIN
   -- Determine streak progression
   -- If last claim was yesterday, continue streak
   -- If streak was broken (> 1 day ago) or first time ever, reset to Day 1
-  IF v_prof.last_streak_claim_date IS NOT NULL AND v_prof.last_streak_claim_date = (v_today - INTERVAL '1 day')::date THEN
+  IF v_last_claim_str IS NOT NULL AND v_last_claim_str = v_yesterday_str THEN
     v_cur_day := COALESCE(v_prof.daily_streak_day, 1);
     IF v_cur_day < 1 OR v_cur_day > 7 THEN
       v_cur_day := 1;
@@ -905,7 +914,7 @@ BEGIN
   SET
     cash_balance = v_new_bal,
     daily_streak_day = v_next_day,
-    last_streak_claim_date = v_today,
+    last_streak_claim_date = v_today_str,
     last_claimed_streak_day = v_cur_day,
     updated_at = NOW()
   WHERE id = v_uid;
