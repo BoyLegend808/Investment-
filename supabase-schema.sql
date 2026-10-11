@@ -474,76 +474,131 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_profiles_referral_code ON public.profiles(r
 CREATE INDEX IF NOT EXISTS idx_profiles_referred_by ON public.profiles(referred_by);
 
 -- RPC: Claim Daily Streak Reward (supports dynamic configured amounts)
+DROP FUNCTION IF EXISTS public.claim_daily_streak_reward(NUMERIC);
+DROP FUNCTION IF EXISTS public.claim_daily_streak_reward();
 CREATE OR REPLACE FUNCTION public.claim_daily_streak_reward(p_custom_amount NUMERIC DEFAULT NULL)
 RETURNS JSONB AS $$
 DECLARE
   v_uid UUID := auth.uid();
-  v_today TEXT := TO_CHAR(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD');
-  v_profile RECORD;
-  v_day INT;
+  v_prof RECORD;
+  v_cur_day INT;
+  v_next_day INT;
   v_reward NUMERIC;
   v_new_bal NUMERIC;
+  v_today_str TEXT := TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD');
+  v_yesterday_str TEXT := TO_CHAR(CURRENT_DATE - INTERVAL '1 day', 'YYYY-MM-DD');
+  v_last_claim_str TEXT;
 BEGIN
   IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'Authentication required.';
+    RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
   END IF;
 
-  SELECT * INTO v_profile FROM public.profiles WHERE id = v_uid FOR UPDATE;
+  SELECT * INTO v_prof
+  FROM public.profiles
+  WHERE id = v_uid
+  FOR UPDATE;
+
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Profile not found.';
+    RETURN jsonb_build_object('success', false, 'message', 'Profile not found.');
   END IF;
 
-  IF v_profile.last_streak_claim_date = v_today THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Bonus already claimed for today.');
+  -- Normalize last claim date to YYYY-MM-DD text string
+  IF v_prof.last_streak_claim_date IS NOT NULL THEN
+    v_last_claim_str := SUBSTRING(v_prof.last_streak_claim_date::text FROM 1 FOR 10);
+  ELSE
+    v_last_claim_str := NULL;
   END IF;
 
-  v_day := COALESCE(v_profile.daily_streak_day, 1);
-  IF v_day < 1 OR v_day > 7 THEN
-    v_day := 1;
+  -- Check if already claimed today (safe text comparison)
+  IF v_last_claim_str IS NOT NULL AND v_last_claim_str = v_today_str THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'message', 'You have already claimed today''s login streak reward! Come back tomorrow.',
+      'already_claimed', true,
+      'day_claimed', COALESCE(v_prof.last_claimed_streak_day, 1),
+      'current_balance', v_prof.cash_balance
+    );
   END IF;
 
-  -- Use custom amount if supplied, otherwise standard progression
+  -- Determine streak progression
+  -- If last claim was yesterday, continue streak
+  -- If streak was broken (> 1 day ago) or first time ever, reset to Day 1
+  IF v_last_claim_str IS NOT NULL AND v_last_claim_str = v_yesterday_str THEN
+    v_cur_day := COALESCE(v_prof.daily_streak_day, 1);
+    IF v_cur_day < 1 OR v_cur_day > 7 THEN
+      v_cur_day := 1;
+    END IF;
+  ELSE
+    v_cur_day := 1;
+  END IF;
+
+  -- Determine reward amount
   IF p_custom_amount IS NOT NULL AND p_custom_amount > 0 THEN
     v_reward := p_custom_amount;
-  ELSIF v_day = 7 THEN
-    v_reward := 1000.00;
   ELSE
-    v_reward := 200.00;
+    IF v_cur_day = 7 THEN
+      v_reward := 1000.00;
+    ELSE
+      v_reward := 200.00;
+    END IF;
   END IF;
 
+  -- Compute next day (rolls over after Day 7)
+  IF v_cur_day >= 7 THEN
+    v_next_day := 1;
+  ELSE
+    v_next_day := v_cur_day + 1;
+  END IF;
+
+  -- Bypass field protection trigger
   PERFORM set_config('app.internal_balance_update', 'true', true);
+
+  v_new_bal := COALESCE(v_prof.cash_balance, 0.00) + v_reward;
 
   UPDATE public.profiles
   SET
-    cash_balance = cash_balance + v_reward,
-    daily_streak_day = CASE WHEN v_day >= 7 THEN 1 ELSE v_day + 1 END,
-    last_streak_claim_date = v_today,
-    last_claimed_streak_day = v_day,
+    cash_balance = v_new_bal,
+    daily_streak_day = v_next_day,
+    last_streak_claim_date = v_today_str,
+    last_claimed_streak_day = v_cur_day,
     updated_at = NOW()
-  WHERE id = v_uid
-  RETURNING cash_balance INTO v_new_bal;
+  WHERE id = v_uid;
 
   INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (v_uid, 'reward', v_reward, 'Daily Login Bonus (Day ' || v_day || ')', 'completed');
+  VALUES (
+    v_uid,
+    'reward',
+    v_reward,
+    'Daily Login Streak Bonus (Day ' || v_cur_day || ')',
+    'completed'
+  );
 
   INSERT INTO public.notifications (user_id, title, message, type)
-  VALUES (v_uid, 'Daily Reward Claimed', '+₦' || v_reward || ' added to cash balance for Day ' || v_day || ' streak!', 'success');
+  VALUES (
+    v_uid,
+    'Daily Bonus Received! (Day ' || v_cur_day || ')',
+    '+₦' || TO_CHAR(v_reward, 'FM999,999,990') || ' has been added to your cash balance.',
+    'success'
+  );
 
   RETURN jsonb_build_object(
     'success', true,
+    'day_claimed', v_cur_day,
+    'next_day', v_next_day,
     'reward', v_reward,
-    'day_claimed', v_day,
-    'next_day', CASE WHEN v_day >= 7 THEN 1 ELSE v_day + 1 END,
     'new_balance', v_new_bal
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- RPC: Claim User Task Reward
+DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC);
 CREATE OR REPLACE FUNCTION public.claim_user_task_reward(
   p_task_id TEXT,
   p_reward_amount NUMERIC,
-  p_task_title TEXT,
+  p_task_title TEXT DEFAULT 'Task Completed',
   p_proof_url TEXT DEFAULT NULL
 )
 RETURNS JSONB AS $$
@@ -588,9 +643,13 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- RPC: Credit User Balance (Protected: Requires Admin Privileges)
+DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC, TEXT, TEXT, UUID);
+DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC, TEXT);
+DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC);
 CREATE OR REPLACE FUNCTION public.credit_user_balance(
   p_amount NUMERIC,
-  p_reason TEXT,
+  p_reason TEXT DEFAULT 'Balance Credit',
   p_type TEXT DEFAULT 'reward',
   p_target_user_id UUID DEFAULT NULL
 )
@@ -830,217 +889,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 21. ATOMIC DAILY LOGIN STREAK RPC (Guaranteed internal bypass, single source of truth)
-DROP FUNCTION IF EXISTS public.claim_daily_streak_reward(NUMERIC);
-CREATE OR REPLACE FUNCTION public.claim_daily_streak_reward(p_custom_amount NUMERIC DEFAULT NULL)
-RETURNS JSONB AS $$
-DECLARE
-  v_uid UUID := auth.uid();
-  v_prof RECORD;
-  v_cur_day INT;
-  v_next_day INT;
-  v_reward NUMERIC;
-  v_new_bal NUMERIC;
-  v_today_str TEXT := TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD');
-  v_yesterday_str TEXT := TO_CHAR(CURRENT_DATE - INTERVAL '1 day', 'YYYY-MM-DD');
-  v_last_claim_str TEXT;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
-  END IF;
-
-  SELECT * INTO v_prof
-  FROM public.profiles
-  WHERE id = v_uid
-  FOR UPDATE;
-
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Profile not found.');
-  END IF;
-
-  -- Normalize last claim date to YYYY-MM-DD text string
-  IF v_prof.last_streak_claim_date IS NOT NULL THEN
-    v_last_claim_str := SUBSTRING(v_prof.last_streak_claim_date::text FROM 1 FOR 10);
-  ELSE
-    v_last_claim_str := NULL;
-  END IF;
-
-  -- Check if already claimed today (safe text comparison)
-  IF v_last_claim_str IS NOT NULL AND v_last_claim_str = v_today_str THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'message', 'You have already claimed today''s login streak reward! Come back tomorrow.',
-      'already_claimed', true,
-      'day_claimed', COALESCE(v_prof.last_claimed_streak_day, 1),
-      'current_balance', v_prof.cash_balance
-    );
-  END IF;
-
-  -- Determine streak progression
-  -- If last claim was yesterday, continue streak
-  -- If streak was broken (> 1 day ago) or first time ever, reset to Day 1
-  IF v_last_claim_str IS NOT NULL AND v_last_claim_str = v_yesterday_str THEN
-    v_cur_day := COALESCE(v_prof.daily_streak_day, 1);
-    IF v_cur_day < 1 OR v_cur_day > 7 THEN
-      v_cur_day := 1;
-    END IF;
-  ELSE
-    v_cur_day := 1;
-  END IF;
-
-  -- Calculate reward amount
-  IF p_custom_amount IS NOT NULL AND p_custom_amount > 0 THEN
-    v_reward := p_custom_amount;
-  ELSE
-    IF v_cur_day = 7 THEN
-      v_reward := 1000.00;
-    ELSE
-      v_reward := 200.00;
-    END IF;
-  END IF;
-
-  -- Compute next day (rolls over after Day 7)
-  IF v_cur_day >= 7 THEN
-    v_next_day := 1;
-  ELSE
-    v_next_day := v_cur_day + 1;
-  END IF;
-
-  -- Bypass field protection trigger
-  PERFORM set_config('app.internal_balance_update', 'true', true);
-
-  v_new_bal := COALESCE(v_prof.cash_balance, 0.00) + v_reward;
-
-  UPDATE public.profiles
-  SET
-    cash_balance = v_new_bal,
-    daily_streak_day = v_next_day,
-    last_streak_claim_date = v_today_str,
-    last_claimed_streak_day = v_cur_day,
-    updated_at = NOW()
-  WHERE id = v_uid;
-
-  INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (
-    v_uid,
-    'reward',
-    v_reward,
-    'Daily Login Streak Bonus (Day ' || v_cur_day || ')',
-    'completed'
-  );
-
-  INSERT INTO public.notifications (user_id, title, message, type)
-  VALUES (
-    v_uid,
-    'Daily Bonus Received! (Day ' || v_cur_day || ')',
-    '+₦' || TO_CHAR(v_reward, 'FM999,999,990') || ' has been added to your cash balance.',
-    'success'
-  );
-
-  RETURN jsonb_build_object(
-    'success', true,
-    'day_claimed', v_cur_day,
-    'next_day', v_next_day,
-    'reward', v_reward,
-    'new_balance', v_new_bal
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 22. ATOMIC USER TASK REWARD RPC
-DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT);
-DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC, TEXT);
-DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC);
-CREATE OR REPLACE FUNCTION public.claim_user_task_reward(
-  p_task_id TEXT,
-  p_reward_amount NUMERIC,
-  p_task_title TEXT DEFAULT 'Task Completed',
-  p_proof_url TEXT DEFAULT NULL
-)
-RETURNS JSONB AS $$
-DECLARE
-  v_uid UUID := auth.uid();
-  v_prof RECORD;
-  v_new_bal NUMERIC;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
-  END IF;
-
-  SELECT * INTO v_prof FROM public.profiles WHERE id = v_uid FOR UPDATE;
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Profile not found.');
-  END IF;
-
-  PERFORM set_config('app.internal_balance_update', 'true', true);
-
-  v_new_bal := COALESCE(v_prof.cash_balance, 0.00) + COALESCE(p_reward_amount, 0.00);
-
-  UPDATE public.profiles
-  SET
-    cash_balance = v_new_bal,
-    updated_at = NOW()
-  WHERE id = v_uid;
-
-  INSERT INTO public.user_tasks (user_id, task_id, task_title, reward_amount, completed, completed_at, proof_url)
-  VALUES (v_uid, p_task_id, p_task_title, p_reward_amount, true, NOW(), p_proof_url)
-  ON CONFLICT DO NOTHING;
-
-  INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (v_uid, 'reward', p_reward_amount, 'Task Reward — ' || p_task_title, 'completed');
-
-  RETURN jsonb_build_object(
-    'success', true,
-    'new_balance', v_new_bal,
-    'reward', p_reward_amount
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 23. ATOMIC USER CREDIT BALANCE RPC
-DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC, TEXT, TEXT);
-DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC, TEXT);
-DROP FUNCTION IF EXISTS public.credit_user_balance(NUMERIC);
-CREATE OR REPLACE FUNCTION public.credit_user_balance(
-  p_amount NUMERIC,
-  p_reason TEXT DEFAULT 'Balance Credit',
-  p_type TEXT DEFAULT 'reward'
-)
-RETURNS JSONB AS $$
-DECLARE
-  v_uid UUID := auth.uid();
-  v_prof RECORD;
-  v_new_bal NUMERIC;
-BEGIN
-  IF v_uid IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
-  END IF;
-
-  SELECT * INTO v_prof FROM public.profiles WHERE id = v_uid FOR UPDATE;
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'message', 'Profile not found.');
-  END IF;
-
-  PERFORM set_config('app.internal_balance_update', 'true', true);
-
-  v_new_bal := COALESCE(v_prof.cash_balance, 0.00) + COALESCE(p_amount, 0.00);
-
-  UPDATE public.profiles
-  SET cash_balance = v_new_bal, updated_at = NOW()
-  WHERE id = v_uid;
-
-  INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (v_uid, p_type, p_amount, p_reason, 'completed');
-
-  RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 24. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
+-- 21. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.claim_daily_streak_reward(NUMERIC) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.credit_user_balance(NUMERIC, TEXT, TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.credit_user_balance(NUMERIC, TEXT, TEXT, UUID) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.sync_user_balance(NUMERIC) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.subscribe_vaultx_package(INT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.get_user_referrals() TO authenticated, anon;
