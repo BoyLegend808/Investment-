@@ -79,14 +79,20 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   type TEXT NOT NULL,
   amount NUMERIC(15, 2) NOT NULL,
+  title TEXT,
   description TEXT,
   reference_id TEXT,
   status TEXT DEFAULT 'completed',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE public.transactions ALTER COLUMN title DROP NOT NULL;
+ALTER TABLE public.transactions ALTER COLUMN title SET DEFAULT 'Transaction';
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS type TEXT;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS amount NUMERIC(15, 2);
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.transactions ALTER COLUMN description DROP NOT NULL;
+ALTER TABLE public.transactions ALTER COLUMN description SET DEFAULT '';
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS reference_id TEXT;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed';
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
@@ -220,8 +226,8 @@ BEGIN
   WHERE id = v_dep.user_id
   RETURNING cash_balance INTO v_new_bal;
 
-  INSERT INTO public.transactions (user_id, type, amount, description, reference_id, status)
-  VALUES (v_dep.user_id, 'deposit', v_dep.amount, 'Deposit confirmation #' || deposit_id, deposit_id, 'completed');
+  INSERT INTO public.transactions (user_id, type, amount, title, description, reference_id, status)
+  VALUES (v_dep.user_id, 'deposit', v_dep.amount, 'Deposit Confirmation', 'Deposit confirmation #' || deposit_id, deposit_id, 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (v_dep.user_id, 'Deposit Confirmed', 'Your deposit of ₦' || v_dep.amount || ' has been confirmed and credited.', 'success');
@@ -269,8 +275,8 @@ BEGIN
     v_wth_id, v_uid, auth.jwt()->>'email', p_amount, p_bank_name, p_account_number, p_account_name, 'Pending'
   );
 
-  INSERT INTO public.transactions (user_id, type, amount, description, reference_id, status)
-  VALUES (v_uid, 'withdrawal', -p_amount, 'Withdrawal request to ' || p_bank_name, v_wth_id, 'pending');
+  INSERT INTO public.transactions (user_id, type, amount, title, description, reference_id, status)
+  VALUES (v_uid, 'withdrawal', -p_amount, 'Withdrawal to ' || p_bank_name, 'Withdrawal request to ' || p_bank_name, v_wth_id, 'pending');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (v_uid, 'Withdrawal Submitted', 'Your withdrawal request of ₦' || p_amount || ' is pending processing.', 'info');
@@ -311,8 +317,8 @@ BEGIN
   SET cash_balance = cash_balance + v_wth.amount, updated_at = NOW()
   WHERE id = v_wth.user_id;
 
-  INSERT INTO public.transactions (user_id, type, amount, description, reference_id, status)
-  VALUES (v_wth.user_id, 'adjustment', v_wth.amount, 'Refund for rejected withdrawal #' || withdrawal_id, withdrawal_id, 'completed');
+  INSERT INTO public.transactions (user_id, type, amount, title, description, reference_id, status)
+  VALUES (v_wth.user_id, 'adjustment', v_wth.amount, 'Withdrawal Refund', 'Refund for rejected withdrawal #' || withdrawal_id, withdrawal_id, 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (v_wth.user_id, 'Withdrawal Refunded', 'Your withdrawal request #' || withdrawal_id || ' was rejected. Funds have been returned to your balance.', 'warning');
@@ -350,8 +356,8 @@ BEGIN
     RAISE EXCEPTION 'User profile not found.';
   END IF;
 
-  INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (p_user_id, 'adjustment', p_amount, p_reason, 'completed');
+  INSERT INTO public.transactions (user_id, type, amount, title, description, status)
+  VALUES (p_user_id, 'adjustment', p_amount, 'Balance Adjustment', p_reason, 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (
@@ -570,11 +576,12 @@ BEGIN
     updated_at = NOW()
   WHERE id = v_uid;
 
-  INSERT INTO public.transactions (user_id, type, amount, description, status)
+  INSERT INTO public.transactions (user_id, type, amount, title, description, status)
   VALUES (
     v_uid,
     'reward',
     v_reward,
+    'Daily Login Streak Bonus (Day ' || v_cur_day || ')',
     'Daily Login Streak Bonus (Day ' || v_cur_day || ')',
     'completed'
   );
@@ -638,8 +645,8 @@ BEGIN
   WHERE id = v_uid
   RETURNING cash_balance INTO v_new_bal;
 
-  INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (v_uid, 'reward', p_reward_amount, 'Task Reward — ' || p_task_title, 'completed');
+  INSERT INTO public.transactions (user_id, type, amount, title, description, status)
+  VALUES (v_uid, 'reward', p_reward_amount, 'Task Reward — ' || p_task_title, 'Task Reward — ' || p_task_title, 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (v_uid, 'Task Reward Credited', '+₦' || p_reward_amount || ' credited for ' || p_task_title, 'success');
@@ -686,8 +693,8 @@ BEGIN
   WHERE id = v_target
   RETURNING cash_balance INTO v_new_bal;
 
-  INSERT INTO public.transactions (user_id, type, amount, description, status)
-  VALUES (v_target, p_type, p_amount, p_reason, 'completed');
+  INSERT INTO public.transactions (user_id, type, amount, title, description, status)
+  VALUES (v_target, p_type, p_amount, p_reason, p_reason, 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (v_target, 'Balance Credited', '+₦' || p_amount || ' credited: ' || p_reason, 'success');
@@ -774,10 +781,10 @@ BEGIN
     NOW() + INTERVAL '30 days'
   );
 
-  INSERT INTO public.transactions (user_id, type, amount, description, status)
+  INSERT INTO public.transactions (user_id, type, amount, title, description, status)
   VALUES
-    (v_uid, 'trade', -v_cost, 'VaultX Level ' || p_level || ' (' || v_rank || ') Activation', 'completed'),
-    (v_uid, 'reward', v_bonus, 'VaultX Welcome Bonus (' || v_rank || ')', 'completed');
+    (v_uid, 'trade', -v_cost, 'VaultX Level ' || p_level || ' (' || v_rank || ') Activation', 'VaultX Level ' || p_level || ' (' || v_rank || ') Activation', 'completed'),
+    (v_uid, 'reward', v_bonus, 'VaultX Welcome Bonus (' || v_rank || ')', 'VaultX Welcome Bonus (' || v_rank || ')', 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (
@@ -795,11 +802,12 @@ BEGIN
     SET cash_balance = cash_balance + v_ref_comm, updated_at = NOW()
     WHERE id = v_prof.referred_by;
 
-    INSERT INTO public.transactions (user_id, type, amount, description, status)
+    INSERT INTO public.transactions (user_id, type, amount, title, description, status)
     VALUES (
       v_prof.referred_by,
       'reward',
       v_ref_comm,
+      'Affiliate Commission: ' || v_rank,
       'Affiliate Commission: ' || COALESCE(v_prof.full_name, 'Partner') || ' activated ' || v_rank,
       'completed'
     );

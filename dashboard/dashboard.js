@@ -2684,7 +2684,7 @@ function renderTransactionsTable(txns) {
 
     return '<tr>' +
       '<td>' + dateStr + '</td>' +
-      '<td>' + (tx.description || 'Account Transaction') + '</td>' +
+      '<td>' + (tx.title || tx.description || 'Account Transaction') + '</td>' +
       '<td><span class="type-tag ' + tagClass + '">' + typeTag.toUpperCase() + '</span></td>' +
       '<td class="' + (isPositive ? 'credit' : 'debit') + '">' + (isPositive ? '+' : '') + '₦' + Math.abs(amt).toLocaleString('en-NG') + '</td>' +
       '<td><span class="badge badge--done">' + (tx.status || 'Completed') + '</span></td>' +
@@ -2697,7 +2697,9 @@ function filterTransactionsList() {
   var filter = ($('txnFilter') ? $('txnFilter').value : 'All');
 
   var filtered = allUserTransactions.filter(function(tx) {
-    var matchesSearch = !search || (tx.description && tx.description.toLowerCase().includes(search));
+    var descMatch = tx.description && tx.description.toLowerCase().includes(search);
+    var titleMatch = tx.title && tx.title.toLowerCase().includes(search);
+    var matchesSearch = !search || descMatch || titleMatch;
     var matchesFilter = (filter === 'All') || (tx.type && tx.type.toLowerCase() === filter.toLowerCase());
     return matchesSearch && matchesFilter;
   });
