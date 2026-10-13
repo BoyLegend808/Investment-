@@ -95,6 +95,8 @@ ALTER TABLE public.transactions ALTER COLUMN description DROP NOT NULL;
 ALTER TABLE public.transactions ALTER COLUMN description SET DEFAULT '';
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS reference_id TEXT;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'completed';
+ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_status_check;
+ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_type_check;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 6. USER INVESTMENTS & PORTFOLIO HOLDINGS TABLE
