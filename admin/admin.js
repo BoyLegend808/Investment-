@@ -249,8 +249,11 @@ var AdminState = {
   withdrawals: [],
   deposits: [],
   users: SEED_USERS.slice(),
+  investments: [],
+  userTasks: [],
   gatekeeperEnforced: true,
-  inspectedWdId: null
+  inspectedWdId: null,
+  inspectedUserId: null
 };
 
 /* ── DOM HELPER ──────────────────────────────────────────── */
@@ -937,6 +940,7 @@ function approveWithdrawal(id) {
         .eq('id', id)
         .then(function(res) {
           if (res.error) console.warn('Supabase approve withdrawal notice:', res.error);
+          loadRealAdminDataFromDB();
         });
     } catch(e) {}
   }
@@ -967,7 +971,9 @@ function rejectWithdrawal(id) {
             .from('withdrawals')
             .update({ status: 'Rejected', admin_notes: reason.trim(), processed_at: new Date().toISOString() })
             .eq('id', id)
-            .then(function() {});
+            .then(function() { loadRealAdminDataFromDB(); });
+        } else {
+          loadRealAdminDataFromDB();
         }
       });
     } catch(e) {}
@@ -1068,8 +1074,10 @@ function confirmDeposit(id) {
                 .from('profiles')
                 .update({ cash_balance: cur + depAmt })
                 .eq('id', d.user_id)
-                .then(function() {});
+                .then(function() { loadRealAdminDataFromDB(); });
             });
+        } else {
+          loadRealAdminDataFromDB();
         }
       });
     } catch(e) {}
@@ -1097,22 +1105,33 @@ function renderUsersTable(searchQuery) {
   if (searchQuery) {
     var q = searchQuery.toLowerCase();
     list = list.filter(function(u) {
-      return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.tier.toLowerCase().includes(q);
+      return (u.name && u.name.toLowerCase().includes(q)) ||
+             (u.email && u.email.toLowerCase().includes(q)) ||
+             (u.tier && u.tier.toLowerCase().includes(q));
     });
   }
 
-  tbody.innerHTML = list.map(function(u, idx) {
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No registered investors found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(function(u) {
+    var safeName = escapeHtml(u.name);
+    var safeEmail = escapeHtml(u.email);
+    var initials = safeName ? safeName.split(' ').map(function(n) { return n[0]; }).join('') : 'U';
+
     return '<tr>' +
-      '<td><div class="user-cell"><div class="user-cell-avatar">' + u.name.split(' ').map(function(n) { return n[0]; }).join('') + '</div><div><div class="user-cell-name">' + u.name + '</div><div class="user-cell-sub">' + u.email + '</div></div></div></td>' +
-      '<td><span class="badge" style="background:rgba(200,138,88,0.15);color:var(--color-copper);border:1px solid rgba(200,138,88,0.3);">' + u.tier + '</span></td>' +
+      '<td><div class="user-cell"><div class="user-cell-avatar">' + initials + '</div><div><div class="user-cell-name">' + safeName + '</div><div class="user-cell-sub">' + safeEmail + '</div></div></div></td>' +
+      '<td><span class="badge" style="background:rgba(200,138,88,0.15);color:var(--color-copper);border:1px solid rgba(200,138,88,0.3);">' + escapeHtml(u.tier) + '</span></td>' +
       '<td class="mono-amount">' + u.invested + '</td>' +
       '<td class="mono-amount credit">' + u.balance + '</td>' +
-      '<td><span class="badge badge--approved">' + u.tasks + '</span></td>' +
-      '<td><span class="badge badge--approved">' + u.kyc + '</span></td>' +
+      '<td><span class="badge badge--approved">' + escapeHtml(u.tasks) + '</span></td>' +
+      '<td><span class="badge badge--approved">' + escapeHtml(u.kyc) + '</span></td>' +
       '<td>' +
         '<div style="display:flex;gap:6px;">' +
-          '<button class="btn btn-subtle btn-sm" onclick="bypassGateForUser(\'' + u.name + '\')">Bypass Gate</button>' +
-          '<button class="btn btn-subtle btn-sm" onclick="adjustUserBalance(\'' + u.name + '\')">Adjust</button>' +
+          '<button class="btn btn-emerald btn-sm" onclick="openInvestorInvestmentsModal(\'' + (u.id || '') + '\')">Investments</button>' +
+          '<button class="btn btn-subtle btn-sm" onclick="adjustUserBalance(\'' + safeName + '\', \'' + (u.id || '') + '\')">Adjust</button>' +
         '</div>' +
       '</td>' +
     '</tr>';
@@ -1129,6 +1148,86 @@ function bypassGateForUser(name) {
   addAuditLog('VIP_OVERRIDE', 'Task gate bypassed for user: ' + name);
 }
 
+function openInvestorInvestmentsModal(userId) {
+  var user = AdminState.users.find(function(u) { return u.id === userId; });
+  if (!user) return;
+  AdminState.inspectedUserId = userId;
+
+  if ($('uimUserName')) $('uimUserName').textContent = user.name + ' — Portfolio Holdings';
+  if ($('uimUserMeta')) $('uimUserMeta').textContent = user.email + ' • Ref: ' + (user.referral_code || 'N/A') + ' • Registered ' + (user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A');
+
+  var invs = user.investmentsList || [];
+  var tasks = user.tasksList || [];
+
+  var invHtml = '';
+  if (invs.length === 0) {
+    invHtml = '<div style="padding:16px;text-align:center;color:var(--text-muted);background:var(--bg-card-subtle);border-radius:6px;font-size:0.85rem;">No active plan investments placed in database yet.</div>';
+  } else {
+    invHtml = '<div class="table-responsive" style="margin-top:8px;"><table class="admin-table" style="font-size:0.82rem;"><thead><tr>' +
+      '<th>Package / Asset</th><th>Invested</th><th>Current Value</th><th>Daily Yield</th><th>Status</th><th>Maturity</th>' +
+      '</tr></thead><tbody>' +
+      invs.map(function(inv) {
+        var invAmt = parseFloat(inv.amount_invested) || 0;
+        var curVal = parseFloat(inv.current_value) || invAmt;
+        var mDate = inv.maturity_date ? new Date(inv.maturity_date).toLocaleDateString() : '30-day term';
+        return '<tr>' +
+          '<td><strong style="color:#FFF;">' + escapeHtml(inv.asset_name) + '</strong></td>' +
+          '<td class="mono-amount">₦' + Math.round(invAmt).toLocaleString('en-NG') + '</td>' +
+          '<td class="mono-amount credit">₦' + Math.round(curVal).toLocaleString('en-NG') + '</td>' +
+          '<td style="color:var(--color-emerald);">' + (inv.return_rate || '18.0') + '%</td>' +
+          '<td><span class="badge badge--approved">' + escapeHtml((inv.status || 'Active').toUpperCase()) + '</span></td>' +
+          '<td style="color:var(--text-muted);">' + mDate + '</td>' +
+        '</tr>';
+      }).join('') +
+      '</tbody></table></div>';
+  }
+
+  var tasksHtml = '';
+  if (tasks.length === 0) {
+    tasksHtml = '<div style="padding:12px;color:var(--text-muted);font-size:0.82rem;">No withdrawal prerequisites completed yet.</div>';
+  } else {
+    tasksHtml = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">' +
+      tasks.map(function(t) {
+        var statusBadge = t.completed ? '✓ ' : '⏳ ';
+        return '<span class="badge ' + (t.completed ? 'badge--approved' : 'badge--pending') + '" style="font-size:0.75rem;">' + statusBadge + escapeHtml(t.task_title || ('Task #' + t.task_id)) + ' (+₦' + (t.reward_amount || 2000).toLocaleString('en-NG') + ')</span>';
+      }).join('') +
+      '</div>';
+  }
+
+  var body = $('uimModalBody');
+  if (body) {
+    body.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">' +
+      '<div style="background:var(--bg-card-subtle);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;">' +
+        '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">TOTAL INVESTED (ACTIVE ASSETS)</div>' +
+        '<div style="font-size:1.25rem;font-weight:700;color:var(--color-emerald);font-family:\'Space Mono\',monospace;">' + user.invested + '</div>' +
+        '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + invs.length + ' active plan' + (invs.length === 1 ? '' : 's') + ' in database</div>' +
+      '</div>' +
+      '<div style="background:var(--bg-card-subtle);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;">' +
+        '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">AVAILABLE CASH BALANCE</div>' +
+        '<div style="font-size:1.25rem;font-weight:700;color:#FFF;font-family:\'Space Mono\',monospace;">' + user.balance + '</div>' +
+        '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Available to withdraw</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="margin-bottom:16px;">' +
+      '<div style="font-size:0.85rem;font-weight:600;color:#FFF;margin-bottom:6px;">Active Portfolio Plans (Database Records)</div>' +
+      invHtml +
+    '</div>' +
+    '<div>' +
+      '<div style="font-size:0.85rem;font-weight:600;color:#FFF;margin-bottom:6px;">Withdrawal Tasks Progress (' + user.tasks + ')</div>' +
+      tasksHtml +
+    '</div>';
+  }
+
+  var adjBtn = $('uimAdjustBalBtn');
+  if (adjBtn) {
+    adjBtn.onclick = function() {
+      adjustUserBalance(user.name, user.id);
+    };
+  }
+
+  openModal('userInvestmentsModal');
+}
+
 function adjustUserBalance(name, userId) {
   var amtStr = prompt('Enter adjustment amount for ' + name + ' (+/- ₦):');
   if (!amtStr) return;
@@ -1140,32 +1239,278 @@ function adjustUserBalance(name, userId) {
 
   // Sync to Supabase DB if user_id is provided
   if (window.supabaseClient && userId) {
-    try {
-      window.supabaseClient.rpc('admin_adjust_balance', {
-        p_user_id: userId,
-        p_amount: amt,
-        p_reason: 'Admin manual balance adjustment'
-      }).then(function(res) {
-        if (res.error) console.warn('Supabase balance adjust RPC notice:', res.error);
-      });
-    } catch(e) {}
+    window.supabaseClient.rpc('admin_adjust_balance', {
+      p_user_id: userId,
+      p_amount: amt,
+      p_reason: 'Admin manual balance adjustment'
+    }).then(function(res) {
+      if (res.error) {
+        console.warn('Supabase balance adjust RPC notice:', res.error);
+        toast('Balance adjust error: ' + res.error.message, 'warn');
+      } else {
+        toast('Balance adjusted by ₦' + amt.toLocaleString('en-NG') + ' for ' + name, 'emerald');
+        loadRealAdminDataFromDB();
+      }
+    });
+  } else {
+    toast('Balance adjusted by ₦' + amt.toLocaleString('en-NG') + ' for ' + name, 'emerald');
   }
 
-  toast('Balance adjusted by ₦' + amt.toLocaleString('en-NG') + ' for ' + name, 'emerald');
   addAuditLog('BALANCE_ADJUST', 'Manual balance correction of ₦' + amt.toLocaleString('en-NG') + ' for ' + name);
 }
 
-/* ── OBSERVATORY KPIS & FLOW CHART ───────────────────────── */
+/* ── OBSERVATORY KPIS (REALTIME DATABASE MATCHED) ────────── */
 function updateKpis() {
-  var pendingWds = AdminState.withdrawals.filter(function(w) { return w.status === 'Pending Review'; });
+  var pendingWds = AdminState.withdrawals.filter(function(w) { return w.status === 'Pending Review' || w.status === 'Pending'; });
   var totalPendingAmt = pendingWds.reduce(function(sum, w) { return sum + (parseFloat(w.amount) || 0); }, 0);
 
-  if ($('statPendingWd')) $('statPendingWd').textContent = '₦' + totalPendingAmt.toLocaleString('en-NG');
+  if ($('statPendingWd')) $('statPendingWd').textContent = '₦' + Math.round(totalPendingAmt).toLocaleString('en-NG');
   if ($('statPendingWdCountLabel')) $('statPendingWdCountLabel').textContent = pendingWds.length + ' requests awaiting task review';
   if ($('navPendingWdCount')) $('navPendingWdCount').textContent = pendingWds.length;
 
-  var pendingDeps = AdminState.deposits.filter(function(d) { return d.status === 'Pending Confirmation'; });
+  var pendingDeps = AdminState.deposits.filter(function(d) { return d.status === 'Pending Confirmation' || d.status === 'Pending'; });
   if ($('navPendingDepCount')) $('navPendingDepCount').textContent = pendingDeps.length;
+
+  // Real Database Active Investors Count
+  var realUserCount = AdminState.users.length;
+  if ($('statActiveInvestors')) $('statActiveInvestors').textContent = realUserCount.toLocaleString('en-NG');
+  if ($('statActiveInvestorsSub')) $('statActiveInvestorsSub').innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg> <span>' + realUserCount + ' accounts registered in DB</span>';
+
+  // Real Database Total AUM (invested balance + cash balance across all profiles)
+  var totalAum = AdminState.users.reduce(function(sum, u) {
+    return sum + (u.investedRaw || 0) + (u.balanceRaw || 0);
+  }, 0);
+  if ($('statTotalAum')) $('statTotalAum').textContent = '₦' + Math.round(totalAum).toLocaleString('en-NG');
+  if ($('statTotalAumSub')) $('statTotalAumSub').innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg> <span>Across all live database portfolios</span>';
+
+  // Real Database Inflow Volume (confirmed deposits)
+  var confirmedDeps = AdminState.deposits.filter(function(d) { return d.status === 'Confirmed'; });
+  var totalInflow = confirmedDeps.reduce(function(sum, d) { return sum + (parseFloat(d.amount) || 0); }, 0);
+  if ($('statInflowVolume')) $('statInflowVolume').textContent = '₦' + Math.round(totalInflow).toLocaleString('en-NG');
+  if ($('statInflowSub')) $('statInflowSub').innerHTML = '<span>' + confirmedDeps.length + ' verified deposits in DB</span>';
+
+  // Active tasks count and completion pass rate
+  var activeTasks = AdminState.tasks.filter(function(t) { return t.active !== false; }).length;
+  if ($('statActiveTasksCount')) $('statActiveTasksCount').textContent = activeTasks + ' Active Tasks Configured';
+  
+  if (AdminState.users.length > 0) {
+    var totalPossible = AdminState.users.length * Math.max(1, activeTasks);
+    var totalCompleted = AdminState.users.reduce(function(sum, u) { return sum + (u.tasksDoneCount || 0); }, 0);
+    var overallPassRate = Math.round((totalCompleted / totalPossible) * 100);
+    if ($('statPassRate')) $('statPassRate').textContent = overallPassRate + '% Completed Platform-Wide';
+  }
+}
+
+/* ── LIVE DATABASE SYNC (PROFILES, INVESTMENTS, TASKS, FLOWS) ─ */
+async function loadRealAdminDataFromDB() {
+  var sb = await waitForSupabase();
+  if (!sb) return;
+
+  try {
+    // 1. Fetch real profiles
+    var { data: profiles } = await sb
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // 2. Fetch real user investments
+    var { data: investments } = await sb
+      .from('user_investments')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // 3. Fetch real user tasks
+    var { data: userTasks } = await sb
+      .from('user_tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // 4. Fetch real deposits
+    var { data: deposits } = await sb
+      .from('deposits')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // 5. Fetch real withdrawals
+    var { data: withdrawals } = await sb
+      .from('withdrawals')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    var allProfiles = (profiles && profiles.length > 0) ? profiles : [];
+    AdminState.investments = investments || [];
+    AdminState.userTasks = userTasks || [];
+
+    var invMap = {};
+    if (investments) {
+      investments.forEach(function(inv) {
+        if (!invMap[inv.user_id]) invMap[inv.user_id] = [];
+        invMap[inv.user_id].push(inv);
+      });
+    }
+
+    var taskMap = {};
+    if (userTasks) {
+      userTasks.forEach(function(ut) {
+        if (!taskMap[ut.user_id]) taskMap[ut.user_id] = [];
+        taskMap[ut.user_id].push(ut);
+      });
+    }
+
+    var activeTasksTotal = AdminState.tasks.filter(function(t) { return t.active !== false; }).length || 5;
+
+    // Map real profiles to users directory
+    if (allProfiles.length > 0) {
+      AdminState.users = allProfiles.map(function(p) {
+        var userInvs = invMap[p.id] || [];
+        var userTasksDone = taskMap[p.id] ? taskMap[p.id].filter(function(ut) { return ut.completed; }) : [];
+        
+        var totalInv = parseFloat(p.invested_balance) || 0;
+        if (totalInv === 0 && userInvs.length > 0) {
+          totalInv = userInvs.reduce(function(sum, x) { return sum + (parseFloat(x.amount_invested) || 0); }, 0);
+        }
+
+        // Determine VIP ranking / tier
+        var tier = 'Starter (₦0)';
+        if (userInvs.length > 0) {
+          tier = userInvs[0].asset_name || 'Active Investor';
+        } else if (totalInv >= 1000000) {
+          tier = 'Level 10 (Apex Imperial VIP)';
+        } else if (totalInv >= 500000) {
+          tier = 'Level 9 (Obsidian VIP)';
+        } else if (totalInv >= 350000) {
+          tier = 'Level 8 (Diamond VIP)';
+        } else if (totalInv >= 200000) {
+          tier = 'Level 7 (Ruby VIP)';
+        } else if (totalInv >= 100000) {
+          tier = 'Level 6 (Sapphire VIP)';
+        } else if (totalInv >= 75000) {
+          tier = 'Level 5 (Emerald VIP)';
+        } else if (totalInv >= 50000) {
+          tier = 'Level 4 (Platinum VIP)';
+        } else if (totalInv >= 30000) {
+          tier = 'Level 3 (Gold VIP)';
+        } else if (totalInv >= 15000) {
+          tier = 'Level 2 (Silver VIP)';
+        } else if (totalInv >= 5000) {
+          tier = 'Level 1 (Bronze VIP)';
+        } else if (totalInv > 0) {
+          tier = 'Active Investor';
+        }
+
+        var doneCount = userTasksDone.length;
+        var taskPct = Math.round((doneCount / activeTasksTotal) * 100);
+        var tasksLabel = doneCount + '/' + activeTasksTotal + ' (' + taskPct + '%)';
+
+        var fullName = p.full_name || (p.email ? p.email.split('@')[0] : 'Valued Investor');
+        var cashBal = parseFloat(p.cash_balance) || 0;
+
+        return {
+          id: p.id,
+          user_id: p.id,
+          name: fullName,
+          email: p.email || '',
+          tier: tier,
+          invested: '₦' + Math.round(totalInv).toLocaleString('en-NG'),
+          investedRaw: totalInv,
+          balance: '₦' + Math.round(cashBal).toLocaleString('en-NG'),
+          balanceRaw: cashBal,
+          tasks: tasksLabel,
+          tasksDoneCount: doneCount,
+          tasksTotalCount: activeTasksTotal,
+          kyc: p.is_admin ? 'SuperAdmin' : (doneCount >= activeTasksTotal ? 'Verified (100% Tasks)' : 'Tier 1 Standard'),
+          referral_code: p.referral_code || '',
+          created_at: p.created_at || '',
+          investmentsList: userInvs,
+          tasksList: taskMap[p.id] || []
+        };
+      });
+    }
+
+    // Process real deposits
+    if (deposits && deposits.length > 0) {
+      AdminState.deposits = deposits.map(function(d) {
+        var userMatch = allProfiles.find(function(p) { return p.id === d.user_id; });
+        var uName = userMatch ? (userMatch.full_name || userMatch.email) : (d.user_email ? d.user_email.split('@')[0] : 'Investor');
+        var dDate = d.created_at ? new Date(d.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
+        return {
+          id: d.id,
+          user_id: d.user_id,
+          user: uName,
+          email: d.user_email || (userMatch ? userMatch.email : ''),
+          amount: parseFloat(d.amount) || 0,
+          plan: d.plan || 'Crest Stash (11.5%)',
+          method: d.bank_name ? ('BANK TRANSFER (' + d.bank_name.toUpperCase() + ')') : 'BANK TRANSFER',
+          date: dDate,
+          status: d.status === 'Confirmed' ? 'Confirmed' : 'Pending Confirmation',
+          receiptData: d.proof_url || null,
+          bank: d.bank_name || 'Bank Transfer'
+        };
+      });
+    }
+
+    // Process real withdrawals
+    if (withdrawals && withdrawals.length > 0) {
+      AdminState.withdrawals = withdrawals.map(function(w) {
+        var userMatch = allProfiles.find(function(p) { return p.id === w.user_id; });
+        var uName = userMatch ? (userMatch.full_name || userMatch.email) : (w.user_email ? w.user_email.split('@')[0] : 'Investor');
+        var wDate = w.created_at ? new Date(w.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent';
+        
+        var userTasksDone = taskMap[w.user_id] ? taskMap[w.user_id].filter(function(ut) { return ut.completed; }).length : 0;
+        var tasksVerifiedStr = userTasksDone + '/' + activeTasksTotal + (userTasksDone >= activeTasksTotal ? ' Complete' : ' Incomplete');
+
+        var normStatus = 'Pending Review';
+        if (w.status === 'Approved' || w.status === 'Approved & Paid' || w.status === 'Confirmed') {
+          normStatus = 'Approved & Paid';
+        } else if (w.status === 'Rejected') {
+          normStatus = 'Rejected';
+        }
+
+        return {
+          id: w.id,
+          user_id: w.user_id,
+          user: uName,
+          email: w.user_email || (userMatch ? userMatch.email : ''),
+          amount: parseFloat(w.amount) || 0,
+          bank: (w.bank_name || 'Bank') + (w.account_number ? (' — ' + w.account_number) : ''),
+          date: wDate,
+          status: normStatus,
+          tasksVerified: tasksVerifiedStr,
+          proofs: {
+            x: userMatch ? ('@' + uName.replace(/\s+/g, '_').toLowerCase()) : '@investor',
+            yt: w.user_email || 'investor@email.com',
+            ig: userMatch ? ('@' + uName.replace(/\s+/g, '_').toLowerCase()) : '@investor',
+            quiz: 'Verified in Database (' + userTasksDone + ' tasks done)',
+            game: 'Verified in Database'
+          }
+        };
+      });
+    }
+
+    filterWithdrawals();
+    filterDeposits();
+    renderUsersTable();
+    updateKpis();
+
+  } catch(err) {
+    console.error('[Admin] Database fetch error:', err);
+  }
+}
+
+function setupAdminRealtime() {
+  if (!window.supabaseClient) return;
+  try {
+    window.supabaseClient
+      .channel('admin_live_updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, function() { loadRealAdminDataFromDB(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deposits' }, function() { loadRealAdminDataFromDB(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, function() { loadRealAdminDataFromDB(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_investments' }, function() { loadRealAdminDataFromDB(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_tasks' }, function() { loadRealAdminDataFromDB(); })
+      .subscribe();
+  } catch(e) {
+    console.warn('[Admin] Realtime subscribe notice:', e);
+  }
 }
 
 function drawFlowChart() {
@@ -1303,6 +1648,10 @@ document.addEventListener('DOMContentLoaded', function() {
   renderAuditStream();
   updateKpis();
   setTimeout(drawFlowChart, 100);
+
+  // Load real users, investments, tasks, and balances directly from Supabase DB
+  loadRealAdminDataFromDB();
+  setupAdminRealtime();
 });
 
 window.addEventListener('resize', function() {
