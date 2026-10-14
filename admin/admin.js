@@ -467,6 +467,7 @@ function switchAdminView(viewName) {
     withdrawals: 'Withdrawal Requests Queue',
     deposits: 'Incoming Deposits Queue',
     investors: 'Investor Directory & KYC',
+    treasury: 'Platform Treasury & Yield Controls',
     security: 'Rate Limits & Security Logs'
   };
   if ($('pageTitle')) $('pageTitle').textContent = titles[viewName] || 'Admin Terminal';
@@ -476,6 +477,8 @@ function switchAdminView(viewName) {
 
   if (viewName === 'observatory') {
     setTimeout(drawFlowChart, 60);
+  } else if (viewName === 'treasury') {
+    loadPlatformSettings();
   }
 }
 
@@ -567,10 +570,10 @@ function renderAdminTasks() {
             '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
             '<span>Edit Task</span>' +
           '</button>' +
-          (t.id > 4 ? '<button class="btn btn-danger-outline btn-sm" onclick="deleteCustomTask(' + t.id + ')" title="Delete custom task">' +
+          '<button class="btn btn-danger-outline btn-sm" onclick="deleteAdminTask(' + t.id + ')" title="Delete task">' +
             '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
             '<span>Delete</span>' +
-          '</button>' : '') +
+          '</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -791,13 +794,23 @@ function saveTaskFromModal() {
   addAuditLog('TASK_CONFIG_UPDATED', 'Task "' + title + '" updated with bonus ' + formattedReward);
 }
 
+function deleteAdminTask(id) {
+  var task = AdminState.tasks.find(function(t) { return t.id === id; });
+  if (!task) return;
+  var isBuiltIn = id <= 4;
+  var msg = isBuiltIn
+    ? 'WARNING: "' + task.title + '" is a built-in task.\n\nDeleting it will remove it permanently from all user dashboards until restored.\n\nAre you sure you want to delete it?'
+    : 'Delete the custom task "' + task.title + '"?\n\nThis cannot be undone.';
+  if (!confirm(msg)) return;
+  AdminState.tasks = AdminState.tasks.filter(function(t) { return t.id !== id; });
+  saveTasksToStorage();
+  renderAdminTasks();
+  toast('Task "' + task.title + '" deleted and removed from user dashboards.', 'warn');
+  addAuditLog('TASK_DELETED', 'Task ID #' + id + ' "' + task.title + '" deleted by admin');
+}
+
 function deleteCustomTask(id) {
-  if (confirm('Delete this custom task?')) {
-    AdminState.tasks = AdminState.tasks.filter(function(t) { return t.id !== id; });
-    saveTasksToStorage();
-    renderAdminTasks();
-    toast('Task deleted.', 'warn');
-  }
+  deleteAdminTask(id);
 }
 
 /* ── WITHDRAWALS DESK ────────────────────────────────────── */
@@ -1112,7 +1125,7 @@ function renderUsersTable(searchQuery) {
   }
 
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">No registered investors found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">No registered investors found.</td></tr>';
     return;
   }
 
@@ -1120,6 +1133,15 @@ function renderUsersTable(searchQuery) {
     var safeName = escapeHtml(u.name);
     var safeEmail = escapeHtml(u.email);
     var initials = safeName ? safeName.split(' ').map(function(n) { return n[0]; }).join('') : 'U';
+    var isFrozen = !!u.is_frozen;
+
+    var statusBadge = isFrozen
+      ? '<span class="badge" style="background:rgba(239,68,68,0.15);color:#EF4444;border:1px solid rgba(239,68,68,0.3);font-weight:700;">FROZEN</span>'
+      : '<span class="badge badge--approved">ACTIVE</span>';
+
+    var freezeBtn = isFrozen
+      ? '<button class="btn btn-subtle btn-sm" onclick="toggleUserFreeze(\'' + (u.id || '') + '\', false, \'' + safeName + '\')">Unfreeze</button>'
+      : '<button class="btn btn-danger-outline btn-sm" onclick="toggleUserFreeze(\'' + (u.id || '') + '\', true, \'' + safeName + '\')">Freeze</button>';
 
     return '<tr>' +
       '<td><div class="user-cell"><div class="user-cell-avatar">' + initials + '</div><div><div class="user-cell-name">' + safeName + '</div><div class="user-cell-sub">' + safeEmail + '</div></div></div></td>' +
@@ -1128,10 +1150,12 @@ function renderUsersTable(searchQuery) {
       '<td class="mono-amount credit">' + u.balance + '</td>' +
       '<td><span class="badge badge--approved">' + escapeHtml(u.tasks) + '</span></td>' +
       '<td><span class="badge badge--approved">' + escapeHtml(u.kyc) + '</span></td>' +
+      '<td>' + statusBadge + '</td>' +
       '<td>' +
-        '<div style="display:flex;gap:6px;">' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
           '<button class="btn btn-emerald btn-sm" onclick="openInvestorInvestmentsModal(\'' + (u.id || '') + '\')">Investments</button>' +
-          '<button class="btn btn-subtle btn-sm" onclick="adjustUserBalance(\'' + safeName + '\', \'' + (u.id || '') + '\')">Adjust</button>' +
+          '<button class="btn btn-subtle btn-sm" onclick="openBalanceAdjustModal(\'' + (u.id || '') + '\', \'' + safeName + '\', ' + (u.balanceRaw || 0) + ')">Adjust</button>' +
+          freezeBtn +
         '</div>' +
       '</td>' +
     '</tr>';
@@ -1154,7 +1178,7 @@ function openInvestorInvestmentsModal(userId) {
   AdminState.inspectedUserId = userId;
 
   if ($('uimUserName')) $('uimUserName').textContent = user.name + ' — Portfolio Holdings';
-  if ($('uimUserMeta')) $('uimUserMeta').textContent = user.email + ' • Ref: ' + (user.referral_code || 'N/A') + ' • Registered ' + (user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A');
+  if ($('uimUserMeta')) $('uimUserMeta').textContent = user.email + ' • Ref Code: ' + (user.referral_code || 'N/A') + ' • Registered ' + (user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A');
 
   var invs = user.investmentsList || [];
   var tasks = user.tasksList || [];
@@ -1194,6 +1218,14 @@ function openInvestorInvestmentsModal(userId) {
       '</div>';
   }
 
+  // Find upline referrer name if available
+  var uplineText = 'Direct Registration';
+  if (user.referred_by) {
+    var uplineUser = AdminState.users.find(function(u) { return u.id === user.referred_by; });
+    if (uplineUser) uplineText = uplineUser.name + ' (' + uplineUser.email + ')';
+    else uplineText = 'Referrer ID: ' + user.referred_by.substring(0, 8);
+  }
+
   var body = $('uimModalBody');
   if (body) {
     body.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">' +
@@ -1206,6 +1238,15 @@ function openInvestorInvestmentsModal(userId) {
         '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">AVAILABLE CASH BALANCE</div>' +
         '<div style="font-size:1.25rem;font-weight:700;color:#FFF;font-family:\'Space Mono\',monospace;">' + user.balance + '</div>' +
         '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Available to withdraw</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="background:var(--bg-card-subtle);border:1px solid var(--border-subtle);border-radius:8px;padding:12px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">' +
+      '<div>' +
+        '<div style="font-size:0.75rem;color:var(--text-muted);">REFERRAL NETWORK &amp; UPLINE</div>' +
+        '<div style="font-size:0.85rem;color:#FFF;font-weight:600;margin-top:2px;">Referred By: ' + escapeHtml(uplineText) + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;">' +
+        '<span class="badge badge--approved">' + (user.downlinesCount || 0) + ' Direct Referrals</span>' +
       '</div>' +
     '</div>' +
     '<div style="margin-bottom:16px;">' +
@@ -1221,42 +1262,180 @@ function openInvestorInvestmentsModal(userId) {
   var adjBtn = $('uimAdjustBalBtn');
   if (adjBtn) {
     adjBtn.onclick = function() {
-      adjustUserBalance(user.name, user.id);
+      closeModal('userInvestmentsModal');
+      openBalanceAdjustModal(user.id, user.name, user.balanceRaw || 0);
     };
   }
 
   openModal('userInvestmentsModal');
 }
 
-function adjustUserBalance(name, userId) {
-  var amtStr = prompt('Enter adjustment amount for ' + name + ' (+/- ₦):');
-  if (!amtStr) return;
-  var amt = parseFloat(amtStr.replace(/[^0-9.-]/g, ''));
-  if (isNaN(amt) || amt === 0) {
-    toast('Please enter a valid numeric amount.', 'warn');
+/* ── BALANCE ADJUSTMENT MODAL CONTROLLERS ── */
+function openBalanceAdjustModal(userId, name, currentBal) {
+  if ($('bamUserId')) $('bamUserId').value = userId;
+  if ($('bamUserMeta')) $('bamUserMeta').textContent = 'Modifying account for: ' + name;
+  if ($('bamCurrentBal')) $('bamCurrentBal').textContent = '₦' + Math.round(currentBal).toLocaleString('en-NG');
+  if ($('bamAmount')) $('bamAmount').value = '';
+  if ($('bamNote')) $('bamNote').value = '';
+  setAdjustType('credit');
+  openModal('balanceAdjustModal');
+}
+
+function setAdjustType(type) {
+  if ($('bamType')) $('bamType').value = type;
+  var isCredit = type === 'credit';
+  if ($('bamTypeCredit')) {
+    $('bamTypeCredit').className = isCredit ? 'btn btn-emerald' : 'btn btn-subtle';
+  }
+  if ($('bamTypeDebit')) {
+    $('bamTypeDebit').className = isCredit ? 'btn btn-subtle' : 'btn btn-danger-outline';
+  }
+}
+
+function submitBalanceAdjustment() {
+  var userId = $('bamUserId') ? $('bamUserId').value : null;
+  var type = $('bamType') ? $('bamType').value : 'credit';
+  var amt = parseFloat($('bamAmount') ? $('bamAmount').value : 0);
+  var note = ($('bamNote') ? $('bamNote').value.trim() : '') || 'Admin manual balance adjustment';
+
+  if (!userId) {
+    toast('Invalid user target for adjustment.', 'warn');
+    return;
+  }
+  if (isNaN(amt) || amt <= 0) {
+    toast('Please enter a valid adjustment amount greater than zero.', 'warn');
     return;
   }
 
-  // Sync to Supabase DB if user_id is provided
-  if (window.supabaseClient && userId) {
-    window.supabaseClient.rpc('admin_adjust_balance', {
+  waitForSupabase().then(function(sb) {
+    if (!sb) {
+      toast('Supabase offline. Cannot process adjustment.', 'warn');
+      return;
+    }
+    sb.rpc('admin_adjust_balance', {
       p_user_id: userId,
       p_amount: amt,
-      p_reason: 'Admin manual balance adjustment'
+      p_type: type,
+      p_note: note
     }).then(function(res) {
       if (res.error) {
-        console.warn('Supabase balance adjust RPC notice:', res.error);
         toast('Balance adjust error: ' + res.error.message, 'warn');
       } else {
-        toast('Balance adjusted by ₦' + amt.toLocaleString('en-NG') + ' for ' + name, 'emerald');
+        closeModal('balanceAdjustModal');
+        toast('Successfully ' + (type === 'debit' ? 'deducted' : 'credited') + ' ₦' + amt.toLocaleString('en-NG') + ' to investor balance.', 'emerald');
+        addAuditLog('BALANCE_ADJUST', (type === 'debit' ? 'Debited' : 'Credited') + ' ₦' + amt.toLocaleString('en-NG') + ' for User ID ' + userId.substring(0, 8) + ' (' + note + ')');
         loadRealAdminDataFromDB();
       }
     });
-  } else {
-    toast('Balance adjusted by ₦' + amt.toLocaleString('en-NG') + ' for ' + name, 'emerald');
+  });
+}
+
+function toggleUserFreeze(userId, shouldFreeze, name) {
+  var actionStr = shouldFreeze ? 'FREEZE' : 'UNFREEZE';
+  if (!confirm('Are you sure you want to ' + actionStr + ' the account of ' + name + '?\n\n' + (shouldFreeze ? 'Frozen users cannot request withdrawals or execute trades.' : 'Unfreezing will restore full account access.'))) {
+    return;
   }
 
-  addAuditLog('BALANCE_ADJUST', 'Manual balance correction of ₦' + amt.toLocaleString('en-NG') + ' for ' + name);
+  waitForSupabase().then(function(sb) {
+    if (!sb) {
+      toast('Supabase offline. Cannot toggle freeze.', 'warn');
+      return;
+    }
+    sb.rpc('admin_toggle_user_freeze', {
+      p_user_id: userId,
+      p_frozen: shouldFreeze
+    }).then(function(res) {
+      if (res.error) {
+        toast('Freeze action failed: ' + res.error.message, 'warn');
+      } else {
+        toast('Account for ' + name + ' is now ' + (shouldFreeze ? 'FROZEN' : 'ACTIVE') + '.', shouldFreeze ? 'warn' : 'emerald');
+        addAuditLog('USER_FREEZE', 'Admin ' + actionStr + ' account for ' + name + ' (ID: ' + userId.substring(0, 8) + ')');
+        loadRealAdminDataFromDB();
+      }
+    });
+  });
+}
+
+/* ── PLATFORM TREASURY & YIELDS SETTINGS ───────────────────── */
+var DEFAULT_PLATFORM_SETTINGS = {
+  bankName: 'Providus Bank / OPay',
+  acctNum: '1029384756',
+  acctName: 'Crest Wealth Global / Adaeze Okonkwo',
+  bankNote: 'Transfer to this account from any banking app. Funds appear within 2 minutes.',
+  usdtWallet: 'TYDzsxdv587q44mH12z8P9KzCrestWealthTRC20',
+  stashApy: 11.5,
+  lockApy: 18.0,
+  minDeposit: 1000,
+  minWithdrawal: 2000,
+  refTier1: 10.0,
+  refTier2: 3.0,
+  announceActive: true,
+  announceText: 'Welcome to Crest Wealth! Upgrade your tier today to unlock institutional APYs & priority withdrawal windows.'
+};
+
+function loadPlatformSettings() {
+  waitForSupabase().then(function(sb) {
+    if (!sb) { populatePlatformSettingsFields(DEFAULT_PLATFORM_SETTINGS); return; }
+    sb.from('app_settings').select('value').eq('key', 'platform_settings').maybeSingle().then(function(res) {
+      var s = (res && res.data && res.data.value) ? res.data.value : DEFAULT_PLATFORM_SETTINGS;
+      populatePlatformSettingsFields(s);
+    }).catch(function() {
+      populatePlatformSettingsFields(DEFAULT_PLATFORM_SETTINGS);
+    });
+  });
+}
+
+function populatePlatformSettingsFields(s) {
+  if ($('psBankName')) $('psBankName').value = s.bankName || '';
+  if ($('psAcctNum')) $('psAcctNum').value = s.acctNum || '';
+  if ($('psAcctName')) $('psAcctName').value = s.acctName || '';
+  if ($('psBankNote')) $('psBankNote').value = s.bankNote || '';
+  if ($('psUsdtWallet')) $('psUsdtWallet').value = s.usdtWallet || '';
+  if ($('psStashApy')) $('psStashApy').value = s.stashApy != null ? s.stashApy : 11.5;
+  if ($('psLockApy')) $('psLockApy').value = s.lockApy != null ? s.lockApy : 18.0;
+  if ($('psMinDeposit')) $('psMinDeposit').value = s.minDeposit != null ? s.minDeposit : 1000;
+  if ($('psMinWithdrawal')) $('psMinWithdrawal').value = s.minWithdrawal != null ? s.minWithdrawal : 2000;
+  if ($('psRefTier1')) $('psRefTier1').value = s.refTier1 != null ? s.refTier1 : 10.0;
+  if ($('psRefTier2')) $('psRefTier2').value = s.refTier2 != null ? s.refTier2 : 3.0;
+  if ($('psAnnounceActive')) $('psAnnounceActive').checked = s.announceActive !== false;
+  if ($('psAnnounceText')) $('psAnnounceText').value = s.announceText || '';
+}
+
+function savePlatformSettingsToDB() {
+  var s = {
+    bankName: ($('psBankName') ? $('psBankName').value.trim() : '') || 'Providus Bank',
+    acctNum: ($('psAcctNum') ? $('psAcctNum').value.trim() : '') || '1029384756',
+    acctName: ($('psAcctName') ? $('psAcctName').value.trim() : '') || 'Crest Wealth Global',
+    bankNote: ($('psBankNote') ? $('psBankNote').value.trim() : '') || 'Use your full name as payment narration.',
+    usdtWallet: ($('psUsdtWallet') ? $('psUsdtWallet').value.trim() : ''),
+    stashApy: parseFloat($('psStashApy') ? $('psStashApy').value : 11.5) || 11.5,
+    lockApy: parseFloat($('psLockApy') ? $('psLockApy').value : 18.0) || 18.0,
+    minDeposit: parseInt($('psMinDeposit') ? $('psMinDeposit').value : 1000, 10) || 1000,
+    minWithdrawal: parseInt($('psMinWithdrawal') ? $('psMinWithdrawal').value : 2000, 10) || 2000,
+    refTier1: parseFloat($('psRefTier1') ? $('psRefTier1').value : 10, 10) || 10,
+    refTier2: parseFloat($('psRefTier2') ? $('psRefTier2').value : 3, 10) || 3,
+    announceActive: $('psAnnounceActive') ? $('psAnnounceActive').checked : true,
+    announceText: ($('psAnnounceText') ? $('psAnnounceText').value.trim() : '')
+  };
+
+  waitForSupabase().then(function(sb) {
+    if (!sb) {
+      toast('Supabase offline. Cannot publish live.', 'warn');
+      return;
+    }
+    sb.from('app_settings').upsert({
+      key: 'platform_settings',
+      value: s,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' }).then(function(res) {
+      if (res.error) {
+        toast('Failed to publish settings: ' + res.error.message, 'warn');
+      } else {
+        toast('Platform Treasury & Rates published live to all user dashboards!', 'emerald');
+        addAuditLog('TREASURY_SETTINGS_PUBLISHED', 'Updated receiving bank (' + s.bankName + ' / ' + s.acctNum + ') and yield rates.');
+      }
+    });
+  });
 }
 
 /* ── OBSERVATORY KPIS (REALTIME DATABASE MATCHED) ────────── */

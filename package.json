@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "audit": "node scripts/audit.js"
+  },
   "dependencies": {
     "@supabase/server": "^1.9.1"
   }

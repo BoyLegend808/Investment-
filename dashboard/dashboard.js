@@ -1057,6 +1057,33 @@ function loadRemoteTasksConfig() {
     }
     S.tasks = loadTasksState();
     refreshTaskUI();
+
+    // ── Real-time subscription: re-sync whenever admin updates tasks ──
+    if (!window._crestTasksRealtimeSubscribed) {
+      window._crestTasksRealtimeSubscribed = true;
+      try {
+        sb.channel('dashboard:app_settings')
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'app_settings',
+            filter: 'key=eq.tasks_config'
+          }, function(payload) {
+            console.log('[Crest] Admin task config updated via realtime, refreshing…', payload);
+            // Fetch the fresh config and re-render tasks for the user
+            sb.from('app_settings').select('value').eq('key', 'tasks_config').maybeSingle().then(function(r) {
+              if (!r.error && r.data && Array.isArray(r.data.value) && r.data.value.length) {
+                setCrestStorage('tasks_config', r.data.value);
+                S.tasks = loadTasksState();
+                refreshTaskUI();
+              }
+            });
+          })
+          .subscribe();
+      } catch(realtimeErr) {
+        console.warn('[Crest] Realtime task subscription skipped:', realtimeErr);
+      }
+    }
   }).catch(function(e) { console.warn('[Crest] Remote task sync skipped:', e); });
 }
 

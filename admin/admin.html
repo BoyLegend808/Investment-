@@ -104,6 +104,12 @@
               <span>Investors &amp; KYC</span>
             </div>
           </a>
+          <a class="nav-item" data-view="treasury" id="nav-treasury">
+            <div class="nav-item-left">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/><path d="M12 6v12M15 9.5a2.5 2.5 0 0 0-5 0c0 4 5 1.5 5 5a2.5 2.5 0 0 1-5 0"/></svg>
+              <span>Treasury &amp; Yields</span>
+            </div>
+          </a>
           <a class="nav-item" data-view="security" id="nav-security">
             <div class="nav-item-left">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -443,6 +449,7 @@
                   <th>Cash Balance</th>
                   <th>Tasks Completed</th>
                   <th>KYC Level</th>
+                  <th>Account Status</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -529,6 +536,136 @@
                   <span class="badge badge--approved">Online</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 7: PLATFORM TREASURY & YIELDS CONTROLS
+           ======================================================== -->
+      <section class="view-section" id="view-treasury">
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">Platform Treasury &amp; Receiving Settlement Channels</h3>
+              <span class="card-subtitle">Manage where users transfer funds for manual deposits, plan interest yields, and emergency announcements</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-primary" onclick="savePlatformSettingsToDB()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Publish Settings to Live App
+              </button>
+            </div>
+          </div>
+          <div style="padding: 24px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px;">
+
+              <!-- Primary Receiving Bank Account -->
+              <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom: 14px;">
+                  <div style="width:32px; height:32px; border-radius:8px; background:rgba(16,185,129,0.15); display:flex; align-items:center; justify-content:center; color:var(--color-emerald);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  </div>
+                  <div>
+                    <h4 style="margin:0; font-size: 0.95rem; color:#FFF;">Company Receiving Bank</h4>
+                    <span style="font-size: 0.74rem; color: var(--text-muted);">Users deposit naira directly into this account</span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">BANK NAME</label>
+                  <input type="text" class="form-input" id="psBankName" placeholder="e.g. Providus Bank / OPay / GTBank">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">ACCOUNT NUMBER (NUBAN)</label>
+                  <input type="text" class="form-input" id="psAcctNum" placeholder="e.g. 1029384756" maxlength="10">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">ACCOUNT BENEFICIARY NAME</label>
+                  <input type="text" class="form-input" id="psAcctName" placeholder="e.g. Crest Wealth Global / Adaeze Okonkwo">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">PAYMENT NARRATION INSTRUCTION</label>
+                  <input type="text" class="form-input" id="psBankNote" placeholder="e.g. Use your full name or investor ID as narration">
+                </div>
+              </div>
+
+              <!-- Crypto Receiving Wallet & Plan APY Rates -->
+              <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom: 14px;">
+                  <div style="width:32px; height:32px; border-radius:8px; background:rgba(200,138,88,0.15); display:flex; align-items:center; justify-content:center; color:var(--color-copper);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                  </div>
+                  <div>
+                    <h4 style="margin:0; font-size: 0.95rem; color:#FFF;">Crypto Wallet &amp; Plan Yields</h4>
+                    <span style="font-size: 0.74rem; color: var(--text-muted);">USDT settlement and global interest rates</span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">USDT (TRC-20) WALLET ADDRESS</label>
+                  <input type="text" class="form-input" id="psUsdtWallet" placeholder="e.g. TYDzsxdv587q44mH12...">
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">STASH APY (%)</label>
+                    <input type="number" step="0.1" class="form-input" id="psStashApy" placeholder="11.5">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">FIXED LOCK APY (%)</label>
+                    <input type="number" step="0.1" class="form-input" id="psLockApy" placeholder="18.0">
+                  </div>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">MIN DEPOSIT (&#8358;)</label>
+                    <input type="number" class="form-input" id="psMinDeposit" placeholder="1000">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">MIN WITHDRAWAL (&#8358;)</label>
+                    <input type="number" class="form-input" id="psMinWithdrawal" placeholder="2000">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Referral Commission & Platform Broadcast -->
+              <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom: 14px;">
+                  <div style="width:32px; height:32px; border-radius:8px; background:rgba(59,130,246,0.15); display:flex; align-items:center; justify-content:center; color:#3B82F6;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  </div>
+                  <div>
+                    <h4 style="margin:0; font-size: 0.95rem; color:#FFF;">Referral Rates &amp; Notice Marquee</h4>
+                    <span style="font-size: 0.74rem; color: var(--text-muted);">Multi-tier commission and live announcements</span>
+                  </div>
+                </div>
+
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label class="form-label">DIRECT LEVEL 1 (%)</label>
+                    <input type="number" step="0.5" class="form-input" id="psRefTier1" placeholder="10.0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">INDIRECT LEVEL 2 (%)</label>
+                    <input type="number" step="0.5" class="form-input" id="psRefTier2" placeholder="3.0">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label class="form-label" style="margin-bottom:0;">GLOBAL ANNOUNCEMENT MARQUEE</label>
+                    <label class="toggle-switch" style="transform: scale(0.8);" title="Toggle announcement display">
+                      <input type="checkbox" id="psAnnounceActive">
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <textarea class="form-input form-textarea" id="psAnnounceText" rows="3" placeholder="e.g. Attention Investors: Easter Flash Promo is active! Get a 15% instant deposit matching bonus today."></textarea>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -719,6 +856,52 @@
       <div class="modal-footer">
         <button class="btn btn-subtle" onclick="closeModal('userInvestmentsModal')">Close</button>
         <button class="btn btn-primary" id="uimAdjustBalBtn">Adjust Balance</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: MANUAL BALANCE ADJUSTMENT -->
+  <div class="modal-backdrop" id="balanceAdjustModal">
+    <div class="modal" style="max-width: 480px; width: 95%;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Adjust Investor Balance</h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);" id="bamUserMeta">Modify cash balance with audited record</span>
+        </div>
+        <button class="modal-close" onclick="closeModal('balanceAdjustModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="bamUserId">
+        <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px;">CURRENT CASH BALANCE</div>
+          <div style="font-size: 1.3rem; font-weight: 700; color: var(--color-emerald); font-family: 'Space Mono', monospace;" id="bamCurrentBal">&#8358;0.00</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ADJUSTMENT ACTION</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button type="button" class="btn btn-emerald" id="bamTypeCredit" onclick="setAdjustType('credit')" style="justify-content: center; font-weight: 700;">+ Credit (Add)</button>
+            <button type="button" class="btn btn-subtle" id="bamTypeDebit" onclick="setAdjustType('debit')" style="justify-content: center; font-weight: 700;">- Debit (Deduct)</button>
+          </div>
+          <input type="hidden" id="bamType" value="credit">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ADJUSTMENT AMOUNT (&#8358;)</label>
+          <input type="number" class="form-input" id="bamAmount" placeholder="e.g. 50000" min="1" step="100">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">REASON / AUDIT NOTE</label>
+          <input type="text" class="form-input" id="bamNote" placeholder="e.g. Offline bank transfer credited / KYC sign-up bonus">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-subtle" onclick="closeModal('balanceAdjustModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitBalanceAdjustment()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Confirm &amp; Apply
+        </button>
       </div>
     </div>
   </div>

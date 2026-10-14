@@ -464,10 +464,21 @@ document.addEventListener('click', async (e) => {
   const isSignin = trigger.matches('a.btn-sign-in, a[data-modal="signin"]');
   const targetTab = isSignin ? 'login' : 'signup';
 
+  // If the user is already authenticated, always go straight to dashboard
+  // Never re-open the login modal for a user who is already logged in
   if (await crestIsAuthenticated()) {
     crestRedirectToDashboard();
     return;
   }
+
+  // If the user clicked "Client Dashboard" link without being signed in, open sign-in modal
+  const isDashboardBtn = trigger.textContent.trim().toLowerCase().includes('client dashboard');
+  if (isDashboardBtn) {
+    crestLoadAuthGuard('login');
+    return;
+  }
+
+  // Otherwise open the Auth Modal (login or signup tab) so they can enter credentials
   crestLoadAuthGuard(targetTab);
 }, true);
 
@@ -479,10 +490,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const signupNavBtns = document.querySelectorAll('a.btn-get-started');
 
   if (isAuth) {
+    // Authenticated: show dashboard link, hide the separate "Sign In" button,
+    // and repurpose "Get Started" as a "Client Dashboard" shortcut
     dashboardNavLinks.forEach(link => { link.style.display = ''; });
-    signinNavBtns.forEach(btn => { btn.style.display = 'none'; });
-    signupNavBtns.forEach(btn => { btn.textContent = 'Client Dashboard'; });
+    signinNavBtns.forEach(btn => { btn.style.display = 'none'; }); // already in via dashboard link
+    signupNavBtns.forEach(btn => {
+      btn.textContent = 'Client Dashboard';
+      btn.removeAttribute('data-modal');
+    });
   } else {
+    // Not authenticated: hide dashboard link, keep both auth buttons visible
     dashboardNavLinks.forEach(link => { link.style.display = 'none'; });
     signinNavBtns.forEach(btn => { btn.style.display = ''; });
 

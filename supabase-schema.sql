@@ -905,7 +905,115 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 21. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
+-- 21. APP SETTINGS & CONFIGURATION TABLE (Remote Sync for Tasks, Treasury, and Announcements)
+CREATE TABLE IF NOT EXISTS public.app_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_frozen BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public read app_settings" ON public.app_settings;
+CREATE POLICY "Allow public read app_settings"
+  ON public.app_settings FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS "Allow authenticated write app_settings" ON public.app_settings;
+CREATE POLICY "Allow authenticated write app_settings"
+  ON public.app_settings FOR ALL
+  USING (true)
+  WITH CHECK (true);
+
+GRANT ALL ON public.app_settings TO authenticated, anon, service_role;
+
+-- 22. ADMIN ACTIONS: ADJUST USER BALANCE
+CREATE OR REPLACE FUNCTION public.admin_adjust_balance(
+  p_user_id UUID,
+  p_amount NUMERIC,
+  p_type TEXT DEFAULT 'credit',
+  p_note TEXT DEFAULT 'Admin manual balance adjustment'
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_new_bal NUMERIC;
+  v_safe_amt NUMERIC;
+BEGIN
+  v_safe_amt := ABS(COALESCE(p_amount, 0));
+  IF v_safe_amt <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Adjustment amount must be greater than zero');
+  END IF;
+
+  IF LOWER(p_type) = 'debit' THEN
+    UPDATE public.profiles
+    SET cash_balance = GREATEST(0.00, cash_balance - v_safe_amt),
+        updated_at = NOW()
+    WHERE id = p_user_id
+    RETURNING cash_balance INTO v_new_bal;
+  ELSE
+    UPDATE public.profiles
+    SET cash_balance = cash_balance + v_safe_amt,
+        updated_at = NOW()
+    WHERE id = p_user_id
+    RETURNING cash_balance INTO v_new_bal;
+  END IF;
+
+  -- Record audit transaction
+  INSERT INTO public.transactions (
+    id, user_id, title, type, category, amount, balance_after, status, reference, description, created_at
+  ) VALUES (
+    'adj_' || floor(extract(epoch from now())) || '_' || substr(md5(random()::text), 1, 6),
+    p_user_id,
+    'Admin Balance Adjustment',
+    CASE WHEN LOWER(p_type) = 'debit' THEN 'Debit' ELSE 'Credit' END,
+    'adjustment',
+    v_safe_amt,
+    COALESCE(v_new_bal, 0.00),
+    'Completed',
+    'ADJ-' || upper(substr(md5(random()::text), 1, 8)),
+    COALESCE(p_note, 'Admin manual balance adjustment'),
+    NOW()
+  );
+
+  RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 23. ADMIN ACTIONS: FREEZE / UNFREEZE USER ACCOUNT
+CREATE OR REPLACE FUNCTION public.admin_toggle_user_freeze(
+  p_user_id UUID,
+  p_frozen BOOLEAN
+)
+RETURNS JSONB AS $$
+BEGIN
+  UPDATE public.profiles
+  SET is_frozen = p_frozen,
+      updated_at = NOW()
+  WHERE id = p_user_id;
+
+  RETURN jsonb_build_object('success', true, 'is_frozen', p_frozen);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 24. ADMIN ACTIONS: UPDATE USER KYC STATUS
+CREATE OR REPLACE FUNCTION public.admin_update_kyc_status(
+  p_user_id UUID,
+  p_status TEXT
+)
+RETURNS JSONB AS $$
+BEGIN
+  UPDATE public.profiles
+  SET kyc_status = p_status,
+      updated_at = NOW()
+  WHERE id = p_user_id;
+
+  RETURN jsonb_build_object('success', true, 'kyc_status', p_status);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 25. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.claim_daily_streak_reward(NUMERIC) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT) TO authenticated, anon;
@@ -917,6 +1025,9 @@ GRANT EXECUTE ON FUNCTION public.lookup_referral_code(TEXT) TO authenticated, an
 GRANT EXECUTE ON FUNCTION public.request_withdrawal(NUMERIC, TEXT, TEXT, TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.admin_confirm_deposit(TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.admin_reject_withdrawal(TEXT, TEXT) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.admin_adjust_balance(UUID, NUMERIC, TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.admin_adjust_balance(UUID, NUMERIC, TEXT, TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.admin_toggle_user_freeze(UUID, BOOLEAN) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.admin_update_kyc_status(UUID, TEXT) TO authenticated, anon;
+
 
 
