@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
 
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
@@ -17,48 +19,73 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://crestwealth.com/index/index.html">
   <meta property="og:title" content="Crest Wealth | Goal-Based Investing &amp; High-Yield Savings">
-  <meta property="og:description" content="Grow your wealth with Crest Wealth. Access global equities, 5.5% fixed-lock savings, US dollar hedging, and goal-based investing — all in one platform.">
+  <meta property="og:description"
+    content="Grow your wealth with Crest Wealth. Access global equities, 5.5% fixed-lock savings, US dollar hedging, and goal-based investing — all in one platform.">
   <meta property="og:image" content="https://crestwealth.com/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Crest Wealth | Goal-Based Investing &amp; High-Yield Savings">
-  <meta name="twitter:description" content="Grow your wealth with Crest Wealth. Access global equities, 5.5% fixed-lock savings, US dollar hedging, and goal-based investing — all in one platform.">
+  <meta name="twitter:description"
+    content="Grow your wealth with Crest Wealth. Access global equities, 5.5% fixed-lock savings, US dollar hedging, and goal-based investing — all in one platform.">
   <title>Crest Wealth | Goal-Based Investing, Savings & Wealth Platform</title>
   <link rel="canonical" href="https://crestwealth.com/index/index.html">
 
-  <meta name="description" content="Every great future begins with a single decision. Grow your money with secure, transparent, and accessible investment opportunities in Global Markets.">
-  
+  <meta name="description"
+    content="Every great future begins with a single decision. Grow your money with secure, transparent, and accessible investment opportunities in Global Markets.">
+
   <link rel="stylesheet" href="index.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230E5E3A'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230E5E3A'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
 
   <script src="../shared-utils.js" defer></script>
 </head>
+
 <body>
 
   <!-- Top Real-Time Market Ticker -->
   <div class="ticker-bar" aria-label="Live Market Feed">
     <div class="ticker-track" id="ticker-track">
       <!-- Set 1 -->
-      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span><span class="ticker-price">5,620.10</span><span class="ticker-change up">+0.68%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">AAPL</span><span class="ticker-price">$228.40</span><span class="ticker-change up">+1.25%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">MSFT</span><span class="ticker-price">$415.20</span><span class="ticker-change up">+1.10%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">TSLA</span><span class="ticker-price">$235.50</span><span class="ticker-change up">+0.85%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span><span class="ticker-price">$76,520</span><span class="ticker-change up">+1.20%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span><span class="ticker-price">$2,432</span><span class="ticker-change up">+1.58%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span><span class="ticker-price">&#8364;0.9150</span><span class="ticker-change up">Live</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span><span class="ticker-price">&#163;0.7850</span><span class="ticker-change up">Live</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">FGN 10Y</span><span class="ticker-price">19.25%</span><span class="ticker-change up">+0.12%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">CBN T-BILLS</span><span class="ticker-price">5.50%</span><span class="ticker-change up">+0.25%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span><span
+          class="ticker-price">5,620.10</span><span class="ticker-change up">+0.68%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span><span class="ticker-price">$228.40</span><span
+          class="ticker-change up">+1.25%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">MSFT</span><span class="ticker-price">$415.20</span><span
+          class="ticker-change up">+1.10%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">TSLA</span><span class="ticker-price">$235.50</span><span
+          class="ticker-change up">+0.85%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span><span class="ticker-price">$76,520</span><span
+          class="ticker-change up">+1.20%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span><span class="ticker-price">$2,432</span><span
+          class="ticker-change up">+1.58%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span><span
+          class="ticker-price">&#8364;0.9150</span><span class="ticker-change up">Live</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span><span
+          class="ticker-price">&#163;0.7850</span><span class="ticker-change up">Live</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">FGN 10Y</span><span class="ticker-price">19.25%</span><span
+          class="ticker-change up">+0.12%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">CBN T-BILLS</span><span
+          class="ticker-price">5.50%</span><span class="ticker-change up">+0.25%</span></div>
       <!-- Set 2 (duplicate for seamless loop) -->
-      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span><span class="ticker-price">5,620.10</span><span class="ticker-change up">+0.68%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">AAPL</span><span class="ticker-price">$228.40</span><span class="ticker-change up">+1.25%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">MSFT</span><span class="ticker-price">$415.20</span><span class="ticker-change up">+1.10%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">TSLA</span><span class="ticker-price">$235.50</span><span class="ticker-change up">+0.85%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span><span class="ticker-price">$76,520</span><span class="ticker-change up">+1.20%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span><span class="ticker-price">$2,432</span><span class="ticker-change up">+1.58%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span><span class="ticker-price">&#8364;0.9150</span><span class="ticker-change up">Live</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span><span class="ticker-price">&#163;0.7850</span><span class="ticker-change up">Live</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">FGN 10Y</span><span class="ticker-price">19.25%</span><span class="ticker-change up">+0.12%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">CBN T-BILLS</span><span class="ticker-price">5.50%</span><span class="ticker-change up">+0.25%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span><span
+          class="ticker-price">5,620.10</span><span class="ticker-change up">+0.68%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span><span class="ticker-price">$228.40</span><span
+          class="ticker-change up">+1.25%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">MSFT</span><span class="ticker-price">$415.20</span><span
+          class="ticker-change up">+1.10%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">TSLA</span><span class="ticker-price">$235.50</span><span
+          class="ticker-change up">+0.85%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span><span class="ticker-price">$76,520</span><span
+          class="ticker-change up">+1.20%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span><span class="ticker-price">$2,432</span><span
+          class="ticker-change up">+1.58%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span><span
+          class="ticker-price">&#8364;0.9150</span><span class="ticker-change up">Live</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span><span
+          class="ticker-price">&#163;0.7850</span><span class="ticker-change up">Live</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">FGN 10Y</span><span class="ticker-price">19.25%</span><span
+          class="ticker-change up">+0.12%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">CBN T-BILLS</span><span
+          class="ticker-price">5.50%</span><span class="ticker-change up">+0.25%</span></div>
     </div>
   </div>
 
@@ -69,7 +96,8 @@
         <!-- Logo -->
         <a href="../index/index.html" class="brand-logo" aria-label="Crest Wealth Home">
           <div class="brand-icon">
-            <img src="../favicon.svg" alt="Crest Wealth Logo" loading="lazy" style="width: 100%; height: 100%; object-fit: contain;">
+            <img src="../favicon.svg" alt="Crest Wealth Logo" loading="lazy"
+              style="width: 100%; height: 100%; object-fit: contain;">
           </div>
           <div class="brand-name">
             Crest
@@ -88,7 +116,9 @@
             <a href="../accounts/accounts.html" class="nav-link">
               Save &amp; Invest
               <svg class="dropdown-arrow" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                <path fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd" />
               </svg>
             </a>
             <div class="mega-dropdown">
@@ -96,7 +126,9 @@
                 <h4>Accounts &amp; Savings</h4>
                 <a href="../accounts/accounts.html#brokerage" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 20V10M12 20V4M6 20v-6" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Crest Brokerage</h5>
@@ -105,7 +137,11 @@
                 </a>
                 <a href="../accounts/accounts.html#stash" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+                      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+                      <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>High-Yield Stash</h5>
@@ -114,7 +150,10 @@
                 </a>
                 <a href="../accounts/accounts.html#fixed-lock" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Crest Lock</h5>
@@ -126,7 +165,11 @@
                 <h4>Goal &amp; Wealth Solutions</h4>
                 <a href="../accounts/accounts.html#goals" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="6" />
+                      <circle cx="12" cy="12" r="2" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Target Goal Saver</h5>
@@ -135,7 +178,11 @@
                 </a>
                 <a href="../investments/investments.html#dollar-vault" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><path d="M12 14v2M10 15h4"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="20" height="14" x="2" y="5" rx="2" />
+                      <line x1="2" x2="22" y1="10" y2="10" />
+                      <path d="M12 14v2M10 15h4" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Dollar Vault</h5>
@@ -144,7 +191,10 @@
                 </a>
                 <a href="../pricing/pricing.html" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+                      <circle cx="7" cy="7" r=".5" fill="currentColor" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Rates &amp; Fee Schedule</h5>
@@ -160,7 +210,9 @@
             <a href="../investments/investments.html" class="nav-link">
               Investments
               <svg class="dropdown-arrow" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                <path fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd" />
               </svg>
             </a>
             <div class="mega-dropdown">
@@ -168,7 +220,10 @@
                 <h4>Asset Classes</h4>
                 <a href="../investments/investments.html#stocks" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                      <polyline points="16 7 22 7 22 13" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Global &amp; US Equities</h5>
@@ -177,7 +232,9 @@
                 </a>
                 <a href="../investments/investments.html#tbills" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Treasury Bills &amp; Bonds</h5>
@@ -189,7 +246,12 @@
                 <h4>Funds &amp; Real Estate</h4>
                 <a href="../investments/investments.html#mutual-funds" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" x2="8" y1="13" y2="13" />
+                      <line x1="16" x2="8" y1="17" y2="17" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Mutual &amp; Index Funds</h5>
@@ -198,7 +260,10 @@
                 </a>
                 <a href="../investments/investments.html#real-estate" class="dropdown-link-card">
                   <div class="dropdown-icon-box">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
+                      <path d="M9 22v-4h6v4M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" /></svg>
                   </div>
                   <div class="dropdown-link-info">
                     <h5>Real Estate Trust Notes</h5>
@@ -225,23 +290,26 @@
 
         <!-- Navigation Actions -->
         <div class="nav-actions">
-          <a href="#signin" data-modal="signin" class="btn-sign-in">Sign In</a>
+          <a href="#signin" data-modal="signin" class="btn-sign-in">Login</a>
           <a href="#signup" data-modal="signup" class="btn-get-started">Get Started</a>
-          <div class="mobile-toggle" aria-label="Toggle navigation menu">
+          <button type="button" class="mobile-toggle" id="mobile-toggle" aria-label="Open navigation menu"
+            aria-expanded="false" aria-controls="mobile-drawer">
             <span></span>
             <span></span>
             <span></span>
-          </div>
+          </button>
         </div>
       </div>
     </div>
   </header>
 
   <!-- Mobile Drawer -->
-  <div class="mobile-drawer">
+  <div class="drawer-scrim" id="drawer-scrim" hidden></div>
+  <div class="mobile-drawer" id="mobile-drawer" role="dialog" aria-modal="true" aria-label="Navigation menu">
     <div class="mobile-drawer-header">
       <div class="brand-name">Crest <span>WEALTH</span></div>
-      <button class="drawer-close" style="font-size: 1.5rem; color: #73767A;">&times;</button>
+      <button type="button" class="drawer-close" aria-label="Close navigation menu"
+        style="font-size: 1.5rem; color: #73767A;">&times;</button>
     </div>
     <ul class="mobile-drawer-links">
       <li><a href="../index/index.html">Home</a></li>
@@ -255,8 +323,10 @@
 
     </ul>
     <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
-      <a href="#signin" data-modal="signin" class="btn-sign-in" style="text-align: center; padding: 12px; border-radius: 8px; font-weight: 600;">Sign In</a>
-      <a href="#signup" data-modal="signup" class="btn-get-started" style="text-align: center; padding: 12px; border-radius: 8px; font-weight: 600;">Get Started</a>
+      <a href="#signin" data-modal="signin" class="btn-sign-in"
+        style="text-align: center; padding: 12px; border-radius: 8px; font-weight: 600;">Login</a>
+      <a href="#signup" data-modal="signup" class="btn-get-started"
+        style="text-align: center; padding: 12px; border-radius: 8px; font-weight: 600;">Get Started</a>
     </div>
   </div>
 
@@ -267,7 +337,12 @@
         <!-- Left Hero Content -->
         <div class="hero-content">
           <div class="hero-badge">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
             <span>INVESTING IN GLOBAL MARKETS</span>
           </div>
 
@@ -276,7 +351,9 @@
           </h1>
 
           <p class="hero-subheadline">
-            Grow your money with secure, transparent, and accessible <strong>investment opportunities</strong>. <strong>Tracker-based saving</strong>, <strong>goal planning</strong>, <strong>and financial education</strong>, all in one place.
+            Grow your money with secure, transparent, and accessible <strong>investment opportunities</strong>.
+            <strong>Tracker-based saving</strong>, <strong>goal planning</strong>, <strong>and financial
+              education</strong>, all in one place.
           </p>
 
           <div class="hero-actions">
@@ -313,7 +390,8 @@
             </div>
 
             <!-- Main Couple Photo -->
-            <img src="../assets/hero-couple.jpg" alt="Happy Global couple managing investments on laptop" class="hero-main-photo" loading="eager">
+            <img src="../assets/hero-couple.jpg" alt="Happy Global couple managing investments on laptop"
+              class="hero-main-photo" loading="eager">
 
             <!-- Floating Badge 2: Crest Portfolio (Bottom Right) -->
             <div class="floating-badge-portfolio">
@@ -321,12 +399,13 @@
               <div class="portfolio-value">₦12,450,000</div>
               <div class="portfolio-chart-preview">
                 <svg viewBox="0 0 160 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 26C25 24 50 20 75 16C100 12 125 7 158 3" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+                  <path d="M2 26C25 24 50 20 75 16C100 12 125 7 158 3" stroke="#10B981" stroke-width="2.5"
+                    stroke-linecap="round" />
                 </svg>
               </div>
               <div class="portfolio-return-badge">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-                  <path d="M6 2L10 6H7V10H5V6H2L6 2Z"/>
+                  <path d="M6 2L10 6H7V10H5V6H2L6 2Z" />
                 </svg>
                 <span>+12.4% Return</span>
               </div>
@@ -344,7 +423,7 @@
       <div class="trust-banner-content">
         <div class="trust-item">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
           <span>SEC-compliant trustees</span>
         </div>
@@ -366,8 +445,10 @@
       <div class="features-header">
         <span class="section-tag">WHY Crest Wealth</span>
         <h2 class="features-main-title">Built differently.<br>Performs differently.</h2>
-        <p class="feature-intro-text" style="max-width: 580px; margin: 16px auto 0; text-align: center; font-size: 1.05rem;">
-          We combine institutional-grade investment tools, transparent pricing, and real financial education — all in one platform designed for serious wealth creation.
+        <p class="feature-intro-text"
+          style="max-width: 580px; margin: 16px auto 0; text-align: center; font-size: 1.05rem;">
+          We combine institutional-grade investment tools, transparent pricing, and real financial education — all in
+          one platform designed for serious wealth creation.
         </p>
       </div>
 
@@ -375,12 +456,16 @@
         <!-- Card 1: Goal-Based Investing -->
         <div class="feature-card">
           <div class="feature-icon-badge badge-green">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="6" />
+              <circle cx="12" cy="12" r="2" />
             </svg>
           </div>
           <h4 class="feature-card-title">Goal-Based Investing</h4>
-          <p class="feature-card-desc">Set a target — home, business, education, or retirement — and let our smart tracker automate contributions to hit it. You see your progress every single day.</p>
+          <p class="feature-card-desc">Set a target — home, business, education, or retirement — and let our smart
+            tracker automate contributions to hit it. You see your progress every single day.</p>
           <ul class="feature-card-list">
             <li>Automated goal contributions</li>
             <li>Real-time progress tracking</li>
@@ -391,12 +476,15 @@
         <!-- Card 2: High-Yield Returns -->
         <div class="feature-card">
           <div class="feature-icon-badge badge-gold">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+              <polyline points="16 7 22 7 22 13" />
             </svg>
           </div>
           <h4 class="feature-card-title">Market-Beating Returns</h4>
-          <p class="feature-card-desc">Our fixed-lock accounts deliver up to 5.5% p.a. — more than 6x the average bank savings rate. Every product is vetted, regulated, and built to outpace inflation.</p>
+          <p class="feature-card-desc">Our fixed-lock accounts deliver up to 5.5% p.a. — more than 6x the average bank
+            savings rate. Every product is vetted, regulated, and built to outpace inflation.</p>
           <ul class="feature-card-list">
             <li>Up to 5.5% fixed annual return</li>
             <li>Daily interest on Stash accounts</li>
@@ -407,12 +495,15 @@
         <!-- Card 3: Security & Trust -->
         <div class="feature-card">
           <div class="feature-icon-badge badge-green">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M9 12l2 2 4-4" />
             </svg>
           </div>
           <h4 class="feature-card-title">Bank-Grade Security</h4>
-          <p class="feature-card-desc">Your capital is held in segregated accounts by SEC-registered custodians — fully independent from Crest Wealth's operational funds. Your money is always yours.</p>
+          <p class="feature-card-desc">Your capital is held in segregated accounts by SEC-registered custodians — fully
+            independent from Crest Wealth's operational funds. Your money is always yours.</p>
           <ul class="feature-card-list">
             <li>SEC-registered asset custodians</li>
             <li>AES-256 encryption &amp; 2FA</li>
@@ -423,12 +514,15 @@
         <!-- Card 4: Education First -->
         <div class="feature-card">
           <div class="feature-icon-badge badge-gold">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+              <path d="M6 12v5c3 3 9 3 12 0v-5" />
             </svg>
           </div>
           <h4 class="feature-card-title">Education First</h4>
-          <p class="feature-card-desc">We don't just manage your money — we teach you how to grow it. The Crest Academy covers compound interest, stock evaluation, inflation hedging, and more. Free, forever.</p>
+          <p class="feature-card-desc">We don't just manage your money — we teach you how to grow it. The Crest Academy
+            covers compound interest, stock evaluation, inflation hedging, and more. Free, forever.</p>
           <ul class="feature-card-list">
             <li>20+ free financial courses</li>
             <li>Compound wealth calculator</li>
@@ -439,12 +533,16 @@
         <!-- Card 5: Global Access -->
         <div class="feature-card">
           <div class="feature-icon-badge badge-green">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
             </svg>
           </div>
           <h4 class="feature-card-title">Global Market Access</h4>
-          <p class="feature-card-desc">Trade Apple, Tesla, Microsoft, and 5,000+ global stocks. Invest in US Treasury Bills, Eurobonds, and real estate trusts — all from one unified account, in your local currency.</p>
+          <p class="feature-card-desc">Trade Apple, Tesla, Microsoft, and 5,000+ global stocks. Invest in US Treasury
+            Bills, Eurobonds, and real estate trusts — all from one unified account, in your local currency.</p>
           <ul class="feature-card-list">
             <li>S&amp;P 500 &amp; NASDAQ stocks</li>
             <li>US Dollar-denominated accounts</li>
@@ -455,12 +553,15 @@
         <!-- Card 6: Zero Hidden Fees -->
         <div class="feature-card">
           <div class="feature-icon-badge badge-gold">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+              <circle cx="7" cy="7" r=".5" fill="currentColor" />
             </svg>
           </div>
           <h4 class="feature-card-title">Zero Hidden Fees</h4>
-          <p class="feature-card-desc">No account maintenance fees. No withdrawal penalties on flexible products. No surprise charges. Every cost is published upfront on our rates page — we earn only when you earn.</p>
+          <p class="feature-card-desc">No account maintenance fees. No withdrawal penalties on flexible products. No
+            surprise charges. Every cost is published upfront on our rates page — we earn only when you earn.</p>
           <ul class="feature-card-list">
             <li>No account maintenance fee</li>
             <li>Transparent commission structure</li>
@@ -488,7 +589,8 @@
               <label for="calc-initial" class="slider-title">Initial Investment</label>
               <span class="slider-val-badge" id="calc-initial-val">₦1,000,000</span>
             </div>
-            <input type="range" class="custom-range" id="calc-initial" min="10000" max="5000000" step="10000" value="100000" aria-label="Initial Investment Amount">
+            <input type="range" class="custom-range" id="calc-initial" min="10000" max="5000000" step="10000"
+              value="100000" aria-label="Initial Investment Amount">
           </div>
 
           <!-- Slider 2: Monthly Contribution -->
@@ -497,7 +599,8 @@
               <label for="calc-monthly" class="slider-title">Monthly Contribution</label>
               <span class="slider-val-badge" id="calc-monthly-val">₦500,000/mo</span>
             </div>
-            <input type="range" class="custom-range" id="calc-monthly" min="5000" max="1000000" step="5000" value="50000" aria-label="Monthly Contribution Amount">
+            <input type="range" class="custom-range" id="calc-monthly" min="5000" max="1000000" step="5000"
+              value="50000" aria-label="Monthly Contribution Amount">
           </div>
 
           <!-- Slider 3: Time Horizon -->
@@ -506,7 +609,8 @@
               <label for="calc-years" class="slider-title">Duration (Years)</label>
               <span class="slider-val-badge" id="calc-years-val">5 Years</span>
             </div>
-            <input type="range" class="custom-range" id="calc-years" min="1" max="20" step="1" value="5" aria-label="Investment Duration in Years">
+            <input type="range" class="custom-range" id="calc-years" min="1" max="20" step="1" value="5"
+              aria-label="Investment Duration in Years">
           </div>
 
           <!-- Slider 4: Estimated Rate -->
@@ -515,7 +619,8 @@
               <label for="calc-rate" class="slider-title">Expected Annual Return</label>
               <span class="slider-val-badge" id="calc-rate-val">15.0% p.a.</span>
             </div>
-            <input type="range" class="custom-range" id="calc-rate" min="8" max="22" step="0.5" value="15" aria-label="Annual Interest Rate">
+            <input type="range" class="custom-range" id="calc-rate" min="8" max="22" step="0.5" value="15"
+              aria-label="Annual Interest Rate">
           </div>
         </div>
 
@@ -523,7 +628,7 @@
         <div class="calc-result-panel">
           <div class="calc-result-header">Estimated Future Value</div>
           <div class="calc-total-amount" id="calc-total-wealth">₦49,234,100</div>
-          
+
           <div class="calc-breakdown">
             <div class="calc-breakdown-item">
               <h5>Total Deposited</h5>
@@ -536,7 +641,8 @@
           </div>
 
           <div style="margin-top: 12px;">
-            <a href="#signup" role="button" class="btn-primary-hero" data-modal="signup" style="width: 100%; text-align: center; justify-content: center;">
+            <a href="#signup" role="button" class="btn-primary-hero" data-modal="signup"
+              style="width: 100%; text-align: center; justify-content: center;">
               Lock In This Plan Today
             </a>
           </div>
@@ -552,7 +658,8 @@
         <span class="section-tag">OUR ACCOUNTS</span>
         <h2 class="section-title">Built for every stage of your journey</h2>
         <p class="section-subtitle">
-          Whether you are building an emergency fund, acquiring real estate, or trading equities, we have the right account for you.
+          Whether you are building an emergency fund, acquiring real estate, or trading equities, we have the right
+          account for you.
         </p>
       </div>
 
@@ -561,7 +668,11 @@
         <div class="product-card">
           <div>
             <div class="product-icon-wrap">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><path d="M12 14v2M10 15h4"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="14" x="2" y="5" rx="2" />
+                <line x1="2" x2="22" y1="10" y2="10" />
+                <path d="M12 14v2M10 15h4" /></svg>
             </div>
             <h3 class="product-title">Crest Stash</h3>
             <div class="product-rate-badge">
@@ -573,15 +684,24 @@
             </p>
             <ul class="product-features-list">
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Zero withdrawal penalties
               </li>
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Daily interest payouts
               </li>
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Start with as little as ₦10,000
               </li>
             </ul>
@@ -593,7 +713,10 @@
         <div class="product-card featured">
           <div>
             <div class="product-icon-wrap" style="background: var(--color-primary-navy); color: #FFFFFF;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
             </div>
             <h3 class="product-title">Crest Fixed Lock</h3>
             <div class="product-rate-badge">
@@ -601,19 +724,29 @@
               <span class="rate-label">p.a. Fixed Yield</span>
             </div>
             <p class="product-desc">
-              Lock away funds for 30, 90, 180, or 365 days. Lock in upfront guaranteed high returns immune to rate drops.
+              Lock away funds for 30, 90, 180, or 365 days. Lock in upfront guaranteed high returns immune to rate
+              drops.
             </p>
             <ul class="product-features-list">
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Targeted fixed payout
               </li>
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Interest paid upfront or at maturity
               </li>
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Auto-rollover compound feature
               </li>
             </ul>
@@ -625,7 +758,9 @@
         <div class="product-card">
           <div>
             <div class="product-icon-wrap">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 20V10M12 20V4M6 20v-6" /></svg>
             </div>
             <h3 class="product-title">Stocks &amp; Equities</h3>
             <div class="product-rate-badge">
@@ -637,15 +772,24 @@
             </p>
             <ul class="product-features-list">
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Direct Global &amp; US Exchange execution
               </li>
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Dividend tracking &amp; reinvestment
               </li>
               <li>
-                <svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd" /></svg>
                 Institutional research &amp; price targets
               </li>
             </ul>
@@ -666,87 +810,87 @@
       </div>
 
       <div class="market-table-card">
-        <div class="market-tabs">
-          <button class="market-tab-btn active" data-filter="all">All Assets</button>
-          <button class="market-tab-btn" data-filter="Global">Global Equities</button>
-          <button class="market-tab-btn" data-filter="tbills">Fixed Income</button>
-          <button class="market-tab-btn" data-filter="us">US Equities</button>
+        <div class="market-tabs" role="group" aria-label="Filter market assets">
+          <button class="market-tab-btn active" data-filter="all" aria-pressed="true">All Assets</button>
+          <button class="market-tab-btn" data-filter="Global" aria-pressed="false">Global Equities</button>
+          <button class="market-tab-btn" data-filter="tbills" aria-pressed="false">Fixed Income</button>
+          <button class="market-tab-btn" data-filter="us" aria-pressed="false">US Equities</button>
         </div>
 
         <div class="table-responsive">
           <table class="market-table">
-          <thead>
-            <tr>
-              <th>Asset Name</th>
-              <th>Price</th>
-              <th>24h Change</th>
-              <th>52W High</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="market-row" data-category="Global">
-              <td>
-                <div class="stock-info">
-                  <span class="stock-symbol-badge">GOOGL</span>
-                  <span class="stock-name">Alphabet Inc.</span>
-                </div>
-              </td>
-              <td><span class="stock-price">$165.00</span></td>
-              <td><span class="change-pill up">+2.15%</span></td>
-              <td>$176.00</td>
-              <td><a href="#signup" data-modal="signup">Trade</a></td>
-            </tr>
-            <tr class="market-row" data-category="Global">
-              <td>
-                <div class="stock-info">
-                  <span class="stock-symbol-badge">AMZN</span>
-                  <span class="stock-name">Amazon.com Inc.</span>
-                </div>
-              </td>
-              <td><span class="stock-price">$185.50</span></td>
-              <td><span class="change-pill up">+0.85%</span></td>
-              <td>$195.00</td>
-              <td><a href="#signup" data-modal="signup">Trade</a></td>
-            </tr>
-            <tr class="market-row" data-category="Global">
-              <td>
-                <div class="stock-info">
-                  <span class="stock-symbol-badge">MSFT</span>
-                  <span class="stock-name">Microsoft Corporation</span>
-                </div>
-              </td>
-              <td><span class="stock-price">$415.20</span></td>
-              <td><span class="change-pill up">+3.20%</span></td>
-              <td>$430.50</td>
-              <td><a href="#signup" data-modal="signup">Trade</a></td>
-            </tr>
-            <tr class="market-row" data-category="tbills">
-              <td>
-                <div class="stock-info">
-                  <span class="stock-symbol-badge" style="background: #FEF3C7; color: #D97706;">US-TB</span>
-                  <span class="stock-name">US 1-Year Treasury Bill</span>
-                </div>
-              </td>
-              <td><span class="stock-price">5.25% Yield</span></td>
-              <td><span class="change-pill up">+0.05%</span></td>
-              <td>5.50%</td>
-              <td><a href="#signup" data-modal="signup">Invest</a></td>
-            </tr>
-            <tr class="market-row" data-category="us">
-              <td>
-                <div class="stock-info">
-                  <span class="stock-symbol-badge">AAPL</span>
-                  <span class="stock-name">Apple Inc.</span>
-                </div>
-              </td>
-              <td><span class="stock-price">$228.40</span></td>
-              <td><span class="change-pill up">+1.40%</span></td>
-              <td>$237.23</td>
-              <td><a href="#signup" data-modal="signup">Trade</a></td>
-            </tr>
-          </tbody>
-        </table>
+            <thead>
+              <tr>
+                <th>Asset Name</th>
+                <th>Price</th>
+                <th>24h Change</th>
+                <th>52W High</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="market-row" data-category="Global">
+                <td>
+                  <div class="stock-info">
+                    <span class="stock-symbol-badge">GOOGL</span>
+                    <span class="stock-name">Alphabet Inc.</span>
+                  </div>
+                </td>
+                <td><span class="stock-price">$165.00</span></td>
+                <td><span class="change-pill up">+2.15%</span></td>
+                <td>$176.00</td>
+                <td><a href="#signup" data-modal="signup">Trade</a></td>
+              </tr>
+              <tr class="market-row" data-category="Global">
+                <td>
+                  <div class="stock-info">
+                    <span class="stock-symbol-badge">AMZN</span>
+                    <span class="stock-name">Amazon.com Inc.</span>
+                  </div>
+                </td>
+                <td><span class="stock-price">$185.50</span></td>
+                <td><span class="change-pill up">+0.85%</span></td>
+                <td>$195.00</td>
+                <td><a href="#signup" data-modal="signup">Trade</a></td>
+              </tr>
+              <tr class="market-row" data-category="Global">
+                <td>
+                  <div class="stock-info">
+                    <span class="stock-symbol-badge">MSFT</span>
+                    <span class="stock-name">Microsoft Corporation</span>
+                  </div>
+                </td>
+                <td><span class="stock-price">$415.20</span></td>
+                <td><span class="change-pill up">+3.20%</span></td>
+                <td>$430.50</td>
+                <td><a href="#signup" data-modal="signup">Trade</a></td>
+              </tr>
+              <tr class="market-row" data-category="tbills">
+                <td>
+                  <div class="stock-info">
+                    <span class="stock-symbol-badge" style="background: #FEF3C7; color: #D97706;">US-TB</span>
+                    <span class="stock-name">US 1-Year Treasury Bill</span>
+                  </div>
+                </td>
+                <td><span class="stock-price">5.25% Yield</span></td>
+                <td><span class="change-pill up">+0.05%</span></td>
+                <td>5.50%</td>
+                <td><a href="#signup" data-modal="signup">Invest</a></td>
+              </tr>
+              <tr class="market-row" data-category="us">
+                <td>
+                  <div class="stock-info">
+                    <span class="stock-symbol-badge">AAPL</span>
+                    <span class="stock-name">Apple Inc.</span>
+                  </div>
+                </td>
+                <td><span class="stock-price">$228.40</span></td>
+                <td><span class="change-pill up">+1.40%</span></td>
+                <td>$237.23</td>
+                <td><a href="#signup" data-modal="signup">Trade</a></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -759,15 +903,17 @@
         <span class="section-tag">Crest ACADEMY</span>
         <h2 class="section-title">Knowledge that turns income into wealth</h2>
         <p class="section-subtitle">
-          Master the fundamentals of inflation hedging, stock evaluation, and compound interest with our free financial courses.
+          Master the fundamentals of inflation hedging, stock evaluation, and compound interest with our free financial
+          courses.
         </p>
       </div>
 
       <div class="academy-grid">
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_1.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_1.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">BEGINNER &bull; 15 MINS</span>
-            
+
           </div>
           <div class="course-body">
             <div>
@@ -777,16 +923,23 @@
               </p>
             </div>
             <div class="course-meta">
-              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>4 Modules</span>
-              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B" style="vertical-align:middle;margin-right:4px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>4.9/5 Rating</span>
+              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;">
+                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" /></svg>4 Modules</span>
+              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B"
+                  style="vertical-align:middle;margin-right:4px;">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>4.9/5 Rating</span>
             </div>
           </div>
         </div>
 
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_2.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_2.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">INTERMEDIATE &bull; 25 MINS</span>
-            
+
           </div>
           <div class="course-body">
             <div>
@@ -796,16 +949,23 @@
               </p>
             </div>
             <div class="course-meta">
-              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>6 Modules</span>
-              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B" style="vertical-align:middle;margin-right:4px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>4.8/5 Rating</span>
+              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;">
+                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" /></svg>6 Modules</span>
+              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B"
+                  style="vertical-align:middle;margin-right:4px;">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>4.8/5 Rating</span>
             </div>
           </div>
         </div>
 
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_3.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_3.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">ADVANCED &bull; 30 MINS</span>
-            
+
           </div>
           <div class="course-body">
             <div>
@@ -815,8 +975,14 @@
               </p>
             </div>
             <div class="course-meta">
-              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/></svg>5 Modules</span>
-              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B" style="vertical-align:middle;margin-right:4px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>5.0/5 Rating</span>
+              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px;">
+                  <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" /></svg>5 Modules</span>
+              <span><svg width="14" height="14" viewBox="0 0 24 24" fill="#F59E0B"
+                  style="vertical-align:middle;margin-right:4px;">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>5.0/5 Rating</span>
             </div>
           </div>
         </div>
@@ -844,28 +1010,38 @@
       <div class="security-grid">
         <div class="security-card">
           <div class="security-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
           </div>
           <h4>SEC Trustee Oversight</h4>
           <p>Client assets are held in independent trust accounts managed by SEC-licensed trustees.</p>
         </div>
         <div class="security-card">
           <div class="security-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
           </div>
           <h4>Bank-Grade Encryption</h4>
           <p>256-bit SSL encryption and biometric hardware security protect all financial transfers.</p>
         </div>
         <div class="security-card">
           <div class="security-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="3" rx="2" />
+              <path d="m9 12 2 2 4-4" /></svg>
           </div>
           <h4>GDPR Compliant</h4>
           <p>Strict data privacy governance adhering to Global Markets Data Protection Regulation standards.</p>
         </div>
         <div class="security-card">
           <div class="security-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4" /></svg>
           </div>
           <h4>Regulated Custodians</h4>
           <p>Cash reserves are housed in top-tier CBN-licensed commercial depository partner banks.</p>
@@ -886,14 +1062,30 @@
       <div class="testimonial-cards">
         <div class="testi-card">
           <div class="testi-stars" style="display: flex; gap: 3px; color: #F59E0B; margin-bottom: 12px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
           </div>
           <p class="testi-text">
-            "Crest Wealth's interface makes it incredibly easy to track my portfolio. I love how transparent they are about fees and the educational resources in the Academy are top-notch."
+            "Crest Wealth's interface makes it incredibly easy to track my portfolio. I love how transparent they are
+            about fees and the educational resources in the Academy are top-notch."
           </p>
           <div class="testi-author">
             <img src="../assets/avatar1.jpg" alt="Amina Bello" class="testi-avatar" loading="lazy">
@@ -906,14 +1098,30 @@
 
         <div class="testi-card">
           <div class="testi-stars" style="display: flex; gap: 3px; color: #F59E0B; margin-bottom: 12px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
           </div>
           <p class="testi-text">
-            "I moved a portion of my emergency fund to Crest's Fixed Lock accounts. Knowing my assets are managed by SEC-compliant trustees gives me the peace of mind I need."
+            "I moved a portion of my emergency fund to Crest's Fixed Lock accounts. Knowing my assets are managed by
+            SEC-compliant trustees gives me the peace of mind I need."
           </p>
           <div class="testi-author">
             <img src="../assets/avatar2.jpg" alt="Emeka Okafor" class="testi-avatar" loading="lazy">
@@ -926,14 +1134,30 @@
 
         <div class="testi-card">
           <div class="testi-stars" style="display: flex; gap: 3px; color: #F59E0B; margin-bottom: 12px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#F59E0B">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
           </div>
           <p class="testi-text">
-            "It's refreshing to see a platform focused on long-term wealth rather than short-term trading. Building a diversified portfolio over the last year has been steady and rewarding."
+            "It's refreshing to see a platform focused on long-term wealth rather than short-term trading. Building a
+            diversified portfolio over the last year has been steady and rewarding."
           </p>
           <div class="testi-author">
             <img src="../assets/hero-couple.jpg" alt="Dr. Tunde & Ronke" class="testi-avatar" loading="lazy">
@@ -948,37 +1172,49 @@
   </section>
 
   <!-- MOBILE APP DOWNLOAD SECTION -->
-  <section class="mobile-app-section" style="padding: 80px 0; background: #071E14; color: #FFFFFF; position: relative; overflow: hidden;">
-    <div class="container" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 40px;">
+  <section class="mobile-app-section"
+    style="padding: 80px 0; background: #071E14; color: #FFFFFF; position: relative; overflow: hidden;">
+    <div class="container"
+      style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 40px;">
       <div style="flex: 1; min-width: 300px; max-width: 500px;">
-        <span class="section-tag" style="background: rgba(16, 185, 129, 0.2); color: #34D399;">BUILD WEALTH ON THE GO</span>
-        <h2 style="font-size: 2.5rem; line-height: 1.2; margin: 16px 0; font-weight: 700; letter-spacing: -1px;">Your pocket-sized investment bank.</h2>
+        <span class="section-tag" style="background: rgba(16, 185, 129, 0.2); color: #34D399;">BUILD WEALTH ON THE
+          GO</span>
+        <h2 style="font-size: 2.5rem; line-height: 1.2; margin: 16px 0; font-weight: 700; letter-spacing: -1px;">Your
+          pocket-sized investment bank.</h2>
         <p style="font-size: 1.1rem; color: #A3B8B0; margin-bottom: 32px; line-height: 1.6;">
-          Monitor real-time Global updates, auto-save daily, and execute trades instantly with the Crest Wealth mobile app. Available on iOS and Android.
+          Monitor real-time Global updates, auto-save daily, and execute trades instantly with the Crest Wealth mobile
+          app. Available on iOS and Android.
         </p>
         <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-          <a href="#download-ios" style="display: inline-flex; align-items: center; gap: 10px; background: #FFFFFF; color: #111827; padding: 12px 24px; border-radius: 8px; font-weight: 600; opacity: 0.7; text-decoration: none;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.04 2.26-.74 3.58-.79 1.48-.06 2.76.62 3.58 1.6-3.15 1.83-2.6 6.06.49 7.42-.76 1.83-1.63 3.12-2.73 3.94M12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-            <div style="text-align: left;">
-              <div style="font-size: 0.65rem; font-weight: 500; line-height: 1;">Download on the</div>
-              <div style="font-size: 1rem; margin-top: 2px; line-height: 1;">App Store</div>
-            </div>
-          </a>
-          <a href="#download-android" style="display: inline-flex; align-items: center; gap: 10px; background: #FFFFFF; color: #111827; padding: 12px 24px; border-radius: 8px; font-weight: 600; opacity: 0.7; text-decoration: none;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5V3.5C3 2.67 3.67 2 4.5 2h15c.83 0 1.5.67 1.5 1.5v17c0 .83-.67 1.5-1.5 1.5h-15C3.67 22 3 21.33 3 20.5M5 4v16h14V4H5Z"/></svg>
-            <div style="text-align: left;">
-              <div style="font-size: 0.65rem; font-weight: 500; line-height: 1;">GET IT ON</div>
-              <div style="font-size: 1rem; margin-top: 2px; line-height: 1;">Google Play</div>
-            </div>
-          </a>
+          <button type="button" class="store-badge" data-store="ios">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.04 2.26-.74 3.58-.79 1.48-.06 2.76.62 3.58 1.6-3.15 1.83-2.6 6.06.49 7.42-.76 1.83-1.63 3.12-2.73 3.94M12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
+            </svg>
+            <span class="store-badge-text">
+              <span class="store-badge-top">Download on the</span>
+              <span class="store-badge-name">App Store</span>
+            </span>
+          </button>
+          <button type="button" class="store-badge" data-store="android">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M3 20.5V3.5C3 2.67 3.67 2 4.5 2h15c.83 0 1.5.67 1.5 1.5v17c0 .83-.67 1.5-1.5 1.5h-15C3.67 22 3 21.33 3 20.5M5 4v16h14V4H5Z" />
+            </svg>
+            <span class="store-badge-text">
+              <span class="store-badge-top">GET IT ON</span>
+              <span class="store-badge-name">Google Play</span>
+            </span>
+          </button>
         </div>
       </div>
-      <div class="phone-scene">
+      <div class="phone-scene" id="phone-scene" role="region"
+        aria-label="Interactive preview of the Crest Wealth mobile app">
         <!-- Ambient glow behind phone -->
         <div class="phone-glow"></div>
 
         <!-- The Phone Frame -->
-        <div class="phone-frame">
+        <div class="phone-frame" id="phone-frame">
           <!-- Pill notch / dynamic island -->
           <div class="phone-island"></div>
 
@@ -992,103 +1228,306 @@
 
             <!-- Status bar -->
             <div class="app-status-bar">
-              <span class="app-time">9:41</span>
+              <span class="app-time" id="app-clock">9:41</span>
               <div class="app-status-icons">
-                <svg width="14" height="10" viewBox="0 0 14 10" fill="white"><rect x="0" y="3" width="2" height="7" rx="1" opacity=".4"/><rect x="3" y="2" width="2" height="8" rx="1" opacity=".6"/><rect x="6" y="0" width="2" height="10" rx="1" opacity=".8"/><rect x="9" y="0" width="2" height="10" rx="1"/></svg>
-                <svg width="16" height="12" viewBox="0 0 16 12" fill="white"><path d="M8 2.4C10.8 2.4 13.3 3.6 15 5.5L16 4.4C14 2.2 11.2 1 8 1C4.8 1 2 2.2 0 4.4L1 5.5C2.7 3.6 5.2 2.4 8 2.4Z" opacity=".5"/><path d="M8 5C10 5 11.8 5.8 13.1 7.1L14.1 6C12.5 4.5 10.4 3.5 8 3.5C5.6 3.5 3.5 4.5 1.9 6L2.9 7.1C4.2 5.8 6 5 8 5Z" opacity=".7"/><path d="M8 7.8C9.2 7.8 10.3 8.3 11.1 9.1L12.1 8C11 6.9 9.6 6.2 8 6.2C6.4 6.2 5 6.9 3.9 8L4.9 9.1C5.7 8.3 6.8 7.8 8 7.8Z"/><circle cx="8" cy="11" r="1.2"/></svg>
-                <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x="0.5" y="0.5" width="22" height="11" rx="3.5" stroke="white" stroke-opacity=".35"/><rect x="2" y="2" width="18" height="8" rx="2" fill="white"/><path d="M23.5 4.5C24.3 4.8 24.9 5.3 24.9 6C24.9 6.7 24.3 7.2 23.5 7.5V4.5Z" fill="white" opacity=".4"/></svg>
+                <svg width="14" height="10" viewBox="0 0 14 10" fill="white">
+                  <rect x="0" y="3" width="2" height="7" rx="1" opacity=".4" />
+                  <rect x="3" y="2" width="2" height="8" rx="1" opacity=".6" />
+                  <rect x="6" y="0" width="2" height="10" rx="1" opacity=".8" />
+                  <rect x="9" y="0" width="2" height="10" rx="1" /></svg>
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="white">
+                  <path
+                    d="M8 2.4C10.8 2.4 13.3 3.6 15 5.5L16 4.4C14 2.2 11.2 1 8 1C4.8 1 2 2.2 0 4.4L1 5.5C2.7 3.6 5.2 2.4 8 2.4Z"
+                    opacity=".5" />
+                  <path
+                    d="M8 5C10 5 11.8 5.8 13.1 7.1L14.1 6C12.5 4.5 10.4 3.5 8 3.5C5.6 3.5 3.5 4.5 1.9 6L2.9 7.1C4.2 5.8 6 5 8 5Z"
+                    opacity=".7" />
+                  <path
+                    d="M8 7.8C9.2 7.8 10.3 8.3 11.1 9.1L12.1 8C11 6.9 9.6 6.2 8 6.2C6.4 6.2 5 6.9 3.9 8L4.9 9.1C5.7 8.3 6.8 7.8 8 7.8Z" />
+                  <circle cx="8" cy="11" r="1.2" /></svg>
+                <svg width="26" height="12" viewBox="0 0 26 12" fill="none">
+                  <rect x="0.5" y="0.5" width="22" height="11" rx="3.5" stroke="white" stroke-opacity=".35" />
+                  <rect x="2" y="2" width="18" height="8" rx="2" fill="white" />
+                  <path d="M23.5 4.5C24.3 4.8 24.9 5.3 24.9 6C24.9 6.7 24.3 7.2 23.5 7.5V4.5Z" fill="white"
+                    opacity=".4" /></svg>
               </div>
             </div>
 
-            <!-- App Header -->
-            <div class="app-header">
-              <div>
-                <div class="app-greet">Good morning,</div>
-                <div class="app-name">Amina ✦</div>
-              </div>
-              <div class="app-avatar">AB</div>
-            </div>
+            <!-- Switchable app views -->
+            <div class="app-viewport">
 
-            <!-- Balance Card -->
-            <div class="app-balance-card">
-              <div class="app-balance-label">Total Portfolio Value</div>
-              <div class="app-balance-amount">&#8358;24,500,000</div>
-              <div class="app-balance-meta">
-                <span class="app-badge-up">&#9650; 5.2%</span>
-                <span>+&#8358;124,500 today</span>
-              </div>
-              <svg class="app-sparkline" viewBox="0 0 140 36" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#34D399" stop-opacity="0.4"/>
-                    <stop offset="100%" stop-color="#34D399" stop-opacity="0"/>
-                  </linearGradient>
-                </defs>
-                <path d="M0,30 C15,28 25,20 40,18 C55,16 60,22 75,14 C90,6 100,10 115,8 C125,6 132,4 140,2" stroke="#34D399" stroke-width="2" fill="none"/>
-                <path d="M0,30 C15,28 25,20 40,18 C55,16 60,22 75,14 C90,6 100,10 115,8 C125,6 132,4 140,2 L140,36 L0,36 Z" fill="url(#spark-grad)"/>
-              </svg>
-            </div>
+              <!-- VIEW: HOME -->
+              <div class="phone-view is-active" data-view="home" id="phone-view-home" role="tabpanel"
+                aria-labelledby="app-tab-home">
 
-            <!-- Quick Actions -->
-            <div class="app-actions-row">
-              <div class="app-action-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>Invest</span>
-              </div>
-              <div class="app-action-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
-                <span>Markets</span>
-              </div>
-              <div class="app-action-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span>History</span>
-              </div>
-              <div class="app-action-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Profile</span>
-              </div>
-            </div>
+                <!-- App Header -->
+                <div class="app-header">
+                  <div>
+                    <div class="app-greet">Good morning,</div>
+                    <div class="app-name">Amina ✦</div>
+                  </div>
+                  <button type="button" class="app-avatar" data-goto="profile" aria-label="Open profile">AB</button>
+                </div>
 
-            <!-- Activity Feed -->
-            <div class="app-section-label">Recent Activity</div>
+                <!-- Balance Card -->
+                <div class="app-balance-card">
+                  <div class="app-balance-label">Total Portfolio Value</div>
+                  <div class="app-balance-amount" id="app-balance" data-count="24500000">&#8358;0</div>
+                  <div class="app-balance-meta">
+                    <span class="app-badge-up">&#9650; 5.2%</span>
+                    <span>+&#8358;124,500 today</span>
+                  </div>
+                  <svg class="app-sparkline" viewBox="0 0 140 36" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#34D399" stop-opacity="0.4" />
+                        <stop offset="100%" stop-color="#34D399" stop-opacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,30 C15,28 25,20 40,18 C55,16 60,22 75,14 C90,6 100,10 115,8 C125,6 132,4 140,2"
+                      stroke="#34D399" stroke-width="2" fill="none" />
+                    <path
+                      d="M0,30 C15,28 25,20 40,18 C55,16 60,22 75,14 C90,6 100,10 115,8 C125,6 132,4 140,2 L140,36 L0,36 Z"
+                      fill="url(#spark-grad)" />
+                  </svg>
+                </div>
 
-            <div class="app-activity-item">
-              <div class="app-activity-icon icon-green">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <div class="app-activity-info">
-                <div class="app-activity-name">Auto-Save (Home Fund)</div>
-                <div class="app-activity-time">Today &middot; 9:00 AM</div>
-              </div>
-              <div class="app-activity-amount positive">+&#8358;500,000</div>
-            </div>
+                <!-- Quick Actions -->
+                <div class="app-actions-row">
+                  <button type="button" class="app-action-btn" data-goto="home">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" /></svg>
+                    <span>Invest</span>
+                  </button>
+                  <button type="button" class="app-action-btn" data-goto="markets">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /></svg>
+                    <span>Markets</span>
+                  </button>
+                  <button type="button" class="app-action-btn" data-goto="history">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" /></svg>
+                    <span>History</span>
+                  </button>
+                  <button type="button" class="app-action-btn" data-goto="profile">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" /></svg>
+                    <span>Profile</span>
+                  </button>
+                </div>
 
-            <div class="app-activity-item">
-              <div class="app-activity-icon icon-indigo">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
-              </div>
-              <div class="app-activity-info">
-                <div class="app-activity-name">Dividend &middot; MTNN</div>
-                <div class="app-activity-time">Yesterday &middot; 2:30 PM</div>
-              </div>
-              <div class="app-activity-amount positive">+&#8358;42,500</div>
-            </div>
+                <!-- Activity Feed -->
+                <div class="app-section-label">Recent Activity</div>
+
+                <div class="app-activity-item">
+                  <div class="app-activity-icon icon-green">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12" /></svg>
+                  </div>
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">Auto-Save (Home Fund)</div>
+                    <div class="app-activity-time">Today &middot; 9:00 AM</div>
+                  </div>
+                  <div class="app-activity-amount positive">+&#8358;500,000</div>
+                </div>
+
+                <div class="app-activity-item">
+                  <div class="app-activity-icon icon-indigo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /></svg>
+                  </div>
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">Dividend &middot; MTNN</div>
+                    <div class="app-activity-time">Yesterday &middot; 2:30 PM</div>
+                  </div>
+                  <div class="app-activity-amount positive">+&#8358;42,500</div>
+                </div>
+
+              </div><!-- /phone-view home -->
+
+              <!-- VIEW: MARKETS -->
+              <div class="phone-view" data-view="markets" id="phone-view-markets" role="tabpanel"
+                aria-labelledby="app-tab-markets">
+                <div class="app-header">
+                  <div>
+                    <div class="app-greet">Live prices</div>
+                    <div class="app-name">Markets</div>
+                  </div>
+                </div>
+                <div class="app-section-label">Watchlist</div>
+                <div class="app-activity-item">
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">BTC/USD</div>
+                    <div class="app-activity-time">Bitcoin</div>
+                  </div>
+                  <div class="app-activity-amount positive">$76,520</div>
+                </div>
+                <div class="app-activity-item">
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">AAPL</div>
+                    <div class="app-activity-time">Apple Inc.</div>
+                  </div>
+                  <div class="app-activity-amount positive">$228.40</div>
+                </div>
+                <div class="app-activity-item">
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">MSFT</div>
+                    <div class="app-activity-time">Microsoft Corp.</div>
+                  </div>
+                  <div class="app-activity-amount negative">$415.20</div>
+                </div>
+                <div class="app-activity-item">
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">GOOGL</div>
+                    <div class="app-activity-time">Alphabet Inc.</div>
+                  </div>
+                  <div class="app-activity-amount positive">$165.00</div>
+                </div>
+              </div><!-- /phone-view markets -->
+
+              <!-- VIEW: HISTORY -->
+              <div class="phone-view" data-view="history" id="phone-view-history" role="tabpanel"
+                aria-labelledby="app-tab-history">
+                <div class="app-header">
+                  <div>
+                    <div class="app-greet">All transactions</div>
+                    <div class="app-name">History</div>
+                  </div>
+                </div>
+                <div class="app-section-label">This week</div>
+                <div class="app-activity-item">
+                  <div class="app-activity-icon icon-green">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12" /></svg>
+                  </div>
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">Auto-Save (Home Fund)</div>
+                    <div class="app-activity-time">Today &middot; 9:00 AM</div>
+                  </div>
+                  <div class="app-activity-amount positive">+&#8358;500,000</div>
+                </div>
+                <div class="app-activity-item">
+                  <div class="app-activity-icon icon-indigo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /></svg>
+                  </div>
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">Dividend &middot; MTNN</div>
+                    <div class="app-activity-time">Yesterday &middot; 2:30 PM</div>
+                  </div>
+                  <div class="app-activity-amount positive">+&#8358;42,500</div>
+                </div>
+                <div class="app-activity-item">
+                  <div class="app-activity-icon icon-indigo">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+                  </div>
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">Bought AAPL &times; 4</div>
+                    <div class="app-activity-time">Mon &middot; 11:14 AM</div>
+                  </div>
+                  <div class="app-activity-amount negative">&#8722;&#8358;135,000</div>
+                </div>
+                <div class="app-activity-item">
+                  <div class="app-activity-icon icon-green">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12" /></svg>
+                  </div>
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">Fixed-Lock Interest</div>
+                    <div class="app-activity-time">Mon &middot; 6:00 AM</div>
+                  </div>
+                  <div class="app-activity-amount positive">+&#8358;18,750</div>
+                </div>
+              </div><!-- /phone-view history -->
+
+              <!-- VIEW: PROFILE -->
+              <div class="phone-view" data-view="profile" id="phone-view-profile" role="tabpanel"
+                aria-labelledby="app-tab-profile">
+                <div class="app-header">
+                  <div>
+                    <div class="app-greet">Signed in as</div>
+                    <div class="app-name">Demo Account</div>
+                  </div>
+                  <div class="app-avatar">DA</div>
+                </div>
+                <div class="app-section-label">Account</div>
+                <div class="app-activity-item">
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">Plan</div>
+                    <div class="app-activity-time">Level 2 Package (Basic)</div>
+                  </div>
+                </div>
+                <div class="app-activity-item">
+                  <div class="app-activity-info">
+                    <div class="app-activity-name">Auto-Save</div>
+                    <div class="app-activity-time">&#8358;50,000 every Friday</div>
+                  </div>
+                  <div class="app-activity-amount positive">On</div>
+                </div>
+                <a href="#signup" data-modal="signup" class="app-cta-btn">Create your real account</a>
+              </div><!-- /phone-view profile -->
+
+            </div><!-- /app-viewport -->
 
             <!-- Tab Bar -->
-            <div class="app-tab-bar">
-              <div class="app-tab active">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-              </div>
-              <div class="app-tab">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-              </div>
-              <div class="app-tab">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              </div>
-              <div class="app-tab">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              </div>
+            <div class="app-tab-bar" role="tablist" aria-label="App sections">
+              <button type="button" class="app-tab active" id="app-tab-home" data-goto="home" role="tab"
+                aria-selected="true" aria-controls="phone-view-home" aria-label="Home">
+                <span class="app-tab-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M3 10.4 12 3l9 7.4" />
+                    <path d="M5.5 9.4V20h13V9.4" />
+                    <path d="M10 20v-5h4v5" /></svg>
+                </span>
+              </button>
+
+              <button type="button" class="app-tab" id="app-tab-markets" data-goto="markets" role="tab"
+                aria-selected="false" aria-controls="phone-view-markets" aria-label="Markets" tabindex="-1">
+                <span class="app-tab-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" /></svg>
+                </span>
+              </button>
+
+              <button type="button" class="app-tab" id="app-tab-history" data-goto="history" role="tab"
+                aria-selected="false" aria-controls="phone-view-history" aria-label="History" tabindex="-1">
+                <span class="app-tab-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <polyline points="12 7.5 12 12 15.5 14" /></svg>
+                </span>
+              </button>
+
+              <button type="button" class="app-tab" id="app-tab-profile" data-goto="profile" role="tab"
+                aria-selected="false" aria-controls="phone-view-profile" aria-label="Profile" tabindex="-1">
+                <span class="app-tab-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" /></svg>
+                </span>
+              </button>
             </div>
+
+            <p class="sr-only">This is an interactive preview showing sample data, not a real account.</p>
 
           </div><!-- /phone-screen -->
         </div><!-- /phone-frame -->
@@ -1106,42 +1545,48 @@
 
       <div class="faq-list">
         <div class="faq-item active">
-          <button class="faq-question">
+          <button class="faq-question" aria-expanded="true" aria-controls="faq-answer-1">
             <span>How does Crest Wealth guarantee the safety of my money?</span>
-            <span class="faq-icon">+</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
           </button>
-          <div class="faq-answer">
-            All client funds are held separately with SEC-licensed Trustees and invested only in highly rated instruments including Government Treasury Bills, sovereign bonds, and vetted corporate commercial papers. Crest Wealth does not take risky unsecured balance sheet bets with your funds.
+          <div class="faq-answer" id="faq-answer-1">
+            All client funds are held separately with SEC-licensed Trustees and invested only in highly rated
+            instruments including Government Treasury Bills, sovereign bonds, and vetted corporate commercial papers.
+            Crest Wealth does not take risky unsecured balance sheet bets with your funds.
           </div>
         </div>
 
         <div class="faq-item">
-          <button class="faq-question">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-2">
             <span>What is the minimum amount required to start investing?</span>
-            <span class="faq-icon">+</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
           </button>
-          <div class="faq-answer">
-            You can start with as little as ₦10,000 on Crest Stash or ₦100,000 for Crest Fixed Lock. We believe wealth building should be accessible to all investors regardless of starting capital.
+          <div class="faq-answer" id="faq-answer-2">
+            You can start with as little as ₦10,000 on Crest Stash or ₦100,000 for Crest Fixed Lock. We believe wealth
+            building should be accessible to all investors regardless of starting capital.
           </div>
         </div>
 
         <div class="faq-item">
-          <button class="faq-question">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-3">
             <span>When and how do I receive my interest payouts?</span>
-            <span class="faq-icon">+</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
           </button>
-          <div class="faq-answer">
-            On Crest Stash, interest accrues every 24 hours and is credited directly to your accessible balance. On Crest Fixed Lock, you can choose to receive your full interest upfront upon locking or compounded at maturity.
+          <div class="faq-answer" id="faq-answer-3">
+            On Crest Stash, interest accrues every 24 hours and is credited directly to your accessible balance. On
+            Crest Fixed Lock, you can choose to receive your full interest upfront upon locking or compounded at
+            maturity.
           </div>
         </div>
 
         <div class="faq-item">
-          <button class="faq-question">
+          <button class="faq-question" aria-expanded="false" aria-controls="faq-answer-4">
             <span>Can I invest in US stocks and foreign currency assets?</span>
-            <span class="faq-icon">+</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
           </button>
-          <div class="faq-answer">
-            Yes! Through our Global Dollar Vault and US Equities partnership, you can fund your wallet in Dollars or USD and purchase shares of leading global companies like Apple, Microsoft, NVIDIA, and S&amp;P 500 index funds.
+          <div class="faq-answer" id="faq-answer-4">
+            Yes! Through our Global Dollar Vault and US Equities partnership, you can fund your wallet in Dollars or USD
+            and purchase shares of leading global companies like Apple, Microsoft, NVIDIA, and S&amp;P 500 index funds.
           </div>
         </div>
       </div>
@@ -1159,17 +1604,25 @@
       <div class="modal-body">
         <form id="form-signin">
           <div class="form-group">
-            <label class="form-label">Email Address</label>
-            <input type="email" class="form-input" id="signin-email" placeholder="e.g. yourname@email.com" required minlength="5" maxlength="100">
+            <label for="signin-email" class="form-label">Email Address</label>
+            <input type="email" class="form-input" id="signin-email" placeholder="e.g. yourname@email.com" required
+              minlength="5" maxlength="100">
           </div>
           <div class="form-group" style="position: relative;">
-            <label class="form-label">Password</label>
-            <input type="password" class="form-input" id="signin-password" placeholder="Minimum 6 characters" required minlength="6" maxlength="64" autocomplete="current-password" style="padding-right: 42px;">
-            <button type="button" onclick="togglePasswordVisibility('signin-password', this)" style="position: absolute; right: 12px; top: 34px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <label for="signin-password" class="form-label">Password</label>
+            <input type="password" class="form-input" id="signin-password" placeholder="Minimum 6 characters" required
+              minlength="6" maxlength="64" autocomplete="current-password" style="padding-right: 42px;">
+            <button type="button" onclick="togglePasswordVisibility('signin-password', this)"
+              style="position: absolute; right: 12px; top: 34px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;"
+              aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" /></svg></button>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 20px;">
             <label><input type="checkbox" checked> Remember me</label>
-            <a href="#forgot" role="button" data-modal="forgot" style="color: var(--color-primary-green); font-weight: 600;">Forgot password?</a>
+            <a href="#forgot" role="button" data-modal="forgot"
+              style="color: var(--color-primary-green); font-weight: 600;">Forgot password?</a>
           </div>
           <button type="submit" class="btn-form-submit">Log In to Crest</button>
           <p style="text-align: center; margin-top: 16px; font-size: 0.88rem; color: var(--text-secondary);">
@@ -1191,29 +1644,44 @@
       <div class="modal-body">
         <form id="form-signup">
           <div class="form-group">
-            <label class="form-label">Full Name</label>
-            <input type="text" class="form-input" id="signup-name" placeholder="e.g. Babatunde Adeyemi" required minlength="2" maxlength="100">
+            <label for="signup-name" class="form-label">Full Name</label>
+            <input type="text" class="form-input" id="signup-name" placeholder="e.g. Babatunde Adeyemi" required
+              minlength="2" maxlength="100">
           </div>
           <div class="form-group">
-            <label class="form-label">Email Address</label>
-            <input type="email" class="form-input" id="signup-email" placeholder="babatunde@example.com" required minlength="5" maxlength="100">
+            <label for="signup-email" class="form-label">Email Address</label>
+            <input type="email" class="form-input" id="signup-email" placeholder="babatunde@example.com" required
+              minlength="5" maxlength="100">
           </div>
           <div class="form-group">
-            <label class="form-label">Phone Number</label>
-            <input type="tel" class="form-input" id="signup-phone" placeholder="+234 803 000 0000" required pattern="^\+?[0-9\s\-]{10,15}$" title="Please enter a valid phone number (e.g. +234 803 000 0000)">
+            <label for="signup-phone" class="form-label">Phone Number</label>
+            <input type="tel" class="form-input" id="signup-phone" placeholder="+234 803 000 0000" required
+              pattern="^\+?[0-9\s\-]{10,15}$" title="Please enter a valid phone number (e.g. +234 803 000 0000)">
           </div>
           <div class="form-group" style="position: relative;">
-            <label class="form-label">Password</label>
-            <input type="password" class="form-input" id="signup-password" placeholder="Minimum 6 characters" required minlength="6" autocomplete="new-password" style="padding-right: 40px;">
-            <button type="button" onclick="togglePasswordVisibility('signup-password', this)" style="position: absolute; right: 12px; top: 34px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <label for="signup-password" class="form-label">Password</label>
+            <input type="password" class="form-input" id="signup-password" placeholder="Minimum 6 characters" required
+              minlength="6" autocomplete="new-password" style="padding-right: 40px;">
+            <button type="button" onclick="togglePasswordVisibility('signup-password', this)"
+              style="position: absolute; right: 12px; top: 34px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;"
+              aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" /></svg></button>
           </div>
           <div class="form-group" style="position: relative;">
-            <label class="form-label">Confirm Password</label>
-            <input type="password" class="form-input" id="signup-password-confirm" placeholder="Repeat your password" required minlength="6" autocomplete="new-password" style="padding-right: 40px;">
-            <button type="button" onclick="togglePasswordVisibility('signup-password-confirm', this)" style="position: absolute; right: 12px; top: 34px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;" aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <label for="signup-password-confirm" class="form-label">Confirm Password</label>
+            <input type="password" class="form-input" id="signup-password-confirm" placeholder="Repeat your password"
+              required minlength="6" autocomplete="new-password" style="padding-right: 40px;">
+            <button type="button" onclick="togglePasswordVisibility('signup-password-confirm', this)"
+              style="position: absolute; right: 12px; top: 34px; background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; color: #64748b;"
+              aria-label="Toggle password visibility"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" /></svg></button>
           </div>
           <div class="form-group">
-            <label class="form-label">Select Starting Package</label>
+            <label for="signup-package" class="form-label">Select Starting Package</label>
             <select class="form-input" id="signup-package" style="background: #FFFFFF;">
               <option>Level 1 Package (Starter)</option>
               <option>Level 2 Package (Basic)</option>
@@ -1224,7 +1692,8 @@
           </div>
           <button type="submit" class="btn-form-submit">Create Free Account</button>
           <p style="text-align: center; margin-top: 14px; font-size: 0.88rem; color: var(--text-secondary);">
-            Already have an account? <a href="#signin" data-modal="signin" style="color: var(--color-primary-green); font-weight: 600;">Log in</a>
+            Already have an account? <a href="#signin" data-modal="signin"
+              style="color: var(--color-primary-green); font-weight: 600;">Log in</a>
           </p>
           <p style="text-align: center; margin-top: 10px; font-size: 0.78rem; color: var(--text-muted);">
             By continuing, you agree to Crest Wealth's Terms of Service and Privacy Policy.
@@ -1244,8 +1713,13 @@
             Secure, transparent, and accessible investment solutions engineered for long-term African wealth creation.
           </p>
           <div style="display: flex; gap: 16px; color: #FFFFFF; font-size: 0.82rem; align-items: center;">
-            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SEC-Compliant Trustees</span>
-            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>GDPR Certified</span>
+            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>SEC-Compliant Trustees</span>
+            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>GDPR Certified</span>
           </div>
         </div>
 
@@ -1298,7 +1772,8 @@
 
       <div class="footer-bottom">
         <p style="text-align: center; margin-bottom: 12px;">
-          Crest Wealth is an investment platform. All investments carry risk. Read disclosures <a href="../security/security.html">here</a>.
+          Crest Wealth is an investment platform. All investments carry risk. Read disclosures <a
+            href="../security/security.html">here</a>.
         </p>
         <p style="text-align: center; margin-bottom: 12px; font-size: 0.82rem;">
           <a href="../legal/privacy.html" style="color: #A3B8B0;">Privacy Policy</a>
@@ -1306,20 +1781,26 @@
           <a href="../legal/terms.html" style="color: #A3B8B0;">Terms &amp; Conditions</a>
         </p>
         <p style="text-align: center; font-size: 0.75rem; color: #5B7068;">
-          &copy; 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
+          &copy; 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with
+          SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
         </p>
       </div>
     </div>
   </footer>
 
   <!-- Cookie Consent Banner -->
-  <div id="cookie-banner" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#0B251A; color:#E5E7EB; padding:18px 24px; z-index:9999; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; border-top:1px solid rgba(16,185,129,0.3);">
+  <div id="cookie-banner"
+    style="display:none; position:fixed; bottom:0; left:0; right:0; background:#0B251A; color:#E5E7EB; padding:18px 24px; z-index:9999; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; border-top:1px solid rgba(16,185,129,0.3);">
     <p style="margin:0; font-size:0.9rem; max-width:720px; line-height:1.6;">
-      We use cookies to improve your experience and analyse platform usage. By continuing, you agree to our <a href="../legal/privacy.html" style="color:#10B981;">Privacy Policy</a>. You can manage preferences at any time.
+      We use cookies to improve your experience and analyse platform usage. By continuing, you agree to our <a
+        href="../legal/privacy.html" style="color:#10B981;">Privacy Policy</a>. You can manage preferences at any time.
     </p>
     <div style="display:flex; gap:12px; flex-shrink:0;">
-      <button onclick="acceptCookies()" style="background:#10B981; color:#fff; border:none; padding:10px 22px; border-radius:100px; font-weight:600; font-size:0.9rem; cursor:pointer;">Accept All</button>
-      <button onclick="declineCookies()" style="background:transparent; color:#A3B8B0; border:1px solid rgba(255,255,255,0.2); padding:10px 22px; border-radius:100px; font-weight:600; font-size:0.9rem; cursor:pointer;">Decline</button>
+      <button onclick="acceptCookies()"
+        style="background:#10B981; color:#fff; border:none; padding:10px 22px; border-radius:100px; font-weight:600; font-size:0.9rem; cursor:pointer;">Accept
+        All</button>
+      <button onclick="declineCookies()"
+        style="background:transparent; color:#A3B8B0; border:1px solid rgba(255,255,255,0.2); padding:10px 22px; border-radius:100px; font-weight:600; font-size:0.9rem; cursor:pointer;">Decline</button>
     </div>
   </div>
 
@@ -1328,23 +1809,5 @@
   <script src="../supabase.js"></script>
   <script src="index.js" defer></script>
 </body>
+
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

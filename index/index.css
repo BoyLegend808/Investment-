@@ -12,13 +12,13 @@
   --bg-surface: #EFEAE2;
   --bg-card: #FFFFFF;
   --bg-ivory: #FFFDF9;
-  
+
   /* Slash Midnight Luxury & Carbon Canvas */
   --bg-dark-hero: #0B0D0F;
   --bg-dark-card: #131619;
   --bg-dark-surface: #1B1E22;
   --bg-dark-accent: #23272D;
-  
+
   /* Text & Editorial Inks */
   --text-primary: #121314;
   --text-secondary: #484A4D;
@@ -26,26 +26,29 @@
   --text-light: #A0A3A8;
   --text-white: #FFFFFF;
   --text-dark-muted: #8E9299;
-  
+
   /* Brand Accents & Rationed Highlights */
-  --color-ember: #FF5500;            /* Ventriloc single orange ember */
+  --color-ember: #FF5500;
+  /* Ventriloc single orange ember */
   --color-ember-glow: rgba(255, 85, 0, 0.16);
-  --color-copper: #C88A58;           /* Slash burnished copper */
+  --color-copper: #C88A58;
+  /* Slash burnished copper */
   --color-copper-glow: rgba(200, 138, 88, 0.18);
   --color-primary-dark: #071E14;
-  --color-primary-navy: #0B251A;     /* Deep forest obsidian */
+  --color-primary-navy: #0B251A;
+  /* Deep forest obsidian */
   --color-primary-green: #0E5E3A;
   --color-accent-emerald: #10B981;
   --color-accent-mint: #E9F4EE;
   --color-accent-mint-subtle: #F2FAF5;
-  
+
   /* Borders & Precision Dividers (Subtle surface contrast, no heavy borders) */
   --border-subtle: #E8E3DA;
   --border-light: #ECE7DE;
   --border-dark: rgba(255, 255, 255, 0.08);
   --border-copper: rgba(200, 138, 88, 0.28);
   --border-ember: rgba(255, 85, 0, 0.25);
-  
+
   /* Status Colors */
   --success: #10B981;
   --success-bg: #E8F7EE;
@@ -54,24 +57,27 @@
   --danger: #EF4444;
   --danger-bg: #FEE2E2;
   --info: #2563EB;
-  
+
   /* Typography Hierarchy */
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  
+
   /* Signature Geometric Radii */
-  --radius-asymmetric: 14px 0px 14px 14px; /* Ventriloc card signature: sharp top-right */
+  --radius-asymmetric: 14px 0px 14px 14px;
+  /* Ventriloc card signature: sharp top-right */
   --radius-asymmetric-lg: 20px 0px 20px 20px;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 14px;
   --radius-xl: 20px;
-  --radius-pill: 9999px; /* Ventriloc navigation containers */
-  --radius-sharp: 3px;   /* Ventriloc sharp-cornered action dialect */
-  
+  --radius-pill: 9999px;
+  /* Ventriloc navigation containers */
+  --radius-sharp: 3px;
+  /* Ventriloc sharp-cornered action dialect */
+
   /* Shadows (Minimalistic, restrained, relying on surface tone contrast) */
   --shadow-sm: 0 1px 3px rgba(18, 19, 20, 0.04);
   --shadow-md: 0 4px 14px rgba(18, 19, 20, 0.06);
@@ -79,7 +85,7 @@
   --shadow-floating: 0 20px 48px -10px rgba(18, 19, 20, 0.12);
   --shadow-glow-ember: 0 0 24px rgba(255, 85, 0, 0.25);
   --shadow-glow-copper: 0 0 28px rgba(200, 138, 88, 0.25);
-  
+
   /* Layout Dimensions */
   --max-width: 1220px;
   --header-height: 64px;
@@ -93,7 +99,9 @@
    RESET & BASE STYLES
    ========================================================================== */
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -116,7 +124,9 @@ body {
   padding-top: calc(var(--ticker-height) + var(--header-height));
 }
 
-img, svg, video {
+img,
+svg,
+video {
   display: block;
   max-width: 100%;
 }
@@ -127,12 +137,16 @@ a {
   transition: color var(--transition-fast);
 }
 
-a:focus-visible, button:focus-visible {
+a:focus-visible,
+button:focus-visible {
   outline: 2px solid var(--color-primary-green);
   outline-offset: 2px;
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
   font-size: inherit;
   outline: none;
@@ -192,8 +206,17 @@ button {
 }
 
 @keyframes emberPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.55; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
 }
 
 .copper-badge {
@@ -312,7 +335,7 @@ button {
   align-items: center;
   gap: 8px;
   padding: 0 20px;
-  border-right: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
 }
 
@@ -344,8 +367,13 @@ button {
 }
 
 @keyframes tickerScroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 /* ==========================================================================
@@ -374,6 +402,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 32px;
   height: var(--header-height);
 }
 
@@ -441,15 +470,16 @@ button {
   color: var(--color-primary-green);
 }
 
- .nav-link-ember {
-   color: #FF5500;
- }
+.nav-link-ember {
+  color: #FF5500;
+}
 
- .nav-link-copper {
-   color: #0E5E3A;
- }
+.nav-link-copper {
+  color: #0E5E3A;
+}
 
- .nav-link:hover, .nav-link.active {
+.nav-link:hover,
+.nav-link.active {
   color: var(--color-primary-green);
 }
 
@@ -557,9 +587,9 @@ button {
 
 .btn-sign-in {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   color: var(--color-primary-navy);
-  padding: 8px 16px;
+  padding: 7px 14px;
   border-radius: var(--radius-pill);
   transition: all var(--transition-fast);
 }
@@ -572,8 +602,9 @@ button {
   background-color: var(--color-primary-navy);
   color: var(--text-white);
   font-weight: 600;
-  font-size: 0.95rem;
-  padding: 12px 24px;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 9px 16px;
   border-radius: var(--radius-pill);
   transition: all var(--transition-normal);
   display: inline-flex;
@@ -935,13 +966,27 @@ button {
 }
 
 @keyframes floatSlow {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
 @keyframes floatSlowAlt {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(8px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(8px);
+  }
 }
 
 /* ==========================================================================
@@ -1452,6 +1497,7 @@ button {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
 }
+
 .market-tabs::-webkit-scrollbar {
   display: none;
 }
@@ -1475,25 +1521,30 @@ button {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 8px; /* space for scrollbar */
+  padding-bottom: 8px;
+  /* space for scrollbar */
 }
 
 /* Custom visible scrollbar for responsive tables */
 .table-responsive::-webkit-scrollbar {
   height: 6px;
-  display: block; /* Ensure it's not hidden */
+  display: block;
+  /* Ensure it's not hidden */
 }
+
 .table-responsive::-webkit-scrollbar-track {
-  background: #F1F5F9; 
+  background: #F1F5F9;
   border-radius: 4px;
   margin: 0 16px;
 }
+
 .table-responsive::-webkit-scrollbar-thumb {
-  background: #CBD5E1; 
+  background: #CBD5E1;
   border-radius: 4px;
 }
+
 .table-responsive::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8; 
+  background: #94A3B8;
 }
 
 .market-table {
@@ -1629,7 +1680,8 @@ button {
   flex-direction: column;
   flex-grow: 1;
   justify-content: space-between;
-  padding-top: 24px; /* Fixed: changed from calc(...) */
+  padding-top: 24px;
+  /* Fixed: changed from calc(...) */
 }
 
 .course-title {
@@ -1847,13 +1899,15 @@ button {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
-  align-items: center; /* Aligns container vertically */
+  align-items: center;
+  /* Aligns container vertically */
   justify-content: center;
   z-index: 9999;
   opacity: 0;
   visibility: hidden;
   transition: all var(--transition-normal);
-  padding: 16px; /* Prevents modal from touching screen edges on mobile */
+  padding: 16px;
+  /* Prevents modal from touching screen edges on mobile */
 }
 
 .modal-backdrop.active {
@@ -1866,11 +1920,13 @@ button {
   border-radius: var(--radius-xl);
   max-width: 480px;
   width: 100%;
-  max-height: calc(100vh - 32px); /* Prevents the modal from exceeding the screen height */
+  max-height: calc(100vh - 32px);
+  /* Prevents the modal from exceeding the screen height */
   box-shadow: var(--shadow-xl);
   position: relative;
   display: flex;
-  flex-direction: column; /* Splits modal into rigid header and scrollable body */
+  flex-direction: column;
+  /* Splits modal into rigid header and scrollable body */
   overflow: hidden;
   transform: translateY(20px) scale(0.98);
   transition: all var(--transition-normal);
@@ -1904,13 +1960,16 @@ button {
 
 .modal-header {
   padding: 24px 24px 14px 24px;
-  border-bottom: 1px solid var(--border-light); /* Visual separation from form */
-  flex-shrink: 0; /* Prevents the header from compressing */
+  border-bottom: 1px solid var(--border-light);
+  /* Visual separation from form */
+  flex-shrink: 0;
+  /* Prevents the header from compressing */
 }
 
 .modal-header h3 {
   font-family: var(--font-heading);
-  font-size: 1.35rem; /* Scaled down slightly for mobile screens */
+  font-size: 1.35rem;
+  /* Scaled down slightly for mobile screens */
   font-weight: 800;
   color: var(--color-primary-navy);
   margin-bottom: 4px;
@@ -1923,10 +1982,14 @@ button {
 }
 
 .modal-body {
-  padding: 20px 24px 24px 24px; /* Normalized padding */
-  overflow-y: auto; /* Enables vertical scrolling ONLY inside the form container */
-  flex-grow: 1; /* Takes up all remaining vertical space inside the modal container */
-  -webkit-overflow-scrolling: touch; /* Smooth momentum scrolling on mobile browsers */
+  padding: 20px 24px 24px 24px;
+  /* Normalized padding */
+  overflow-y: auto;
+  /* Enables vertical scrolling ONLY inside the form container */
+  flex-grow: 1;
+  /* Takes up all remaining vertical space inside the modal container */
+  -webkit-overflow-scrolling: touch;
+  /* Smooth momentum scrolling on mobile browsers */
 }
 
 /* Compact form spacing optimized for mobile views */
@@ -1944,7 +2007,8 @@ button {
 
 .form-input {
   width: 100%;
-  padding: 10px 14px; /* Compact inputs for S20 FE aspect ratios */
+  padding: 10px 14px;
+  /* Compact inputs for S20 FE aspect ratios */
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
   font-size: 0.9rem;
@@ -2164,29 +2228,52 @@ button {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { transform: scale(1); opacity: 0.6; }
-  50% { transform: scale(1.1); opacity: 0.8; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
 }
 
 .phone-frame {
+  /* Base isometric angle. Kept as variables so the responsive breakpoints can
+     restate it — a plain `transform:` override there would be silently ignored,
+     because the floatPhone animation always wins on the `transform` property. */
+  --tilt-base-y: -15deg;
+  --tilt-base-x: 5deg;
+  --tilt-y: 0deg;
+  --tilt-x: 0deg;
   position: relative;
   width: 260px;
   height: 540px;
   background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
   border-radius: 44px;
-  box-shadow: 
+  box-shadow:
     0 50px 100px rgba(0, 0, 0, 0.4),
     0 20px 40px rgba(0, 0, 0, 0.3),
     inset 0 2px 4px rgba(255, 255, 255, 0.1),
     inset 0 -2px 4px rgba(0, 0, 0, 0.2);
-  transform: rotateY(-15deg) rotateX(5deg);
+  transform: rotateY(calc(var(--tilt-base-y) + var(--tilt-y))) rotateX(calc(var(--tilt-base-x) + var(--tilt-x)));
   transform-style: preserve-3d;
   animation: floatPhone 6s ease-in-out infinite;
 }
 
 @keyframes floatPhone {
-  0%, 100% { transform: rotateY(-15deg) rotateX(5deg) translateY(0px); }
-  50% { transform: rotateY(-15deg) rotateX(5deg) translateY(-20px); }
+
+  0%,
+  100% {
+    transform: rotateY(calc(var(--tilt-base-y) + var(--tilt-y))) rotateX(calc(var(--tilt-base-x) + var(--tilt-x))) translateY(0px);
+  }
+
+  50% {
+    transform: rotateY(calc(var(--tilt-base-y) + var(--tilt-y))) rotateX(calc(var(--tilt-base-x) + var(--tilt-x))) translateY(-20px);
+  }
 }
 
 .phone-frame::before {
@@ -2246,6 +2333,10 @@ button {
   background: linear-gradient(180deg, #0a1628 0%, #0f2847 100%);
   border-radius: 38px;
   overflow: hidden;
+  /* Real depth: without a local `perspective`, every nested translateZ() on the
+     app layers below is projected orthographically and therefore invisible. */
+  perspective: 900px;
+  perspective-origin: 50% 40%;
   z-index: 2;
 }
 
@@ -2309,7 +2400,7 @@ button {
 
 .app-balance-card {
   margin: 0 16px 16px;
-  padding: 20px;
+  padding: 16px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.05) 100%);
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 20px;
@@ -2343,8 +2434,19 @@ button {
 
 .app-sparkline {
   width: 100%;
-  height: 32px;
-  margin-top: 12px;
+  height: 28px;
+  margin-top: 8px;
+}
+
+/* Stroke-draw animation for the sparkline, triggered on scroll into view */
+.app-sparkline path:first-of-type {
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+}
+
+.app-balance-card.is-drawn .app-sparkline path:first-of-type {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.15s;
 }
 
 .app-actions-row {
@@ -2434,43 +2536,133 @@ button {
   color: #10B981;
 }
 
+/* ------------------------------------------------------------------
+   Bottom navigation — frosted bar, sliding highlight, icon tabs
+   ------------------------------------------------------------------ */
 .app-tab-bar {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
+  z-index: 3;
   display: flex;
-  justify-content: space-around;
-  padding: 12px 20px 20px;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  align-items: stretch;
+  padding: 9px 0 16px;
+  background: linear-gradient(180deg, rgba(9, 20, 32, 0.62) 0%, rgba(5, 12, 21, 0.92) 100%);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -14px 32px rgba(0, 0, 0, 0.45);
+  /* No translateZ: the bar sits flush against .phone-screen's clip, whereas a
+     3D offset projected it ~3.5% larger and pushed its edges past the rounded
+     clip of the screen it lives in. */
+}
+
+/* Sliding highlight. Driven by --tab-index, written from JS as a plain index. */
+.app-tab-bar::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 13px;
+  left: 0;
+  width: 25%;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.26) 0%, rgba(16, 185, 129, 0.09) 100%);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  transform: translateX(calc(var(--tab-index, 0) * 100%));
+  transition: transform 0.36s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+/* Home indicator */
+.app-tab-bar::after {
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 78px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+  pointer-events: none;
 }
 
 .app-tab {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
+  position: relative;
+  z-index: 1;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.5);
-  transition: all 0.2s;
+  padding: 7px 0;
+  color: rgba(255, 255, 255, 0.52);
+  transition: color var(--transition-fast);
+  /* Stops the browser treating a tap as a possible double-tap-zoom and
+     delaying/cancelling the click. */
+  touch-action: manipulation;
+}
+
+.app-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  transition: transform var(--transition-fast);
+}
+
+.app-tab-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 .app-tab.active {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10B981;
+  color: #34D399;
 }
 
-.app-tab:hover {
-  color: rgba(255, 255, 255, 0.8);
+.app-tab.active .app-tab-icon {
+  animation: tabPop 0.42s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Scoped to non-active tabs: an unscoped :hover here ties on specificity with
+   .app-tab.active but comes later, so it used to whiten the selected icon. */
+.app-tab:not(.active):hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Press feedback scales the icon, not the button. Scaling .app-tab itself
+   shrank the button's own hit box between touchstart and touchend, so a tap
+   near an edge landed outside it and the click never fired. */
+.app-tab:active .app-tab-icon {
+  transform: scale(0.92);
+}
+
+@keyframes tabPop {
+  0% {
+    transform: scale(0.78);
+  }
+
+  60% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: none;
+  }
 }
 
 
 /* Premium 3D Isometric Layering */
 .phone-scene {
   perspective: 1500px;
-  transform-style: preserve-3d;
+  /* Deliberately NO transform-style: preserve-3d here. This element also
+     supplies the perspective, and pairing the two makes Chromium hit-test
+     inside the rotated .phone-frame against a flattened approximation — a
+     ~47px dead zone on the side rotated away from the viewer, which swallowed
+     the whole leftmost tab (Home) and part of Markets while still painting
+     normally. .phone-frame keeps its own preserve-3d, so the layered depth and
+     the tilt are unaffected. */
 }
 
 .phone-screen {
@@ -2520,14 +2712,155 @@ button {
   transform: translateZ(20px);
 }
 
-.app-tab-bar {
-  transform: translateZ(30px);
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.4);
-}
+/* (.app-tab-bar's shadow now lives in its own block above.) */
 
 .phone-island {
   transform: translateX(-50%) translateZ(10px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* ==========================================================================
+   INTERACTIVE PHONE DEMO — viewport, switchable screens & new components
+   ========================================================================== */
+
+/* Own perspective so the nested translateZ() layers inside the views project
+   with real foreshortening (the nearest ancestor perspective is otherwise
+   broken by .phone-screen's overflow clipping). */
+.app-viewport {
+  position: relative;
+  perspective: 900px;
+  perspective-origin: 50% 30%;
+  padding-bottom: 66px;
+}
+
+/* Screen swapping: only the active view is rendered */
+.phone-view {
+  display: none;
+}
+
+.phone-view.is-active {
+  display: block;
+  transform-style: preserve-3d;
+  animation: phoneViewIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes phoneViewIn {
+  from {
+    transform: translateY(10px);
+  }
+
+  to {
+    transform: none;
+  }
+}
+
+/* Red amount for outflows in the activity feed */
+.app-activity-amount.negative {
+  color: #F87171;
+}
+
+/* Call-to-action inside the profile view */
+.app-cta-btn {
+  display: block;
+  width: calc(100% - 40px);
+  margin: 18px 20px 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: #FFFFFF;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-align: center;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.app-cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(16, 185, 129, 0.4);
+}
+
+/* Store badges (were dead download links) */
+.store-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #FFFFFF;
+  text-align: left;
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.store-badge:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.store-badge-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.store-badge-top {
+  font-size: 0.6rem;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #9FB3AB;
+}
+
+.store-badge-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Drawer scrim behind the mobile navigation */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 30, 20, 0.5);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+  z-index: 1999;
+}
+
+.drawer-scrim.is-visible {
+  opacity: 1;
+}
+
+/* Visually hidden but available to assistive tech */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ==========================================================================
+   MOTION PREFERENCES
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ==========================================================================
@@ -2542,6 +2875,28 @@ button {
 
   .container {
     padding: 0 20px;
+  }
+
+  .nav-wrapper {
+    gap: 18px;
+  }
+
+  .nav-menu {
+    gap: 22px;
+  }
+
+  .nav-actions {
+    gap: 14px;
+  }
+
+  .nav-actions .btn-sign-in {
+    font-size: 0.85rem !important;
+    padding: 7px 12px !important;
+  }
+
+  .nav-actions .btn-get-started {
+    font-size: 0.83rem !important;
+    padding: 8px 14px !important;
   }
 
   .hero-headline {
@@ -2562,6 +2917,36 @@ button {
 
 /* 2. MEDIUM TABLETS / SMALL LAPTOPS (max-width: 1024px) */
 @media (max-width: 1024px) {
+  .nav-menu {
+    display: none !important;
+  }
+
+  .mobile-toggle {
+    display: flex;
+  }
+
+  .nav-wrapper {
+    gap: 14px;
+  }
+
+  .nav-menu {
+    gap: 18px;
+  }
+
+  .nav-actions {
+    gap: 10px;
+  }
+
+  .nav-actions .btn-sign-in {
+    font-size: 0.83rem !important;
+    padding: 6px 10px !important;
+  }
+
+  .nav-actions .btn-get-started {
+    font-size: 0.82rem !important;
+    padding: 7px 12px !important;
+  }
+
   .hero-grid {
     grid-template-columns: 1fr;
     gap: 32px;
@@ -2610,6 +2995,7 @@ button {
 
 /* 3. SMALL TABLETS & PORTRAIT PHONES (max-width: 768px) */
 @media (max-width: 768px) {
+
   .hero-section,
   .features-section,
   .calculator-section,
@@ -2637,21 +3023,21 @@ button {
 
   .nav-actions .btn-sign-in {
     display: inline-flex;
-    padding: 8px 12px;
-    font-size: 0.85rem;
+    padding: 7px 11px;
+    font-size: 0.8rem;
     white-space: nowrap;
   }
 
   .nav-actions .btn-get-started {
-    padding: 8px 14px;
-    font-size: 0.85rem;
+    padding: 7px 13px;
+    font-size: 0.8rem;
     white-space: nowrap;
   }
 
   .brand-name {
     font-size: 1.15rem;
   }
-  
+
   .brand-name span {
     font-size: 0.75rem;
   }
@@ -2712,7 +3098,8 @@ button {
   .phone-frame {
     width: 220px;
     height: 460px;
-    transform: rotateY(-12deg) rotateX(3deg);
+    --tilt-base-y: -12deg;
+    --tilt-base-x: 3deg;
   }
 
   .phone-glow {
@@ -2783,7 +3170,8 @@ button {
     width: 180px;
     height: 380px;
     border-radius: 36px;
-    transform: rotateY(-10deg) rotateX(2deg);
+    --tilt-base-y: -10deg;
+    --tilt-base-x: 2deg;
   }
 
   .phone-glow {
@@ -2797,25 +3185,82 @@ button {
     top: 14px;
   }
 
-  .app-status-bar { padding: 12px 16px 6px; }
-  .app-header { padding: 6px 16px 12px; }
-  .app-name { font-size: 0.95rem; }
-  .app-avatar { width: 32px; height: 32px; font-size: 0.7rem; }
-  .app-balance-card { margin: 0 12px 12px; padding: 16px; border-radius: 16px; }
-  .app-balance-amount { font-size: 1.3rem; }
-  .app-balance-label { font-size: 0.65rem; }
-  .app-sparkline { height: 28px; }
-  .app-action-btn { width: 40px; height: 44px; border-radius: 10px; font-size: 0.55rem; }
-  .app-section-label { padding: 6px 16px 8px; font-size: 0.65rem; }
-  .app-activity-item { padding: 10px 16px; }
-  .app-activity-name { font-size: 0.75rem; }
-  .app-activity-time { font-size: 0.65rem; }
-  .app-tab-bar { padding: 10px 16px 14px; }
-  .app-tab { width: 32px; height: 32px; }
+  .app-status-bar {
+    padding: 12px 16px 6px;
+  }
+
+  .app-header {
+    padding: 6px 16px 12px;
+  }
+
+  .app-name {
+    font-size: 0.95rem;
+  }
+
+  .app-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.7rem;
+  }
+
+  .app-balance-card {
+    margin: 0 12px 12px;
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .app-balance-amount {
+    font-size: 1.3rem;
+  }
+
+  .app-balance-label {
+    font-size: 0.65rem;
+  }
+
+  .app-sparkline {
+    height: 28px;
+  }
+
+  .app-action-btn {
+    width: 40px;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 0.55rem;
+  }
+
+  .app-section-label {
+    padding: 6px 16px 8px;
+    font-size: 0.65rem;
+  }
+
+  .app-activity-item {
+    padding: 10px 16px;
+  }
+
+  .app-activity-name {
+    font-size: 0.75rem;
+  }
+
+  .app-activity-time {
+    font-size: 0.65rem;
+  }
+
+  .app-tab-bar {
+    padding: 7px 0 13px;
+  }
+
+  .app-tab {
+    padding: 6px 0;
+  }
+
+  .app-tab-icon svg {
+    width: 17px;
+    height: 17px;
+  }
 
   /* Hides the absolute-positioned goal tracker and portfolio badges on 
      compact screens so they do not overlap the central photographs. */
-    .floating-badge-goal,
+  .floating-badge-goal,
   .floating-badge-portfolio {
     transform: scale(0.65);
     z-index: 10;
@@ -2832,11 +3277,3 @@ button {
     right: 0%;
   }
 }
-
-
-
-
-
-
-
-
