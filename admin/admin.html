@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
@@ -11,17 +11,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Crest Wealth - Administrative Observatory & Withdrawal Gatekeeper. Manage platform liquidity, user withdrawal verification tasks, and investment compliance.">
-  <title>Admin Observatory � Crest Wealth</title>
+  <title>Admin Observatory | Crest Wealth</title>
   <link rel="canonical" href="https://crestwealth.com/admin/admin.html">
 
   <!-- Open Graph / Social Share -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://crestwealth.com/admin/admin.html">
-  <meta property="og:title" content="Admin Observatory � Crest Wealth">
+  <meta property="og:title" content="Admin Observatory | Crest Wealth">
   <meta property="og:description" content="Administrative Observatory & Withdrawal Gatekeeper. Manage platform liquidity, user withdrawal verification tasks, and investment compliance.">
   <meta property="og:image" content="https://crestwealth.com/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Admin Observatory � Crest Wealth">
+  <meta name="twitter:title" content="Admin Observatory | Crest Wealth">
   <meta name="twitter:description" content="Administrative Observatory & Withdrawal Gatekeeper. Manage platform liquidity, user withdrawal verification tasks, and investment compliance.">
 
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
@@ -335,7 +335,7 @@
           <div class="card-header">
             <div class="card-title-group">
               <h3 class="card-title">Screenshot Proofs</h3>
-              <span class="card-subtitle">Latest screenshots users uploaded for tasks (paid automatically on upload)</span>
+              <span class="card-subtitle">Latest screenshots users uploaded for tasks (reward is credited when the user claims the task)</span>
             </div>
             <div class="card-actions">
               <button class="btn btn-subtle btn-sm" onclick="loadTaskProofs()">Refresh</button>
@@ -444,7 +444,7 @@
               <thead>
                 <tr>
                   <th>Investor</th>
-                  <th>VaultX Tier</th>
+                  <th>Investment Plan</th>
                   <th>Total Invested</th>
                   <th>Cash Balance</th>
                   <th>Tasks Completed</th>
@@ -669,6 +669,45 @@
             </div>
           </div>
         </div>
+
+        <!-- INVESTMENT PLANS EDITOR -->
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3 class="card-title">Investment Plans &amp; Daily Rewards</h3>
+              <span class="card-subtitle">Single source of truth: the price investors pay, the daily reward they claim, and the one-time welcome bonus</span>
+            </div>
+            <div class="card-actions">
+              <button class="btn btn-subtle" onclick="loadInvestmentPlansAdmin()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Reload
+              </button>
+              <button class="btn btn-primary" onclick="saveInvestmentPlansToDB()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                Publish Plans to Live App
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Plan Name</th>
+                  <th>Package Price (&#8358;)</th>
+                  <th>Welcome Bonus (&#8358;)</th>
+                  <th>Daily Earning (&#8358;)</th>
+                </tr>
+              </thead>
+              <tbody id="planEditorBody">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+          <div style="padding: 4px 24px 20px; font-size:0.78rem; color: var(--text-muted); line-height:1.6;">
+            Task rewards are paid out of the daily earning above, so editing these values also changes what each task pays. A plan only becomes active for an investor after you confirm their payment in the Deposits Desk.
+          </div>
+        </div>
       </section>
 
     </div>
@@ -794,7 +833,7 @@
             <label class="form-label" for="taskVerificationTypeInput">VERIFICATION METHOD</label>
             <select class="form-input" id="taskVerificationTypeInput" onchange="toggleVerificationFields(this.value)">
               <option value="timed">Auto-verify after minimum time away</option>
-              <option value="screenshot">Screenshot upload (paid instantly on upload)</option>
+              <option value="screenshot">Screenshot upload (reward credited on claim)</option>
               <option value="quiz">Interactive Investment Quiz (70%+ to pass)</option>
               <option value="game">Interactive Trading Mini-Game (150+ pts)</option>
             </select>
@@ -912,8 +951,6 @@
   <script src="admin.js" defer></script>
 </body>
 </html>
-
-
 
 
 

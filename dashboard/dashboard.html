@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
@@ -10,18 +10,18 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crest Wealth � Investor Portal</title>
+  <title>Crest Wealth | Investor Portal</title>
   <meta name="description" content="Access your investment portfolio, track returns, manage deposits and withdrawals, and complete daily earning tasks.">
   <link rel="canonical" href="https://crestwealth.com/dashboard/dashboard.html">
 
   <!-- Open Graph / Social Share -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://crestwealth.com/dashboard/dashboard.html">
-  <meta property="og:title" content="Crest Wealth � Investor Portal">
+  <meta property="og:title" content="Crest Wealth | Investor Portal">
   <meta property="og:description" content="Access your investment portfolio, track returns, manage deposits and withdrawals, and complete daily earning tasks.">
   <meta property="og:image" content="https://crestwealth.com/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Crest Wealth � Investor Portal">
+  <meta name="twitter:title" content="Crest Wealth | Investor Portal">
   <meta name="twitter:description" content="Access your investment portfolio, track returns, manage deposits and withdrawals, and complete daily earning tasks.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -126,7 +126,7 @@
     <div class="ticker-content" id="tickerTrack">
       <div class="ticker-item"><span class="ticker-user">Chukwudi M.</span> withdrew <strong class="ticker-amt">&#8358;150,000</strong> via OPay <span class="ticker-time">2m ago</span></div>
       <div class="ticker-item"><span class="ticker-user">Babatunde O.</span> completed Investment IQ Quiz <strong class="ticker-reward">+&#8358;2,500 credited</strong> <span class="ticker-time">4m ago</span></div>
-      <div class="ticker-item"><span class="ticker-user">Amina K.</span> deposited <strong class="ticker-amt">&#8358;500,000</strong> in VaultX VIP <span class="ticker-time">8m ago</span></div>
+      <div class="ticker-item"><span class="ticker-user">Amina K.</span> activated a <strong class="ticker-amt">&#8358;500,000</strong> plan <span class="ticker-time">8m ago</span></div>
       <div class="ticker-item"><span class="ticker-user">Ngozi E.</span> unlocked withdrawal gate <strong class="ticker-gate">All Tasks Verified</strong> <span class="ticker-time">11m ago</span></div>
       <div class="ticker-item"><span class="ticker-user">Emeka T.</span> joined via VIP referral <strong class="ticker-reward">+&#8358;5,000 bonus</strong> <span class="ticker-time">14m ago</span></div>
       <div class="ticker-item"><span class="ticker-user">Folake S.</span> withdrew <strong class="ticker-amt">&#8358;85,000</strong> to Kuda Bank <span class="ticker-time">18m ago</span></div>
@@ -213,23 +213,46 @@
         </div>
       </div>
 
-      <!-- DAILY LOGIN STREAK CARD -->
-      <div class="daily-streak-card" style="margin-bottom:16px;">
-        <div class="dsc-header">
-          <div class="dsc-title-group">
-            <div class="dsc-badge">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              Daily Login Streak
+      <!-- PLAN DAILY REWARD CLAIM CARD (only after a plan is active) -->
+      <div class="plan-claim-card" id="planClaimCard" style="display:none;margin-bottom:16px;">
+        <div class="pcc-header">
+          <div class="pcc-title-group">
+            <div class="pcc-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span id="planClaimBadge">Active Plan</span>
             </div>
-            <div class="dsc-title">Earn Free Cash Every 24 Hours</div>
-            <div class="dsc-sub">Claim +&#8358;200 daily credit. Reach Day 7 for a +&#8358;1,000 Milestone Bonus!</div>
+            <div class="pcc-title">Daily Plan Reward</div>
+            <div class="pcc-sub" id="planClaimSub">Claim your daily reward every 24 hours.</div>
           </div>
-          <button class="btn-claim-streak" id="claimStreakBtn" onclick="claimDailyStreak()">
-            <span id="claimStreakBtnText">Claim Daily Bonus</span>
+          <button class="btn-claim-plan" id="claimPlanBtn" onclick="claimPlanDailyReward()">
+            <span id="claimPlanBtnText">Claim Daily Reward</span>
           </button>
         </div>
-        <div class="streak-days-track" id="streakDaysTrack">
-          <!-- 7 days rendered by JS -->
+        <div class="plan-claim-stats">
+          <div class="pcs-item">
+            <div class="pcs-label">Daily Earning</div>
+            <div class="pcs-val positive" id="planStatDaily">&#8358;0</div>
+          </div>
+          <div class="pcs-item">
+            <div class="pcs-label">Welcome Bonus</div>
+            <div class="pcs-val" id="planStatWelcome">&#8358;0</div>
+          </div>
+          <div class="pcs-item">
+            <div class="pcs-label">Next Claim</div>
+            <div class="pcs-val" id="planStatStatus">Available</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PICK AN INVESTMENT (shown until a plan is active) -->
+      <div class="plan-gate-card" id="planGateCard" style="display:none;">
+        <div class="plan-gate-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <div class="plan-gate-title">Pick an Investment to Start Earning</div>
+        <div class="plan-gate-sub">Choose a plan below and pay the package amount by bank transfer. Your daily reward, welcome bonus and claim button appear the moment an administrator confirms your payment.</div>
+        <div class="dash-plans-grid" id="dashPlansGrid">
+          <p class="muted-text">Loading the current plans&hellip;</p>
         </div>
       </div>
 
@@ -345,7 +368,7 @@
     <div class="view" id="view-portfolio">
       <div class="page-header">
         <h2 class="page-title">Portfolio</h2>
-        <button class="btn-primary" onclick="openVaultXModal()">+ Invest in VaultX</button>
+        <button class="btn-primary" onclick="openPlanPicker()">+ Choose a Plan</button>
       </div>
       <div class="stat-row">
         <div class="stat-item"><div class="stat-item-label">Total Value</div><div class="stat-item-value" id="portfolioTotalValue">&#8358;0</div><div class="stat-item-sub positive" id="portfolioValueGrowth">Live Balance</div></div>
@@ -689,6 +712,17 @@
         <div class="page-subtitle">Complete daily verified tasks to unlock instant cash withdrawals and earn cash bonuses.</div>
       </div>
 
+      <!-- PLAN GATE: no tasks until a plan is active -->
+      <div class="plan-gate-card" id="tasksPlanGate" style="display:none;">
+        <div class="plan-gate-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="plan-gate-title">Pick a Plan to Unlock Tasks</div>
+        <div class="plan-gate-sub">Task rewards are paid out of your investment plan, so your task list unlocks as soon as you pick a plan and an administrator confirms your payment.</div>
+        <button class="btn-primary" onclick="openPlanPicker()">Pick an Investment</button>
+      </div>
+
+      <div id="tasksGateWrap" style="display:none;">
       <!-- 24-HOUR RESET TIMER BANNER -->
       <div class="task-reset-banner">
         <div class="trb-icon">
@@ -722,6 +756,7 @@
         <div><strong>All tasks complete!</strong> You earned bonuses into your Cash Balance. Withdrawal gate is now 100% unlocked.</div>
         <button class="btn-primary" onclick="switchView('withdraw')">Proceed to Withdraw</button>
       </div>
+      </div>
     </div>
 
     <!-- ============ REFERRALS ============ -->
@@ -734,7 +769,7 @@
             <div class="referral-kpi"><div class="referral-kpi-val positive" id="refTotalEarned">&#8358;0</div><div class="referral-kpi-label">Earned</div></div>
             <div class="referral-kpi"><div class="referral-kpi-val" id="refActiveCount">0</div><div class="referral-kpi-label">Active</div></div>
           </div>
-          <div class="referral-desc">Earn <strong>10% instant commission</strong> (up to &#8358;100,000) for every partner who registers with your VIP link and activates a VaultX package.</div>
+          <div class="referral-desc">Earn <strong>10% instant commission</strong> (up to &#8358;100,000) for every partner who registers with your link and activates an investment plan.</div>
           <div class="referral-link-row">
             <code class="referral-link-code" id="refLink">Loading your referral link...</code>
             <button class="btn-outline-sm" onclick="copyReferralLink()">Copy Link</button>
@@ -860,21 +895,18 @@
   </button>
 </div>
 
-<!-- ============ VAULTX LEVELS MODAL ============ -->
-<div class="vaultx-modal-backdrop" id="vaultxModalBackdrop" onclick="if(event.target===this)closeVaultXModal()">
-  <div class="vaultx-modal-card">
-    <div class="vx-modal-header">
-      <div class="vx-brand-wrap">
-        <div class="vx-logo-glow">VAULTX</div>
-        <div class="vx-modal-sub">Affiliate Marketing Plan &bull; Levels 1&ndash;10 VIP Rankings</div>
+<!-- ============ PLAN PICKER & PAYMENT MODAL ============ -->
+<div class="plan-modal-backdrop" id="planModalBackdrop" onclick="if(event.target===this)closePlanModal()">
+  <div class="plan-modal-card" role="dialog" aria-modal="true" aria-labelledby="planModalTitle">
+    <div class="plan-modal-header">
+      <div>
+        <div class="plan-modal-title" id="planModalTitle">Pick an Investment Plan</div>
+        <div class="plan-modal-sub" id="planModalSub">Choose the package you want to activate.</div>
       </div>
-      <button class="vx-modal-close" onclick="closeVaultXModal()">&times;</button>
+      <button class="plan-modal-close" onclick="closePlanModal()" aria-label="Close">&times;</button>
     </div>
-    
-    <div class="vx-modal-body">
-      <div class="vx-tiers-grid" id="vxTiersGrid">
-        <!-- Tiers 1-10 rendered dynamically via JS with VIP skins -->
-      </div>
+    <div class="plan-modal-body" id="planModalBody">
+      <!-- Rendered by JS -->
     </div>
   </div>
 </div>
@@ -885,8 +917,6 @@
 <script src="dashboard.js" defer></script>
 </body>
 </html>
-
-
 
 
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://api.allorigins.win https://open.er-api.com https://www.alphavantage.co https://api.coincap.io https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
@@ -67,7 +67,7 @@
         <ul class="nav-menu">
           <li class="nav-item"><a href="../about/about.html" class="nav-link">Our Story</a></li>
           <li class="nav-item"><a href="../accounts/accounts.html" class="nav-link auth-required">Save &amp; Invest</a></li>
-          <li class="nav-item"><a href="../investments/investments.html" class="nav-link active auth-required">Investments</a></li>
+          <li class="nav-item"><a href="../investments/investments.html" class="nav-link active">Investments</a></li>
           <li class="nav-item"><a href="../academy/academy.html" class="nav-link auth-required">Financial Academy</a></li>
           <li class="nav-item"><a href="../security/security.html" class="nav-link">Security</a></li>
           <li class="nav-item"><a href="../dashboard/dashboard.html" class="nav-link nav-link-ember auth-required">Client Dashboard</a></li>
@@ -96,7 +96,7 @@
       <li><a href="../index/index.html">Home</a></li>
       <li><a href="../about/about.html">Our Story</a></li>
       <li><a class="auth-required" href="../accounts/accounts.html">Save &amp; Invest Accounts</a></li>
-      <li><a class="auth-required" href="../investments/investments.html">Investment Choices</a></li>
+      <li><a href="../investments/investments.html">Investment Choices</a></li>
       <li><a class="auth-required" href="../academy/academy.html">Financial Academy</a></li>
       <li><a href="../pricing/pricing.html">Rates &amp; Fees</a></li>
       <li><a href="../security/security.html">Security &amp; Regulation</a></li>
@@ -246,110 +246,22 @@
     </div>
   </section>
 
-  <!-- GLOBAL YIELD PROGRAM -->
-  <section class="vaultx-section" id="vaultx">
+  <!-- INVESTMENT PLANS -->
+  <section class="plans-section" id="plans">
     <div class="container">
-      <div class="vaultx-header">
-        <div class="vaultx-brand-title" style="font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 2.8rem; font-weight: 900; letter-spacing: 0.18em; color: #EF4444; text-shadow: 0 0 20px rgba(239, 68, 68, 0.8), 0 0 40px rgba(220, 38, 38, 0.4);">
-          VAULTX
-        </div>
-        <p class="vaultx-subtitle" style="font-size: 1.05rem; letter-spacing: 0.08em; color: #CBD5E1; margin-top: 6px;">
-          Affiliate Marketing Plan &bull; <span style="color: #EF4444; font-weight: 700;">Levels 1&ndash;10 VIP Rankings</span>
-        </p>
+      <div class="section-header-center">
+        <span class="section-tag">Investment Plans</span>
+        <h2 class="section-title">Pick a plan. Earn every day.</h2>
+        <p class="section-subtitle">Every plan pays a fixed daily reward plus a one-time welcome bonus on the day it is activated. Choose the package that matches your budget &mdash; you can move to a bigger plan at any time.</p>
       </div>
 
-      <div class="vaultx-dashboard-full">
-        <!-- Asset Allocation Table with VIP Ranking Skins -->
-        <div class="vaultx-table-card" style="background: rgba(9, 9, 13, 0.85); border: 1px solid rgba(239, 68, 68, 0.3); box-shadow: 0 0 35px rgba(239, 68, 68, 0.15); border-radius: 16px; overflow: hidden;">
-          <div class="table-responsive">
-          <table class="vaultx-table">
-            <thead>
-              <tr style="border-bottom: 2px solid rgba(239, 68, 68, 0.35);">
-                <th style="color: #EF4444;">LEVEL &amp; RANK</th>
-                <th style="color: #EF4444;">PACKAGE</th>
-                <th style="color: #EF4444;">WELCOME BONUS</th>
-                <th style="color: #EF4444;">DAILY EARNING</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="vaultx-row" data-level="1">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">1</span> <span class="vx-tier-badge" style="background:rgba(205,127,50,0.18);color:#CD7F32;border:1px solid rgba(205,127,50,0.4);padding:2px 8px;border-radius:12px;font-size:0.75rem;">Bronze VIP</span></td>
-                <td>5,000</td>
-                <td>1,500</td>
-                <td>900</td>
-              </tr>
-              <tr class="vaultx-row" data-level="2">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">2</span> <span class="vx-tier-badge" style="background:rgba(148,163,184,0.18);color:#94A3B8;border:1px solid rgba(148,163,184,0.4);padding:2px 8px;border-radius:12px;font-size:0.75rem;">Silver VIP</span></td>
-                <td>15,000</td>
-                <td>5,000</td>
-                <td>2,700</td>
-              </tr>
-              <tr class="vaultx-row" data-level="3">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">3</span> <span class="vx-tier-badge" style="background:rgba(245,158,11,0.18);color:#F59E0B;border:1px solid rgba(245,158,11,0.4);padding:2px 8px;border-radius:12px;font-size:0.75rem;">Gold VIP</span></td>
-                <td>30,000</td>
-                <td>10,000</td>
-                <td>5,400</td>
-              </tr>
-              <tr class="vaultx-row" data-level="4">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">4</span> <span class="vx-tier-badge" style="background:rgba(6,182,212,0.18);color:#06B6D4;border:1px solid rgba(6,182,212,0.4);padding:2px 8px;border-radius:12px;font-size:0.75rem;">Platinum VIP</span></td>
-                <td>50,000</td>
-                <td>17,000</td>
-                <td>9,000</td>
-              </tr>
-              <tr class="vaultx-row" data-level="5">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">5</span> <span class="vx-tier-badge" style="background:rgba(16,185,129,0.18);color:#10B981;border:1px solid rgba(16,185,129,0.4);padding:2px 8px;border-radius:12px;font-size:0.75rem;">Emerald VIP</span></td>
-                <td>75,000</td>
-                <td>25,000</td>
-                <td>13,500</td>
-              </tr>
-              <tr class="vaultx-row" data-level="6">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">6</span> <span class="vx-tier-badge" style="background:rgba(59,130,246,0.18);color:#3B82F6;border:1px solid rgba(59,130,246,0.4);padding:2px 8px;border-radius:12px;font-size:0.75rem;">Sapphire VIP</span></td>
-                <td>100,000</td>
-                <td>35,000</td>
-                <td>18,000</td>
-              </tr>
-              <tr class="vaultx-row" data-level="7">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">7</span> <span class="vx-tier-badge" style="background:rgba(239,68,68,0.18);color:#EF4444;border:1px solid rgba(239,68,68,0.4);padding:2px 8px;border-radius:12px;font-size:0.75rem;">Ruby VIP</span></td>
-                <td>200,000</td>
-                <td>70,000</td>
-                <td>36,000</td>
-              </tr>
-              <tr class="vaultx-row" data-level="8">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">8</span> <span class="vx-tier-badge" style="background:rgba(168,85,247,0.18);color:#A855F7;border:1px solid rgba(168,85,247,0.4);padding:2px 8px;border-radius:12px;font-size:0.75rem;">Diamond VIP</span></td>
-                <td>350,000</td>
-                <td>90,000</td>
-                <td>63,000</td>
-              </tr>
-              <tr class="vaultx-row" data-level="9">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">9</span> <span class="vx-tier-badge" style="background:rgba(30,41,59,0.7);color:#F8FAFC;border:1px solid rgba(148,163,184,0.7);padding:2px 8px;border-radius:12px;font-size:0.75rem;box-shadow:0 0 10px rgba(100,116,139,0.4);">Obsidian VIP</span></td>
-                <td>500,000</td>
-                <td>150,000</td>
-                <td>90,000</td>
-              </tr>
-              <tr class="vaultx-row" data-level="10">
-                <td><span style="font-weight: 800; color: #EF4444; margin-right: 6px;">10</span> <span class="vx-tier-badge" style="background:rgba(225,29,72,0.22);color:#FB7185;border:1px solid rgba(225,29,72,0.6);padding:2px 8px;border-radius:12px;font-size:0.75rem;box-shadow:0 0 10px rgba(225,29,72,0.4);">Apex Imperial VIP</span></td>
-                <td>1,000,000</td>
-                <td>350,000</td>
-                <td>180,000</td>
-              </tr>
-            </tbody>
-          </table>
-          </div>
-        </div>
-
-        <!-- Regulatory & Risk Disclosure (Compliance Section 1 Workaround) -->
-        <div style="margin-top: 18px; padding: 14px 18px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 10px; font-size: 0.82rem; color: #94A3B8; text-align: left; line-height: 1.6;">
-          <strong style="color: #CBD5E1;">⚖️ Protocol &amp; Regulatory Disclosure:</strong> VaultX operates an algorithmic liquidity and affiliate distribution protocol. Daily earnings represent estimated target staking yields and affiliate commission pools. Yields are generated dynamically; digital assets and arbitrage staking carry market risk.
-        </div>
-
-        <!-- Start Earning Call To Action (Matches VaultX Flyer Button) -->
-        <div style="margin-top: 24px; text-align: center; width: 100%;">
-          <a href="../dashboard/dashboard.html?modal=vaultx" class="btn-primary" style="width: 100%; max-width: 600px; padding: 20px 24px; font-size: 1.2rem; font-weight: 800; letter-spacing: 0.5px; border-radius: 12px; background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%); display: flex; align-items: center; justify-content: center; gap: 14px; margin: 0 auto; border: 1px solid rgba(239, 68, 68, 0.5); box-shadow: 0 10px 30px rgba(220, 38, 38, 0.4); text-decoration: none; color: #fff;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Start Earning Today &bull; Join VaultX
-          </a>
-        </div>
+      <div class="plans-grid" id="plansGrid">
+        <p class="plans-empty">Loading the current plans&hellip;</p>
       </div>
+
+      <p class="plans-note">
+        <strong>How funding works:</strong> choose a plan, create your account, then pay the exact package amount by bank transfer to the account shown in your dashboard. Your plan, its daily reward and your balance are activated the moment an administrator confirms the payment.
+      </p>
     </div>
   </section>
 
@@ -490,8 +402,6 @@
   <script src="investments.js" defer></script>
 </body>
 </html>
-
-
 
 
 

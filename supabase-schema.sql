@@ -42,6 +42,21 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFA
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS daily_streak_day INT DEFAULT 1;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_streak_claim_date DATE;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS last_claimed_streak_day INT DEFAULT 0;
+-- These two are declared here, not in section 18, because the profiles RLS
+-- policy in section 12 references them. Creating that policy first would fail
+-- on a fresh project with "column referred_by does not exist".
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES public.profiles(id);
+-- Declared with the rest of the profile columns: request_withdrawal() reads it.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_frozen BOOLEAN DEFAULT FALSE;
+-- Active investment plan. NULL means the user has not been activated on a plan
+-- yet, which is what gates the daily claim box and the task list.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_level INT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_activated_at TIMESTAMPTZ;
+-- Last date the plan's daily reward was claimed, as YYYY-MM-DD text.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_last_claim_date TEXT;
+-- The plan's one-off welcome bonus is paid once, on the first daily claim.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_welcome_paid BOOLEAN DEFAULT FALSE;
 
 -- 3. DEPOSITS TABLE
 CREATE TABLE IF NOT EXISTS public.deposits (
@@ -57,6 +72,16 @@ CREATE TABLE IF NOT EXISTS public.deposits (
   confirmed_at TIMESTAMPTZ
 );
 ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS proof_url TEXT;
+-- The dashboard's deposit submit sends these three. They were never declared
+-- here, so every user-submitted deposit was rejected by PostgREST with
+-- "column does not exist" and silently never reached the admin desk.
+ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS plan TEXT;
+ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS account_number TEXT;
+ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS account_name TEXT;
+-- Set when the deposit is a plan purchase. admin_confirm_deposit() uses it to
+-- activate the matching level on approval; a plain deposit leaves it NULL.
+ALTER TABLE public.deposits ADD COLUMN IF NOT EXISTS plan_level INT;
 
 -- 4. WITHDRAWALS TABLE
 CREATE TABLE IF NOT EXISTS public.withdrawals (
@@ -98,6 +123,12 @@ ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'co
 ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_status_check;
 ALTER TABLE public.transactions DROP CONSTRAINT IF EXISTS transactions_type_check;
 ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+-- admin_adjust_balance() writes these three. They were never declared here, so
+-- the admin "Adjust Balance" action failed at runtime with "column does not
+-- exist" on every attempt.
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS category TEXT;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS balance_after NUMERIC(15, 2);
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS reference TEXT;
 
 -- 6. USER INVESTMENTS & PORTFOLIO HOLDINGS TABLE
 CREATE TABLE IF NOT EXISTS public.user_investments (
@@ -177,12 +208,33 @@ BEGIN
       NEW.is_admin := FALSE;
       NEW.cash_balance := 0.00;
       NEW.invested_balance := 0.00;
+      NEW.is_frozen := FALSE;
+      NEW.kyc_status := 'unverified';
+      NEW.plan_level := NULL;
+      NEW.plan_activated_at := NULL;
+      NEW.plan_last_claim_date := NULL;
+      NEW.plan_welcome_paid := FALSE;
     END IF;
   ELSIF TG_OP = 'UPDATE' THEN
-    IF NOT public.is_admin() AND NOT v_is_internal THEN
+    -- Role, freeze and KYC are admin-only fields. They used to pass straight
+    -- through, so a frozen user could unfreeze themselves and anyone could set
+    -- their own kyc_status to 'verified' with a plain table update.
+    IF NOT public.is_admin() THEN
       NEW.is_admin := OLD.is_admin;
-      NEW.cash_balance := OLD.cash_balance;
-      NEW.invested_balance := OLD.invested_balance;
+      NEW.is_frozen := OLD.is_frozen;
+      NEW.kyc_status := OLD.kyc_status;
+      -- Balances and plan state are writable only by our SECURITY DEFINER RPCs,
+      -- which raise app.internal_balance_update for the duration of the call.
+      -- A plain table update from the browser has no such flag, so a user cannot
+      -- self-activate a plan or reset their own claim date.
+      IF NOT v_is_internal THEN
+        NEW.cash_balance := OLD.cash_balance;
+        NEW.invested_balance := OLD.invested_balance;
+        NEW.plan_level := OLD.plan_level;
+        NEW.plan_activated_at := OLD.plan_activated_at;
+        NEW.plan_last_claim_date := OLD.plan_last_claim_date;
+        NEW.plan_welcome_paid := OLD.plan_welcome_paid;
+      END IF;
     END IF;
   END IF;
   NEW.updated_at := NOW();
@@ -203,6 +255,8 @@ RETURNS JSONB AS $$
 DECLARE
   v_dep RECORD;
   v_new_bal NUMERIC;
+  v_plan JSONB;
+  v_plan_name TEXT;
 BEGIN
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'Access denied: Admin privileges required.';
@@ -228,13 +282,52 @@ BEGIN
   WHERE id = v_dep.user_id
   RETURNING cash_balance INTO v_new_bal;
 
+  -- A plan purchase also activates the plan. That is what unlocks the daily
+  -- claim box and the task list on the user's dashboard.
+  IF v_dep.plan_level IS NOT NULL THEN
+    SELECT elem INTO v_plan
+    FROM public.app_settings s
+    CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+    WHERE s.key = 'investment_plans'
+      AND jsonb_typeof(s.value) = 'array'
+      AND (elem->>'level')::INT = v_dep.plan_level
+    LIMIT 1;
+
+    v_plan_name := COALESCE(v_plan->>'name', 'Level ' || v_dep.plan_level);
+
+    UPDATE public.profiles
+    SET plan_level = v_dep.plan_level,
+        plan_activated_at = NOW(),
+        plan_last_claim_date = NULL,
+        plan_welcome_paid = FALSE,
+        updated_at = NOW()
+    WHERE id = v_dep.user_id;
+
+    INSERT INTO public.notifications (user_id, title, message, type)
+    VALUES (v_dep.user_id, 'Plan Activated',
+      'Your ' || v_plan_name || ' plan is now active. Your daily reward is ₦' ||
+      COALESCE(NULLIF(v_plan->>'dailyEarning', ''), '0') || ' with a one-time ₦' ||
+      COALESCE(NULLIF(v_plan->>'welcomeBonus', ''), '0') || ' welcome bonus.', 'success');
+  END IF;
+
   INSERT INTO public.transactions (user_id, type, amount, title, description, reference_id, status)
-  VALUES (v_dep.user_id, 'deposit', v_dep.amount, 'Deposit Confirmation', 'Deposit confirmation #' || deposit_id, deposit_id, 'completed');
+  VALUES (
+    v_dep.user_id, 'deposit', v_dep.amount,
+    CASE WHEN v_dep.plan_level IS NOT NULL
+         THEN 'Plan Purchase — ' || COALESCE(v_dep.plan, 'Level ' || v_dep.plan_level)
+         ELSE 'Deposit Confirmation' END,
+    'Deposit confirmation #' || deposit_id, deposit_id, 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
   VALUES (v_dep.user_id, 'Deposit Confirmed', 'Your deposit of ₦' || v_dep.amount || ' has been confirmed and credited.', 'success');
 
-  RETURN jsonb_build_object('success', true, 'deposit_id', deposit_id, 'new_balance', v_new_bal);
+  RETURN jsonb_build_object(
+    'success', true,
+    'deposit_id', deposit_id,
+    'new_balance', v_new_bal,
+    'plan_level', v_dep.plan_level,
+    'plan_activated', v_dep.plan_level IS NOT NULL
+  );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -257,6 +350,12 @@ BEGIN
 
   IF p_amount <= 0 THEN
     RAISE EXCEPTION 'Invalid withdrawal amount.';
+  END IF;
+
+  -- A frozen account must not be able to move money out. Previously the flag
+  -- was set by the admin desk but nothing ever read it.
+  IF EXISTS (SELECT 1 FROM public.profiles WHERE id = v_uid AND is_frozen IS TRUE) THEN
+    RAISE EXCEPTION 'This account is frozen. Please contact support.';
   END IF;
 
   PERFORM set_config('app.internal_balance_update', 'true', true);
@@ -330,48 +429,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Admin Adjusts User Balance (Manual Correction)
-CREATE OR REPLACE FUNCTION public.admin_adjust_balance(
-  p_user_id UUID,
-  p_amount NUMERIC,
-  p_reason TEXT DEFAULT 'Admin manual balance adjustment'
-)
-RETURNS JSONB AS $$
-DECLARE
-  v_new_bal NUMERIC;
-BEGIN
-  IF NOT public.is_admin() THEN
-    RAISE EXCEPTION 'Access denied: Admin privileges required.';
-  END IF;
-
-  IF p_amount = 0 THEN
-    RAISE EXCEPTION 'Adjustment amount cannot be zero.';
-  END IF;
-
-  PERFORM set_config('app.internal_balance_update', 'true', true);
-
-  UPDATE public.profiles
-  SET cash_balance = cash_balance + p_amount, updated_at = NOW()
-  WHERE id = p_user_id
-  RETURNING cash_balance INTO v_new_bal;
-
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'User profile not found.';
-  END IF;
-
-  INSERT INTO public.transactions (user_id, type, amount, title, description, status)
-  VALUES (p_user_id, 'adjustment', p_amount, 'Balance Adjustment', p_reason, 'completed');
-
-  INSERT INTO public.notifications (user_id, title, message, type)
-  VALUES (
-    p_user_id,
-    'Balance Adjusted',
-    'Your balance was adjusted by ' || CASE WHEN p_amount > 0 THEN '+₦' || p_amount ELSE '-₦' || ABS(p_amount) END || ' by administration: ' || p_reason,
-    CASE WHEN p_amount > 0 THEN 'success' ELSE 'warning' END
-  );
-
-  RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal, 'amount_adjusted', p_amount);
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Defined once, in section 22, as admin_adjust_balance(UUID, NUMERIC, TEXT, TEXT).
+-- A second 3-argument overload used to live here; it was never called by the
+-- admin panel and only made the function ambiguous to GRANT and to PostgREST.
 
 -- 12. ROW LEVEL SECURITY (RLS) POLICIES
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -386,7 +446,12 @@ ALTER TABLE public.user_tasks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Profiles select policy" ON public.profiles;
 DROP POLICY IF EXISTS "Profiles update policy" ON public.profiles;
 DROP POLICY IF EXISTS "Profiles insert policy" ON public.profiles;
-CREATE POLICY "Profiles select policy" ON public.profiles FOR SELECT USING (auth.uid() = id OR referred_by = auth.uid() OR public.is_admin() OR referral_code IS NOT NULL);
+-- NOTE: this policy previously also carried "OR referral_code IS NOT NULL".
+-- referral_code is auto-populated for every profile, so that clause made the
+-- policy effectively USING (true) and let any signed-in user read every
+-- investor's email, phone and balance. Referral lookup goes through the
+-- SECURITY DEFINER lookup_referral_code() RPC instead, which needs no such hole.
+CREATE POLICY "Profiles select policy" ON public.profiles FOR SELECT USING (auth.uid() = id OR referred_by = auth.uid() OR public.is_admin());
 CREATE POLICY "Profiles update policy" ON public.profiles FOR UPDATE USING (auth.uid() = id OR public.is_admin());
 CREATE POLICY "Profiles insert policy" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
@@ -394,29 +459,65 @@ DROP POLICY IF EXISTS "Deposits select policy" ON public.deposits;
 DROP POLICY IF EXISTS "Deposits insert policy" ON public.deposits;
 DROP POLICY IF EXISTS "Deposits update policy" ON public.deposits;
 CREATE POLICY "Deposits select policy" ON public.deposits FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
-CREATE POLICY "Deposits insert policy" ON public.deposits FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- A user may file a deposit of their own, but only as Pending. Allowing them to
+-- write status='Confirmed' would let them pre-confirm their own deposit row.
+CREATE POLICY "Deposits insert policy" ON public.deposits FOR INSERT WITH CHECK (auth.uid() = user_id AND status = 'Pending');
 CREATE POLICY "Deposits update policy" ON public.deposits FOR UPDATE USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Withdrawals select policy" ON public.withdrawals;
 DROP POLICY IF EXISTS "Withdrawals insert policy" ON public.withdrawals;
 DROP POLICY IF EXISTS "Withdrawals update policy" ON public.withdrawals;
 CREATE POLICY "Withdrawals select policy" ON public.withdrawals FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
-CREATE POLICY "Withdrawals insert policy" ON public.withdrawals FOR INSERT WITH CHECK (auth.uid() = user_id);
+-- Withdrawals are created only by request_withdrawal(), which debits the
+-- balance before inserting (and is SECURITY DEFINER, so it bypasses this rule).
+-- A direct insert let a user file a pending payout with no matching debit, which
+-- the admin desk would then approve and pay out.
+CREATE POLICY "Withdrawals insert policy" ON public.withdrawals FOR INSERT WITH CHECK (public.is_admin());
 CREATE POLICY "Withdrawals update policy" ON public.withdrawals FOR UPDATE USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Transactions select policy" ON public.transactions;
 DROP POLICY IF EXISTS "Transactions insert policy" ON public.transactions;
 CREATE POLICY "Transactions select policy" ON public.transactions FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
-CREATE POLICY "Transactions insert policy" ON public.transactions FOR INSERT WITH CHECK (auth.uid() = user_id OR public.is_admin());
+-- The ledger is written only by SECURITY DEFINER RPCs. Letting a user insert
+-- their own rows let them fabricate entries that never happened, and the admin
+-- desk reconciles payouts against exactly this table.
+CREATE POLICY "Transactions insert policy" ON public.transactions FOR INSERT WITH CHECK (public.is_admin());
 
 DROP POLICY IF EXISTS "User investments policy" ON public.user_investments;
-CREATE POLICY "User investments policy" ON public.user_investments FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "User investments select policy" ON public.user_investments;
+DROP POLICY IF EXISTS "User investments admin write" ON public.user_investments;
+-- Portfolio rows are written only by privileged RPCs. The old FOR ALL
+-- policy let a user insert, edit or delete their own portfolio rows directly.
+CREATE POLICY "User investments select policy" ON public.user_investments FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+CREATE POLICY "User investments admin write" ON public.user_investments FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 DROP POLICY IF EXISTS "Notifications policy" ON public.notifications;
-CREATE POLICY "Notifications policy" ON public.notifications FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "Notifications select own" ON public.notifications;
+DROP POLICY IF EXISTS "Notifications admin write" ON public.notifications;
+-- Notifications are written by the SECURITY DEFINER RPCs only. The old FOR ALL
+-- policy let a user insert messages into their own feed, which in a finance
+-- product means a forgeable "Deposit Confirmed" style notification.
+CREATE POLICY "Notifications select own" ON public.notifications FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+CREATE POLICY "Notifications admin write" ON public.notifications FOR ALL USING (public.is_admin()) WITH CHECK (public.is_admin());
 
+-- Users may read their own task rows and record a completion of their own, but
+-- must NOT update or delete them: flipping `completed` back to false, or
+-- deleting the row, clears the "already completed" guard in
+-- claim_user_task_reward and lets the same task be paid twice. The RPC is
+-- SECURITY DEFINER, so it retains full write access regardless of these rules.
 DROP POLICY IF EXISTS "User tasks policy" ON public.user_tasks;
-CREATE POLICY "User tasks policy" ON public.user_tasks FOR ALL USING (auth.uid() = user_id OR public.is_admin());
+DROP POLICY IF EXISTS "User tasks select own" ON public.user_tasks;
+DROP POLICY IF EXISTS "User tasks insert own" ON public.user_tasks;
+DROP POLICY IF EXISTS "User tasks admin write" ON public.user_tasks;
+
+CREATE POLICY "User tasks select own" ON public.user_tasks FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "User tasks insert own" ON public.user_tasks FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "User tasks admin write" ON public.user_tasks FOR ALL
+  USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- 13. INDEXES
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
@@ -470,7 +571,7 @@ CREATE POLICY "Task proofs upload own" ON storage.objects FOR INSERT TO authenti
 CREATE POLICY "Task proofs read own or admin" ON storage.objects FOR SELECT TO authenticated
   USING (bucket_id = 'task-proofs' AND ((storage.foldername(name))[1] = auth.uid()::text OR public.is_admin()));
 
--- 18. REFERRALS, STREAKS & VAULTX ATOMIC PROCEDURES
+-- 18. REFERRALS, STREAKS & TASK ATOMIC PROCEDURES
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES public.profiles(id);
@@ -487,10 +588,12 @@ WHERE referral_code IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_profiles_referral_code ON public.profiles(referral_code);
 CREATE INDEX IF NOT EXISTS idx_profiles_referred_by ON public.profiles(referred_by);
 
--- RPC: Claim Daily Streak Reward (supports dynamic configured amounts)
+-- RPC: Claim Daily Streak Reward
+-- The payout is derived from the streak day on the server. It is never read
+-- from the caller, who could otherwise simply name their own amount.
 DROP FUNCTION IF EXISTS public.claim_daily_streak_reward(NUMERIC);
 DROP FUNCTION IF EXISTS public.claim_daily_streak_reward();
-CREATE OR REPLACE FUNCTION public.claim_daily_streak_reward(p_custom_amount NUMERIC DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.claim_daily_streak_reward()
 RETURNS JSONB AS $$
 DECLARE
   v_uid UUID := auth.uid();
@@ -546,15 +649,11 @@ BEGIN
     v_cur_day := 1;
   END IF;
 
-  -- Determine reward amount
-  IF p_custom_amount IS NOT NULL AND p_custom_amount > 0 THEN
-    v_reward := p_custom_amount;
+  -- Determine reward amount (server-side only)
+  IF v_cur_day = 7 THEN
+    v_reward := 1000.00;
   ELSE
-    IF v_cur_day = 7 THEN
-      v_reward := 1000.00;
-    ELSE
-      v_reward := 200.00;
-    END IF;
+    v_reward := 200.00;
   END IF;
 
   -- Compute next day (rolls over after Day 7)
@@ -607,12 +706,16 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- RPC: Claim User Task Reward
+-- The payout is derived from the caller's active investment plan, never from
+-- the caller and never from the task. Every published task is worth an equal
+-- share of one day's plan earning, so the tasks together can never pay out
+-- more than the plan's daily figure.
 DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC, TEXT);
 DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, NUMERIC);
+DROP FUNCTION IF EXISTS public.claim_user_task_reward(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.claim_user_task_reward(
   p_task_id TEXT,
-  p_reward_amount NUMERIC,
   p_task_title TEXT DEFAULT 'Task Completed',
   p_proof_url TEXT DEFAULT NULL
 )
@@ -620,14 +723,76 @@ RETURNS JSONB AS $$
 DECLARE
   v_uid UUID := auth.uid();
   v_existing RECORD;
+  v_prof RECORD;
+  v_task JSONB;
+  v_plan JSONB;
+  v_daily NUMERIC;
+  v_task_count INT;
+  v_reward NUMERIC;
   v_new_bal NUMERIC;
 BEGIN
   IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'Authentication required.';
+    RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
   END IF;
 
-  IF p_reward_amount <= 0 THEN
-    RAISE EXCEPTION 'Invalid reward amount.';
+  SELECT * INTO v_prof FROM public.profiles WHERE id = v_uid;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Profile not found.');
+  END IF;
+
+  -- Tasks only exist for funded accounts: the reward is paid out of the plan
+  -- the user has actually paid for, so an account with no active plan has
+  -- nowhere for the money to come from.
+  IF v_prof.plan_level IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'message', 'Pick and pay for an investment plan first — task rewards are paid from your plan.'
+    );
+  END IF;
+
+  -- Look the task up in the published task list so a made-up id cannot be paid.
+  SELECT elem INTO v_task
+  FROM public.app_settings s
+  CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+  WHERE s.key = 'tasks_config'
+    AND jsonb_typeof(s.value) = 'array'
+    AND elem->>'id' = p_task_id
+  LIMIT 1;
+
+  IF v_task IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'message', 'This task is not in the published task list, so its reward cannot be verified.'
+    );
+  END IF;
+
+  -- Resolve the caller's plan daily earning.
+  SELECT elem INTO v_plan
+  FROM public.app_settings s
+  CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+  WHERE s.key = 'investment_plans'
+    AND jsonb_typeof(s.value) = 'array'
+    AND (elem->>'level')::INT = v_prof.plan_level
+  LIMIT 1;
+
+  v_daily := NULLIF(v_plan->>'dailyEarning', '')::NUMERIC;
+
+  IF v_daily IS NULL OR v_daily <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Your plan has no daily earning configured.');
+  END IF;
+
+  SELECT COUNT(*) INTO v_task_count
+  FROM public.app_settings s
+  CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+  WHERE s.key = 'tasks_config' AND jsonb_typeof(s.value) = 'array';
+
+  IF COALESCE(v_task_count, 0) = 0 THEN
+    v_task_count := 1;
+  END IF;
+
+  v_reward := ROUND(v_daily / v_task_count, 2);
+  IF v_reward <= 0 THEN
+    v_reward := v_daily;
   END IF;
 
   SELECT * INTO v_existing FROM public.user_tasks WHERE user_id = v_uid AND task_id = p_task_id;
@@ -638,22 +803,22 @@ BEGIN
   PERFORM set_config('app.internal_balance_update', 'true', true);
 
   INSERT INTO public.user_tasks (user_id, task_id, task_key, task_title, reward_amount, status, proof_url, completed, completed_at)
-  VALUES (v_uid, p_task_id, p_task_id, p_task_title, p_reward_amount, 'completed', p_proof_url, true, NOW())
+  VALUES (v_uid, p_task_id, p_task_id, p_task_title, v_reward, 'completed', p_proof_url, true, NOW())
   ON CONFLICT (user_id, task_id) DO UPDATE
   SET completed = true, completed_at = NOW(), proof_url = COALESCE(EXCLUDED.proof_url, public.user_tasks.proof_url);
 
   UPDATE public.profiles
-  SET cash_balance = cash_balance + p_reward_amount, updated_at = NOW()
+  SET cash_balance = cash_balance + v_reward, updated_at = NOW()
   WHERE id = v_uid
   RETURNING cash_balance INTO v_new_bal;
 
   INSERT INTO public.transactions (user_id, type, amount, title, description, status)
-  VALUES (v_uid, 'reward', p_reward_amount, 'Task Reward — ' || p_task_title, 'Task Reward — ' || p_task_title, 'completed');
+  VALUES (v_uid, 'reward', v_reward, 'Task Reward — ' || p_task_title, 'Task Reward — ' || p_task_title, 'completed');
 
   INSERT INTO public.notifications (user_id, title, message, type)
-  VALUES (v_uid, 'Task Reward Credited', '+₦' || p_reward_amount || ' credited for ' || p_task_title, 'success');
+  VALUES (v_uid, 'Task Reward Credited', '+₦' || v_reward || ' credited for ' || p_task_title, 'success');
 
-  RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal, 'reward', p_reward_amount);
+  RETURN jsonb_build_object('success', true, 'new_balance', v_new_bal, 'reward', v_reward);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -705,136 +870,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- RPC: Subscribe to VaultX Package (Levels 1–10)
-CREATE OR REPLACE FUNCTION public.subscribe_vaultx_package(p_level INT)
-RETURNS JSONB AS $$
-DECLARE
-  v_uid UUID := auth.uid();
-  v_prof RECORD;
-  v_cost NUMERIC;
-  v_bonus NUMERIC;
-  v_daily NUMERIC;
-  v_rank TEXT;
-  v_new_cash NUMERIC;
-  v_new_inv NUMERIC;
-  v_ref_comm NUMERIC;
-BEGIN
-  IF v_uid IS NULL THEN
-    RAISE EXCEPTION 'Authentication required.';
-  END IF;
-
-  IF p_level = 1 THEN
-    v_cost := 5000.00;    v_bonus := 1500.00;   v_daily := 900.00;    v_rank := 'Bronze VIP';
-  ELSIF p_level = 2 THEN
-    v_cost := 15000.00;   v_bonus := 5000.00;   v_daily := 2700.00;   v_rank := 'Silver VIP';
-  ELSIF p_level = 3 THEN
-    v_cost := 30000.00;   v_bonus := 10000.00;  v_daily := 5400.00;   v_rank := 'Gold VIP';
-  ELSIF p_level = 4 THEN
-    v_cost := 50000.00;   v_bonus := 17000.00;  v_daily := 9000.00;   v_rank := 'Platinum VIP';
-  ELSIF p_level = 5 THEN
-    v_cost := 75000.00;   v_bonus := 25000.00;  v_daily := 13500.00;  v_rank := 'Emerald VIP';
-  ELSIF p_level = 6 THEN
-    v_cost := 100000.00;  v_bonus := 35000.00;  v_daily := 18000.00;  v_rank := 'Sapphire VIP';
-  ELSIF p_level = 7 THEN
-    v_cost := 200000.00;  v_bonus := 70000.00;  v_daily := 36000.00;  v_rank := 'Ruby VIP';
-  ELSIF p_level = 8 THEN
-    v_cost := 350000.00;  v_bonus := 90000.00;  v_daily := 63000.00;  v_rank := 'Diamond VIP';
-  ELSIF p_level = 9 THEN
-    v_cost := 500000.00;  v_bonus := 150000.00; v_daily := 90000.00;  v_rank := 'Obsidian VIP';
-  ELSIF p_level = 10 THEN
-    v_cost := 1000000.00; v_bonus := 350000.00; v_daily := 180000.00; v_rank := 'Apex Imperial VIP';
-  ELSE
-    RAISE EXCEPTION 'Invalid package level (must be 1 to 10).';
-  END IF;
-
-  SELECT * INTO v_prof FROM public.profiles WHERE id = v_uid FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Profile not found.';
-  END IF;
-
-  IF v_prof.cash_balance < v_cost THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'code', 'INSUFFICIENT_FUNDS',
-      'message', 'Insufficient cash balance (₦' || v_prof.cash_balance || '). Please deposit funds first to activate ' || v_rank || '.'
-    );
-  END IF;
-
-  PERFORM set_config('app.internal_balance_update', 'true', true);
-
-  UPDATE public.profiles
-  SET
-    cash_balance = cash_balance - v_cost + v_bonus,
-    invested_balance = invested_balance + v_cost,
-    updated_at = NOW()
-  WHERE id = v_uid
-  RETURNING cash_balance, invested_balance INTO v_new_cash, v_new_inv;
-
-  INSERT INTO public.user_investments (
-    user_id, asset_name, asset_type, amount_invested, current_value, return_rate, status, maturity_date
-  ) VALUES (
-    v_uid,
-    'VaultX Level ' || p_level || ' (' || v_rank || ')',
-    'vaultx',
-    v_cost,
-    v_cost,
-    18.00,
-    'active',
-    NOW() + INTERVAL '30 days'
-  );
-
-  INSERT INTO public.transactions (user_id, type, amount, title, description, status)
-  VALUES
-    (v_uid, 'trade', -v_cost, 'VaultX Level ' || p_level || ' (' || v_rank || ') Activation', 'VaultX Level ' || p_level || ' (' || v_rank || ') Activation', 'completed'),
-    (v_uid, 'reward', v_bonus, 'VaultX Welcome Bonus (' || v_rank || ')', 'VaultX Welcome Bonus (' || v_rank || ')', 'completed');
-
-  INSERT INTO public.notifications (user_id, title, message, type)
-  VALUES (
-    v_uid,
-    'VaultX ' || v_rank || ' Active!',
-    'Your ' || v_rank || ' (₦' || v_cost || ') is now active. Daily return: ₦' || v_daily || '/day. Welcome bonus of ₦' || v_bonus || ' credited!',
-    'success'
-  );
-
-  -- Credit Referrer 10% Instant Direct Commission
-  IF v_prof.referred_by IS NOT NULL THEN
-    v_ref_comm := ROUND(v_cost * 0.10, 2);
-
-    UPDATE public.profiles
-    SET cash_balance = cash_balance + v_ref_comm, updated_at = NOW()
-    WHERE id = v_prof.referred_by;
-
-    INSERT INTO public.transactions (user_id, type, amount, title, description, status)
-    VALUES (
-      v_prof.referred_by,
-      'reward',
-      v_ref_comm,
-      'Affiliate Commission: ' || v_rank,
-      'Affiliate Commission: ' || COALESCE(v_prof.full_name, 'Partner') || ' activated ' || v_rank,
-      'completed'
-    );
-
-    INSERT INTO public.notifications (user_id, title, message, type)
-    VALUES (
-      v_prof.referred_by,
-      'Affiliate Commission Received!',
-      'Your partner ' || COALESCE(v_prof.full_name, 'Partner') || ' activated VaultX ' || v_rank || ' (₦' || v_cost || '). +₦' || v_ref_comm || ' (10%) has been credited to your cash balance!',
-      'success'
-    );
-  END IF;
-
-  RETURN jsonb_build_object(
-    'success', true,
-    'level', p_level,
-    'rank', v_rank,
-    'cost', v_cost,
-    'welcome_bonus', v_bonus,
-    'daily_earning', v_daily,
-    'new_cash_balance', v_new_cash,
-    'new_invested_balance', v_new_inv
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- RPC: subscribe_vaultx_package() has been RETIRED.
+-- It let a signed-in user activate any tier straight out of their own cash
+-- balance, with no admin check and no real payment behind it. Plans are now
+-- paid for by bank transfer and activated by admin_confirm_deposit() alone,
+-- so this entry point must not exist at all.
+DROP FUNCTION IF EXISTS public.subscribe_vaultx_package(INT);
 
 -- 19. RPC: Sync User Balance (Read-only authoritative fetch; prevents client tampering)
 CREATE OR REPLACE FUNCTION public.sync_user_balance(p_cash_balance NUMERIC DEFAULT NULL)
@@ -912,7 +953,7 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_frozen BOOLEAN DEFAULT FALSE;
+-- is_frozen is declared in section 2 alongside the other profile columns.
 
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 
@@ -921,13 +962,14 @@ CREATE POLICY "Allow public read app_settings"
   ON public.app_settings FOR SELECT
   USING (true);
 
+-- Writes stay restricted to administrators ("App settings admin write" above).
+-- A permissive USING (true) policy here would let any signed-in user rewrite
+-- the published task rewards that claim_user_task_reward now trusts.
 DROP POLICY IF EXISTS "Allow authenticated write app_settings" ON public.app_settings;
-CREATE POLICY "Allow authenticated write app_settings"
-  ON public.app_settings FOR ALL
-  USING (true)
-  WITH CHECK (true);
 
-GRANT ALL ON public.app_settings TO authenticated, anon, service_role;
+GRANT SELECT ON public.app_settings TO anon, authenticated;
+GRANT INSERT, UPDATE ON public.app_settings TO authenticated;
+GRANT ALL ON public.app_settings TO service_role;
 
 -- 22. ADMIN ACTIONS: ADJUST USER BALANCE
 CREATE OR REPLACE FUNCTION public.admin_adjust_balance(
@@ -941,6 +983,12 @@ DECLARE
   v_new_bal NUMERIC;
   v_safe_amt NUMERIC;
 BEGIN
+  -- Without this guard any signed-in user could call this RPC with an arbitrary
+  -- p_user_id and mint themselves (or anyone) an arbitrary balance.
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: Administrator privileges required.';
+  END IF;
+
   v_safe_amt := ABS(COALESCE(p_amount, 0));
   IF v_safe_amt <= 0 THEN
     RETURN jsonb_build_object('success', false, 'error', 'Adjustment amount must be greater than zero');
@@ -988,6 +1036,11 @@ CREATE OR REPLACE FUNCTION public.admin_toggle_user_freeze(
 )
 RETURNS JSONB AS $$
 BEGIN
+  -- Admin-only. Without this guard any visitor could freeze any account.
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: Administrator privileges required.';
+  END IF;
+
   UPDATE public.profiles
   SET is_frozen = p_frozen,
       updated_at = NOW()
@@ -1004,6 +1057,11 @@ CREATE OR REPLACE FUNCTION public.admin_update_kyc_status(
 )
 RETURNS JSONB AS $$
 BEGIN
+  -- Admin-only. Without this guard any visitor could self-approve KYC.
+  IF NOT public.is_admin() THEN
+    RAISE EXCEPTION 'Access denied: Administrator privileges required.';
+  END IF;
+
   UPDATE public.profiles
   SET kyc_status = p_status,
       updated_at = NOW()
@@ -1013,21 +1071,233 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 25. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
+-- 25. INVESTMENT PLANS: THE SINGLE SOURCE OF TRUTH
+--
+-- One admin-editable list drives everything: the plans shown on the
+-- Investments page, the picker in the dashboard, what a plan costs, the daily
+-- claim payout, the one-off welcome bonus and the per-task reward.
+-- ON CONFLICT DO NOTHING so re-running this script never overwrites prices the
+-- admin has since edited from the admin panel.
+INSERT INTO public.app_settings (key, value)
+VALUES (
+  'investment_plans',
+  '[
+    {"level":1,"name":"Starter","price":5000,"welcomeBonus":250,"dailyEarning":900},
+    {"level":2,"name":"Bronze","price":15000,"welcomeBonus":750,"dailyEarning":2700},
+    {"level":3,"name":"Silver","price":30000,"welcomeBonus":1500,"dailyEarning":5400},
+    {"level":4,"name":"Gold","price":50000,"welcomeBonus":2500,"dailyEarning":9000},
+    {"level":5,"name":"Platinum","price":75000,"welcomeBonus":3750,"dailyEarning":13500},
+    {"level":6,"name":"Emerald","price":100000,"welcomeBonus":5000,"dailyEarning":18000},
+    {"level":7,"name":"Sapphire","price":200000,"welcomeBonus":10000,"dailyEarning":36000},
+    {"level":8,"name":"Ruby","price":350000,"welcomeBonus":17500,"dailyEarning":63000},
+    {"level":9,"name":"Diamond","price":500000,"welcomeBonus":25000,"dailyEarning":90000},
+    {"level":10,"name":"Apex","price":1000000,"welcomeBonus":50000,"dailyEarning":180000}
+  ]'::jsonb
+)
+ON CONFLICT (key) DO NOTHING;
+
+-- RPC: Submit a plan payment (bank transfer)
+-- The caller names only the level and where the money was sent from. The
+-- amount and the plan name are read from the published plan list, so a user
+-- can never name their own price. The row lands as Pending — that is the
+-- signal the admin desk reviews, and approving it runs
+-- admin_confirm_deposit(), which credits the amount and activates the plan.
+CREATE OR REPLACE FUNCTION public.submit_plan_payment(
+  p_level INT,
+  p_bank_name TEXT DEFAULT NULL,
+  p_account_number TEXT DEFAULT NULL,
+  p_account_name TEXT DEFAULT NULL
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_plan JSONB;
+  v_plan_name TEXT;
+  v_amount NUMERIC;
+  v_dep_id TEXT;
+  v_email TEXT;
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
+  END IF;
+
+  SELECT elem INTO v_plan
+  FROM public.app_settings s
+  CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+  WHERE s.key = 'investment_plans'
+    AND jsonb_typeof(s.value) = 'array'
+    AND (elem->>'level')::INT = p_level
+  LIMIT 1;
+
+  IF v_plan IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'message', 'That investment plan is not available.');
+  END IF;
+
+  v_amount := NULLIF(v_plan->>'price', '')::NUMERIC;
+  IF v_amount IS NULL OR v_amount <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'message', 'That investment plan has no price configured.');
+  END IF;
+
+  v_plan_name := COALESCE(v_plan->>'name', 'Level ' || p_level);
+
+  SELECT email INTO v_email FROM public.profiles WHERE id = v_uid;
+
+  v_dep_id := 'DEP-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || UPPER(SUBSTR(MD5(RANDOM()::TEXT), 1, 6));
+
+  INSERT INTO public.deposits (
+    id, user_id, user_email, amount, method, reference, status,
+    plan, plan_level, bank_name, account_number, account_name
+  ) VALUES (
+    v_dep_id, v_uid, v_email, v_amount, 'Bank Transfer', v_plan_name, 'Pending',
+    v_plan_name, p_level, p_bank_name, p_account_number, p_account_name
+  );
+
+  INSERT INTO public.notifications (user_id, title, message, type)
+  VALUES (
+    v_uid,
+    'Plan Payment Submitted',
+    'Your ' || v_plan_name || ' payment notice (₦' || TO_CHAR(v_amount, 'FM999,999,990') || ') has been received. An administrator will confirm it shortly.'
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'deposit_id', v_dep_id,
+    'plan_name', v_plan_name,
+    'plan_level', p_level,
+    'amount', v_amount,
+    'status', 'Pending'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- RPC: Claim the plan's daily reward
+-- Pays the plan's own daily earning, plus the one-off welcome bonus on the
+-- very first claim. One claim per calendar day, enforced server-side against
+-- profiles.plan_last_claim_date so the client cannot claim twice.
+CREATE OR REPLACE FUNCTION public.claim_plan_daily_reward()
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_prof RECORD;
+  v_plan JSONB;
+  v_daily NUMERIC;
+  v_welcome NUMERIC;
+  v_pay NUMERIC;
+  v_welcome_paid BOOLEAN := FALSE;
+  v_new_bal NUMERIC;
+  v_today_str TEXT := TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD');
+BEGIN
+  IF v_uid IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
+  END IF;
+
+  SELECT * INTO v_prof FROM public.profiles WHERE id = v_uid FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Profile not found.');
+  END IF;
+
+  IF v_prof.plan_level IS NULL THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'no_plan', true,
+      'message', 'You do not have an active plan yet. Pick a plan and pay for it to start earning.'
+    );
+  END IF;
+
+  SELECT elem INTO v_plan
+  FROM public.app_settings s
+  CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+  WHERE s.key = 'investment_plans'
+    AND jsonb_typeof(s.value) = 'array'
+    AND (elem->>'level')::INT = v_prof.plan_level
+  LIMIT 1;
+
+  v_daily := NULLIF(v_plan->>'dailyEarning', '')::NUMERIC;
+  v_welcome := NULLIF(v_plan->>'welcomeBonus', '')::NUMERIC;
+
+  IF v_daily IS NULL OR v_daily <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Your plan has no daily earning configured. Please contact support.');
+  END IF;
+
+  IF v_prof.plan_last_claim_date IS NOT NULL
+     AND SUBSTRING(v_prof.plan_last_claim_date::text FROM 1 FOR 10) = v_today_str THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'already_claimed', true,
+      'message', 'Today''s reward has already been claimed. Come back tomorrow.',
+      'daily_earning', v_daily,
+      'current_balance', v_prof.cash_balance
+    );
+  END IF;
+
+  v_pay := v_daily;
+
+  IF NOT COALESCE(v_prof.plan_welcome_paid, FALSE) THEN
+    v_pay := v_pay + COALESCE(v_welcome, 0);
+    v_welcome_paid := TRUE;
+  END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
+
+  UPDATE public.profiles
+  SET cash_balance = cash_balance + v_pay,
+      plan_last_claim_date = v_today_str,
+      plan_welcome_paid = TRUE,
+      updated_at = NOW()
+  WHERE id = v_uid
+  RETURNING cash_balance INTO v_new_bal;
+
+  INSERT INTO public.transactions (user_id, type, amount, title, description, status)
+  VALUES (v_uid, 'reward', v_daily, 'Daily Plan Reward', 'Daily Plan Reward — Level ' || v_prof.plan_level, 'completed');
+
+  IF v_welcome_paid AND COALESCE(v_welcome, 0) > 0 THEN
+    INSERT INTO public.transactions (user_id, type, amount, title, description, status)
+    VALUES (v_uid, 'reward', v_welcome, 'Welcome Bonus', 'One-time welcome bonus — Level ' || v_prof.plan_level, 'completed');
+  END IF;
+
+  INSERT INTO public.notifications (user_id, title, message, type)
+  VALUES (
+    v_uid,
+    'Daily Reward Claimed',
+    CASE WHEN v_welcome_paid AND COALESCE(v_welcome, 0) > 0
+      THEN '₦' || TO_CHAR(v_daily, 'FM999,999,990') || ' daily reward plus your one-time ₦' || TO_CHAR(v_welcome, 'FM999,999,990') || ' welcome bonus has been added to your balance.'
+      ELSE '₦' || TO_CHAR(v_daily, 'FM999,999,990') || ' has been added to your balance.'
+    END,
+    'success'
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'daily_earning', v_daily,
+    'welcome_bonus', CASE WHEN v_welcome_paid THEN COALESCE(v_welcome, 0) ELSE 0 END,
+    'welcome_paid', v_welcome_paid,
+    'amount_credited', v_pay,
+    'plan_level', v_prof.plan_level,
+    'new_balance', v_new_bal
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 26. GRANT EXECUTE ON ALL PUBLIC RPC FUNCTIONS TO AUTHENTICATED AND ANON
 GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.claim_daily_streak_reward(NUMERIC) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.claim_user_task_reward(TEXT, NUMERIC, TEXT, TEXT) TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.claim_daily_streak_reward() TO authenticated, anon;
+GRANT EXECUTE ON FUNCTION public.claim_user_task_reward(TEXT, TEXT, TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.credit_user_balance(NUMERIC, TEXT, TEXT, UUID) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.sync_user_balance(NUMERIC) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.subscribe_vaultx_package(INT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.get_user_referrals() TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.lookup_referral_code(TEXT) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.request_withdrawal(NUMERIC, TEXT, TEXT, TEXT) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.admin_confirm_deposit(TEXT) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.admin_reject_withdrawal(TEXT, TEXT) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.admin_adjust_balance(UUID, NUMERIC, TEXT, TEXT) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.admin_toggle_user_freeze(UUID, BOOLEAN) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.admin_update_kyc_status(UUID, TEXT) TO authenticated, anon;
+-- The plan funding loop is only ever driven by a signed-in user.
+GRANT EXECUTE ON FUNCTION public.submit_plan_payment(INT, TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_plan_daily_reward() TO authenticated;
+
+-- Admin RPCs are granted to signed-in users only. Each one now also asserts
+-- public.is_admin() internally, so removing "anon" here is belt-and-braces.
+GRANT EXECUTE ON FUNCTION public.admin_confirm_deposit(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_reject_withdrawal(TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_adjust_balance(UUID, NUMERIC, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_toggle_user_freeze(UUID, BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_update_kyc_status(UUID, TEXT) TO authenticated;
 
 
 

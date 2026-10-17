@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initModals();
   initLiveTickerUpdate();
   initDashboardSimulator();
+  initInvestmentPlans();
 });
 
 /* Header scroll effect */
@@ -528,10 +529,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 /* --- Local JS --- */
-/**
- * Crest Wealth - Investments & VaultX Yield Calculator
- * Real-world tier data matching Levels 1 - 10
- */
 
 /* Toast Notification System */
 function showToast(message, type = 'success', duration = 4000) {
@@ -588,77 +585,83 @@ function showToast(message, type = 'success', duration = 4000) {
   }, duration);
 }
 
-const PORTFOLIO_TIERS = [
-  { level: 1, name: "Conservative Growth", package: 1000, targetApy: "4.5%", annualYield: 45, allocation: "Short-Term Treasuries & Money Market" },
-  { level: 2, name: "Balanced Asset Allocation", package: 5000, targetApy: "6.2%", annualYield: 310, allocation: "60% Blue-Chip Equities / 40% Bonds" },
-  { level: 3, name: "Global Equity Index", package: 15000, targetApy: "7.8%", annualYield: 1170, allocation: "Global S&P 500 & Tech ETFs" },
-  { level: 4, name: "Diversified Wealth Portfolio", package: 30000, targetApy: "8.5%", annualYield: 2550, allocation: "Equities, REITs & Corporate Debt" },
-  { level: 5, name: "Private Wealth Preferred", package: 50000, targetApy: "9.6%", annualYield: 4800, allocation: "Custom Multi-Asset Strategy" },
-  { level: 6, name: "Institutional Private Tier", package: 100000, targetApy: "10.8%", annualYield: 10800, allocation: "Direct Equities & Private Credit" }
+/**
+ * Crest Wealth - Investment Plans
+ * The plan list is published by the admin to app_settings.investment_plans,
+ * which is readable without a login, so the plans render for every visitor.
+ * The array below is the last published set, used if the fetch fails.
+ */
+const FALLBACK_INVESTMENT_PLANS = [
+  { level: 1, name: 'Starter', price: 5000, welcomeBonus: 250, dailyEarning: 900 },
+  { level: 2, name: 'Bronze', price: 15000, welcomeBonus: 750, dailyEarning: 2700 },
+  { level: 3, name: 'Silver', price: 30000, welcomeBonus: 1500, dailyEarning: 5400 },
+  { level: 4, name: 'Gold', price: 50000, welcomeBonus: 2500, dailyEarning: 9000 },
+  { level: 5, name: 'Platinum', price: 75000, welcomeBonus: 3750, dailyEarning: 13500 },
+  { level: 6, name: 'Emerald', price: 100000, welcomeBonus: 5000, dailyEarning: 18000 },
+  { level: 7, name: 'Sapphire', price: 200000, welcomeBonus: 10000, dailyEarning: 36000 },
+  { level: 8, name: 'Ruby', price: 350000, welcomeBonus: 17500, dailyEarning: 63000 },
+  { level: 9, name: 'Diamond', price: 500000, welcomeBonus: 25000, dailyEarning: 90000 },
+  { level: 10, name: 'Apex', price: 1000000, welcomeBonus: 50000, dailyEarning: 180000 }
 ];
 
-document.addEventListener('DOMContentLoaded', () => {
-  const tierSlider = document.getElementById('vaultTierSlider');
-  const sliderLevelLabel = document.getElementById('sliderLevelLabel');
-  const simLevelDisplay = document.getElementById('simLevelDisplay');
-  const simPackageDisplay = document.getElementById('simPackageDisplay');
-  const simBonusDisplay = document.getElementById('simBonusDisplay');
-  const simDailyDisplay = document.getElementById('simDailyDisplay');
-  const simMonthlyDisplay = document.getElementById('simMonthlyDisplay');
-  const rows = document.querySelectorAll('.vaultx-row');
-  const ctaBtn = document.getElementById('btnJoinVaultX');
+function formatNaira(amount) {
+  return '₦' + Number(amount || 0).toLocaleString('en-NG');
+}
 
-  function updateTier(levelNum) {
-    const tier = PORTFOLIO_TIERS.find(t => t.level === levelNum) || PORTFOLIO_TIERS[0];
-    
-    if (tierSlider) tierSlider.value = tier.level;
-    if (sliderLevelLabel) sliderLevelLabel.textContent = `Tier ${tier.level}`;
-    if (simLevelDisplay) simLevelDisplay.textContent = tier.name;
-    if (simPackageDisplay) simPackageDisplay.textContent = `$${tier.package.toLocaleString()}`;
-    if (simBonusDisplay) simBonusDisplay.textContent = tier.targetApy;
-    if (simDailyDisplay) simDailyDisplay.textContent = `$${tier.annualYield.toLocaleString()}`;
-    if (simMonthlyDisplay) simMonthlyDisplay.textContent = tier.allocation;
+function planCardHtml(plan) {
+  const level = Number(plan.level);
+  const name = escapeHtml(plan.name || ('Level ' + level));
+  return `
+        <article class="plan-card">
+          <span class="plan-level">Level ${level}</span>
+          <h3 class="plan-name">${name}</h3>
+          <p class="plan-price"><span class="plan-currency">₦</span>${Number(plan.price || 0).toLocaleString('en-NG')}</p>
+          <ul class="plan-facts">
+            <li><span>Welcome bonus</span><strong>${formatNaira(plan.welcomeBonus)}</strong></li>
+            <li class="plan-daily"><span>Daily earning</span><strong>${formatNaira(plan.dailyEarning)}</strong></li>
+          </ul>
+          <a class="btn-card-action plan-cta" href="../index/index.html#signup">Start Plan</a>
+        </article>`;
+}
 
-    // Highlight corresponding row
-    rows.forEach(row => {
-      const rowLevel = parseInt(row.getAttribute('data-level'), 10);
-      if (rowLevel === tier.level) {
-        row.classList.add('active-tier');
-      } else {
-        row.classList.remove('active-tier');
+function renderInvestmentPlans(plans) {
+  const grid = document.getElementById('plansGrid');
+  if (!grid) return;
+
+  const list = (Array.isArray(plans) ? plans : [])
+    .filter(plan => plan && plan.level !== undefined && plan.level !== null)
+    .sort((a, b) => Number(a.level) - Number(b.level));
+
+  grid.innerHTML = list.length
+    ? list.map(planCardHtml).join('')
+    : '<p class="plans-empty">The plan list is unavailable right now. Please check back shortly.</p>';
+}
+
+async function initInvestmentPlans() {
+  const grid = document.getElementById('plansGrid');
+  if (!grid) return;
+
+  let plans = FALLBACK_INVESTMENT_PLANS;
+
+  try {
+    if (window.supabaseClient) {
+      const { data, error } = await window.supabaseClient
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'investment_plans')
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data && Array.isArray(data.value) && data.value.length) {
+        plans = data.value;
       }
-    });
+    }
+  } catch (err) {
+    // Keep the published fallback set rather than leaving the grid empty.
   }
 
-  // Event listener for table row clicks
-  rows.forEach(row => {
-    row.addEventListener('click', () => {
-      const lvl = parseInt(row.getAttribute('data-level'), 10);
-      updateTier(lvl);
-    });
-  });
-
-  // Event listener for slider
-  if (tierSlider) {
-    tierSlider.addEventListener('input', (e) => {
-      updateTier(parseInt(e.target.value, 10));
-    });
-  }
-
-  // CTA button click
-  if (ctaBtn) {
-    ctaBtn.addEventListener('click', () => {
-      const activeTier = tierSlider ? tierSlider.value : '1';
-      showToast(`Selecting Portfolio Tier ${activeTier}. Redirecting to account registration...`, 'success');
-      setTimeout(() => {
-        window.location.href = '../accounts/accounts.html?tier=' + activeTier;
-      }, 1500);
-    });
-  }
-
-  // Default to Tier 2
-  updateTier(2);
-});
+  renderInvestmentPlans(plans);
+}
 
 
 

@@ -8,19 +8,6 @@ function getCrestStorage(key, defaultVal) {
       var r = localStorage.getItem('crest_current_user');
       if (r) { try { u = JSON.parse(r); } catch(e) {} }
     }
-    if (!u) {
-      for (var k in localStorage) {
-        if (typeof k === 'string' && k.indexOf('auth-token') !== -1) {
-          try {
-            var tok = JSON.parse(localStorage.getItem(k));
-            if (tok && tok.user && tok.user.id) {
-              u = tok.user;
-              break;
-            }
-          } catch(e) {}
-        }
-      }
-    }
 
     var isGlobal = GLOBAL_STORAGE_KEYS.indexOf(key) !== -1;
     if (isGlobal) {
@@ -44,19 +31,6 @@ function setCrestStorage(key, val) {
     if (!u) {
       var r = localStorage.getItem('crest_current_user');
       if (r) { try { u = JSON.parse(r); } catch(e) {} }
-    }
-    if (!u) {
-      for (var k in localStorage) {
-        if (typeof k === 'string' && k.indexOf('auth-token') !== -1) {
-          try {
-            var tok = JSON.parse(localStorage.getItem(k));
-            if (tok && tok.user && tok.user.id) {
-              u = tok.user;
-              break;
-            }
-          } catch(e) {}
-        }
-      }
     }
 
     var strVal = typeof val === 'string' ? val : JSON.stringify(val);
@@ -173,35 +147,21 @@ async function initDashboardUserProfile() {
           }
         }
 
-        // Restore streak state strictly from DB
-        var dbStreakDay = parseInt(dbProfile.daily_streak_day, 10);
-        if (isNaN(dbStreakDay) || dbStreakDay < 1 || dbStreakDay > 7) {
-          dbStreakDay = 1;
-        }
-        var dbLastDate = dbProfile.last_streak_claim_date ? String(dbProfile.last_streak_claim_date).trim() : '';
-        var claimedToday = isStreakClaimedForToday(dbLastDate);
-        var dbLastClaimedDay = parseInt(dbProfile.last_claimed_streak_day, 10) || 0;
+        // Restore investment plan state strictly from DB
+        PLAN_STATE.planLevel = parseInt(dbProfile.plan_level, 10) || 0;
+        PLAN_STATE.planLastClaimDate = dbProfile.plan_last_claim_date ? String(dbProfile.plan_last_claim_date).trim() : '';
+        PLAN_STATE.planWelcomePaid = dbProfile.plan_welcome_paid === true;
 
-        if (!claimedToday || dbLastClaimedDay <= 0) {
-          claimedToday = false;
-          dbLastClaimedDay = 0;
-        }
-
-        var streak = {
-          day: dbStreakDay,
-          claimedToday: claimedToday,
-          lastClaimDate: dbLastDate,
-          lastClaimedDay: dbLastClaimedDay
-        };
-
-        saveDailyStreakData(streak);
-        renderDailyStreak();
+        renderPlanUI();
 
         if (typeof S !== 'undefined') {
           saveUserBalance();
           updateBalanceDisplays();
         }
       }
+
+      // No plan yet (or profile unavailable): show the picker, not the claim card
+      renderPlanUI();
 
       // Restore user completed tasks from DB
       const { data: dbTasks } = await window.supabaseClient
@@ -232,7 +192,7 @@ async function initDashboardUserProfile() {
   loadUserInvestmentsFromDB();
   loadUserReferralsFromDB();
   loadUserTransactionsFromDB();
-  renderVaultXModal();
+  loadInvestmentPlans();
 
   var parts = fullName.trim().split(/\s+/);
   var initials = 'CW';
@@ -435,7 +395,7 @@ function loadTasksState() {
   });
 }
 
-function saveUserTasksState(onlyTaskId) {
+function saveUserTasksState() {
   var state = {};
   S.tasks.forEach(function(t) {
     state[t.id] = { done: t.done, inputDoneVal: t.inputDoneVal || '', proofPath: t.proofPath || '' };
@@ -444,31 +404,10 @@ function saveUserTasksState(onlyTaskId) {
     setCrestStorage('user_tasks', state);
   } catch(e) {}
 
-  // Sync to Supabase DB if user is logged in
-  if (window.supabaseClient) {
-    try {
-      window.supabaseClient.auth.getSession().then(function(res) {
-        var u = res && res.data && res.data.session ? res.data.session.user : null;
-        if (u && !u.id.startsWith('demo_')) {
-          S.tasks.forEach(function(t) {
-            if (onlyTaskId !== undefined && t.id !== onlyTaskId) return;
-            if (t.done) {
-              var row = {
-                user_id: u.id,
-                task_id: t.id.toString(),
-                task_title: t.title,
-                reward_amount: t.rewardAmount || 2000,
-                status: 'completed',
-                completed_at: new Date().toISOString()
-              };
-              if (t.proofPath) row.proof_url = t.proofPath;
-              window.supabaseClient.from('user_tasks').upsert(row, { onConflict: 'user_id,task_id' }).then(function() {});
-            }
-          });
-        }
-      });
-    } catch(e) {}
-  }
+  // No remote write here. claim_user_task_reward records the authoritative
+  // user_tasks row (title, proof, reward) at the moment it actually pays, and
+  // users hold only SELECT and INSERT on that table — so they cannot clear
+  // their own completion flag to claim the same reward twice.
 }
 
 function loadInvestedBalance() {
@@ -491,32 +430,6 @@ function loadUserBalance() {
     }
   } catch(e) {}
   return 0;
-}
-
-async function syncUserBalanceToDB() {
-  if (!window.supabaseClient) return;
-  try {
-    var sessRes = await window.supabaseClient.auth.getSession();
-    var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
-    if (!u || (typeof u.id === 'string' && u.id.startsWith('demo_'))) return;
-
-    var { data: pData } = await window.supabaseClient
-      .from('profiles')
-      .select('cash_balance')
-      .eq('id', u.id)
-      .maybeSingle();
-
-    if (pData && pData.cash_balance !== undefined && pData.cash_balance !== null) {
-      var realBal = parseFloat(pData.cash_balance);
-      if (!isNaN(realBal)) {
-        S.cashBalance = realBal;
-        setCrestStorage('user_balance', S.cashBalance.toString());
-        updateBalanceDisplays();
-      }
-    }
-  } catch(e) {
-    console.warn('[Crest] syncUserBalanceToDB notice:', e);
-  }
 }
 
 function saveUserBalance() {
@@ -568,53 +481,65 @@ function updateBalanceDisplays() {
   }
 }
 
-async function creditUserReward(amount, taskTitle, taskId) {
+/* Credits a verified task reward.
+   `amount` is only a local expectation — the server resolves the real figure
+   from the published task config and is the sole writer of the balance, so we
+   wait for it and report what actually happened instead of assuming success. */
+async function creditUserReward(amount, taskTitle, taskId, proofPath) {
   var amt = parseFloat(amount) || 0;
-  if (amt <= 0) return;
-  S.cashBalance += amt;
-  saveUserBalance();
-  updateBalanceDisplays();
-
-  var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   var title = taskTitle || 'Prerequisite Complete';
-  prependUserTxn(today, 'Task Reward — ' + title, 'Reward', '+₦' + amt.toLocaleString('en-NG'), 'Completed');
+  var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Atomic database sync via RPC if logged in
+  if (amt <= 0) {
+    return { ok: false, message: 'This task has no reward configured.' };
+  }
+
+  var u = null;
   if (window.supabaseClient) {
     try {
       var sessRes = await window.supabaseClient.auth.getSession();
-      var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
-      if (u && !u.id.startsWith('demo_')) {
-        var tId = (taskId !== undefined ? taskId : ('task_' + title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase())).toString();
-        var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('claim_user_task_reward', {
-          p_task_id: tId,
-          p_reward_amount: amt,
-          p_task_title: title
-        });
-        if (rpcErr || (rpcRes && !rpcRes.success)) {
-          var { data: credRes, error: credErr } = await window.supabaseClient.rpc('credit_user_balance', {
-            p_amount: amt,
-            p_reason: 'Task Reward — ' + title,
-            p_type: 'reward'
-          });
-          if (!credErr && credRes && credRes.success && credRes.new_balance !== undefined) {
-            S.cashBalance = parseFloat(credRes.new_balance);
-            setCrestStorage('user_balance', S.cashBalance.toString());
-            updateBalanceDisplays();
-          } else {
-            // Also try syncUserBalanceToDB with full new balance
-            syncUserBalanceToDB(S.cashBalance);
-          }
-        } else if (rpcRes && rpcRes.success && rpcRes.new_balance !== undefined) {
-          S.cashBalance = parseFloat(rpcRes.new_balance);
-          setCrestStorage('user_balance', S.cashBalance.toString());
-          updateBalanceDisplays();
-        }
-        loadUserTransactionsFromDB();
-      }
-    } catch(e) {
-      console.warn('creditUserReward sync notice:', e);
+      u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
+    } catch (e) {}
+  }
+  var isRealUser = !!(u && typeof u.id === 'string' && !u.id.startsWith('demo_'));
+
+  // Guests and demo accounts have no server balance, so keep the credit local.
+  if (!isRealUser) {
+    S.cashBalance = (S.cashBalance || 0) + amt;
+    saveUserBalance();
+    updateBalanceDisplays();
+    prependUserTxn(today, 'Task Reward — ' + title, 'Reward', '+₦' + amt.toLocaleString('en-NG'), 'Completed');
+    return { ok: true, balance: S.cashBalance, reward: amt };
+  }
+
+  var tId = (taskId !== undefined ? taskId : ('task_' + title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase())).toString();
+
+  try {
+    var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('claim_user_task_reward', {
+      p_task_id: tId,
+      p_task_title: title,
+      p_proof_url: proofPath || null
+    });
+
+    if (rpcErr || !rpcRes || !rpcRes.success) {
+      return {
+        ok: false,
+        message: (rpcRes && rpcRes.message) || (rpcErr && rpcErr.message) || 'Could not credit this reward. Please try again.'
+      };
     }
+
+    var newBal = parseFloat(rpcRes.new_balance);
+    if (!isNaN(newBal)) {
+      S.cashBalance = newBal;
+      saveUserBalance();
+      updateBalanceDisplays();
+    }
+    // The ledger row is written by the RPC, so read it back rather than
+    // inventing a local entry the database does not have.
+    loadUserTransactionsFromDB();
+    return { ok: true, balance: S.cashBalance, reward: parseFloat(rpcRes.reward) || amt };
+  } catch (e) {
+    return { ok: false, message: 'Network error crediting reward: ' + e.message };
   }
 }
 
@@ -743,6 +668,24 @@ document.querySelectorAll('.nav-link[data-view]').forEach(function(a) {
 });
 
 /* ── TASK SYSTEM ─────────────────────────────────── */
+function dEsc(v) {
+  if (typeof escapeHtml === 'function') return escapeHtml(v);
+  if (v === null || v === undefined) return '';
+  return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function dUrl(u) {
+  if (typeof crestSanitizeUrl === 'function') return crestSanitizeUrl(u);
+  if (u === null || u === undefined) return '';
+  var raw = String(u).trim();
+  if (!raw) return '';
+  if (raw.indexOf('/') === 0 || raw.indexOf('./') === 0 || raw.indexOf('../') === 0) return raw;
+  try {
+    var parsed = new URL(raw, window.location.origin);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
+  } catch (e) {}
+  return '';
+}
+
 function refreshTaskUI() {
   var done = S.tasksDone;
   var total = S.tasks.length;
@@ -807,6 +750,9 @@ function renderLockedTasksList() {
   var el = $('lockedTasksList');
   if (!el) return;
   el.innerHTML = S.tasks.map(function(t) {
+    var title = dEsc(t.title);
+    var platform = dEsc(t.platform);
+    var reward = dEsc(t.reward);
     return '<div class="locked-task-row">' +
       '<div class="ltr-status ' + (t.done ? 'ltr-status--done' : 'ltr-status--pending') + '">' +
       (t.done
@@ -814,8 +760,8 @@ function renderLockedTasksList() {
         : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
       ) +
       '</div>' +
-      '<div><div class="ltr-name">' + t.title + '</div><div class="ltr-sub">' + t.platform + '</div></div>' +
-      '<span class="ltr-reward">' + t.reward + '</span>' +
+      '<div><div class="ltr-name">' + title + '</div><div class="ltr-sub">' + platform + '</div></div>' +
+      '<span class="ltr-reward">' + reward + '</span>' +
       '</div>';
   }).join('');
 }
@@ -853,18 +799,24 @@ function cleanTaskSteps(steps) {
 
 function renderTaskCard(t) {
   var steps = t.steps ? cleanTaskSteps(t.steps).map(function(s) {
-    return '<div class="task-step' + (t.done ? ' task-step--done' : '') + '">' + s + '</div>';
+    return '<div class="task-step' + (t.done ? ' task-step--done' : '') + '">' + dEsc(s) + '</div>';
   }).join('') : '';
 
   var rewardFormatted = t.reward || ('+₦' + (t.rewardAmount || 2000).toLocaleString('en-NG'));
+  var safeReward = dEsc(rewardFormatted);
+  var safeTitle = dEsc(t.title);
+  var safeDesc = dEsc(t.desc);
+  var safePlatform = dEsc(t.platform);
+  var safeHref = dUrl(t.url);
+  var safeUrlLabel = dEsc(t.urlLabel || (t.platform ? ('Open ' + t.platform) : 'Open link'));
 
   var actionHtml = '';
   if (t.done && !t.isQuiz && !t.isGame) {
     actionHtml = '<button class="task-btn task-btn--done task-btn--full" disabled><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Verified &amp; Paid</button>';
   } else if (!t.done && !t.isQuiz && !t.isGame) {
-    var openBtn = t.url
-      ? '<a href="' + t.url + '" target="_blank" rel="noopener" class="task-btn task-go-btn" onclick="startTask(' + t.id + ', event)">' +
-        (t.urlLabel || 'Open ' + t.platform) + ' ' + EXT_ICON + '</a>'
+    var openBtn = safeHref
+      ? '<a href="' + safeHref + '" target="_blank" rel="noopener" class="task-btn task-go-btn" onclick="startTask(' + t.id + ', event)">' +
+        safeUrlLabel + ' ' + EXT_ICON + '</a>'
       : '';
 
     if (t.verificationType === 'screenshot') {
@@ -881,10 +833,10 @@ function renderTaskCard(t) {
       var need = fmtDur(t.minSeconds || 30);
       if (isPending) {
         actionHtml = '<div class="task-pending"><span class="task-pending-spin"></span>' +
-          '<span class="task-pending-text">Stay on ' + t.platform + ' for at least ' + need + ', then come back here</span>' +
-          (t.url ? '<button class="task-pending-retry" onclick="startTask(' + t.id + ')">Open again</button>' : '') +
+          '<span class="task-pending-text">Stay on ' + safePlatform + ' for at least ' + need + ', then come back here</span>' +
+          (safeHref ? '<button class="task-pending-retry" onclick="startTask(' + t.id + ')">Open again</button>' : '') +
           '</div>';
-      } else if (t.url) {
+      } else if (safeHref) {
         actionHtml = '<div class="task-action-stack">' + openBtn +
           '<div class="task-time-hint">Spend at least ' + need + ' there — coming back early won\'t count</div></div>';
       } else {
@@ -894,19 +846,20 @@ function renderTaskCard(t) {
   } else if (t.isQuiz && !t.done) {
     actionHtml = renderQuizHTML();
   } else if (t.isQuiz && t.done) {
-    actionHtml = '<div class="quiz-feedback quiz-feedback--correct">Investment IQ Quiz Passed! ' + rewardFormatted + ' bonus credited.</div>';
+    actionHtml = '<div class="quiz-feedback quiz-feedback--correct">Investment IQ Quiz Passed! ' + safeReward + ' bonus credited.</div>';
   } else if (t.isGame && !t.done) {
     actionHtml = renderGameHTML();
   } else if (t.isGame && t.done) {
-    actionHtml = '<div class="quiz-feedback quiz-feedback--correct">Market Sprint Completed! Target achieved and ' + rewardFormatted + ' credited.</div>';
+    actionHtml = '<div class="quiz-feedback quiz-feedback--correct">Market Sprint Completed! Target achieved and ' + safeReward + ' credited.</div>';
   }
 
-  var iconSvg = ICONS[t.icon] || ICONS.quiz;
+  var iconKey = (t && t.icon && ICONS[t.icon]) ? t.icon : 'quiz';
+  var iconSvg = ICONS[iconKey] || ICONS.quiz;
 
   return '<div class="task-card ' + (t.done ? 'task-card--done' : '') + ' ' + (t.isQuiz ? 'task-card--quiz' : '') + ' ' + (t.isGame ? 'task-card--game' : '') + '" id="tcard-' + t.id + '">' +
-    '<div class="task-card-top"><div class="task-icon task-icon--' + (t.icon || 'quiz') + '">' + iconSvg + '</div><span class="task-reward">' + rewardFormatted + '</span></div>' +
-    '<div class="task-title">' + t.title + '</div>' +
-    '<div class="task-desc">' + t.desc + '</div>' +
+    '<div class="task-card-top"><div class="task-icon task-icon--' + iconKey + '">' + iconSvg + '</div><span class="task-reward">' + safeReward + '</span></div>' +
+    '<div class="task-title">' + safeTitle + '</div>' +
+    '<div class="task-desc">' + safeDesc + '</div>' +
     '<div class="task-steps">' + steps + '</div>' +
     actionHtml +
     '</div>';
@@ -938,7 +891,8 @@ function startTask(id, ev) {
   if (task.verificationType === 'screenshot') return; // screenshot tasks just open the link
   savePendingTask({ id: id, ts: Date.now(), hiddenAt: null, best: 0 });
   // "Open again" button isn't an anchor — open the link manually
-  if (!ev && task.url) window.open(task.url, '_blank', 'noopener');
+  var href = dUrl(task.url);
+  if (!ev && href) window.open(href, '_blank', 'noopener');
   setTimeout(renderTasksGrid, 50);
 }
 
@@ -1014,20 +968,27 @@ function verifyTask(id, proofPath) {
   var btn = document.querySelector('#tcard-' + id + ' .task-btn');
   if (btn && !proofPath) { btn.textContent = 'Verifying...'; btn.disabled = true; }
 
-  setTimeout(function() {
+  setTimeout(async function() {
+    var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : (function() {
+      var m = (task.reward || '').replace(/[^0-9]/g, '');
+      return m ? parseInt(m, 10) : 0;
+    })();
+
+    var result = await creditUserReward(rewardAmt, task.title, task.id, proofPath);
+
+    if (!result.ok) {
+      // Leave the task unclaimed so the user can try again.
+      if (btn) { btn.textContent = 'Claim Reward'; btn.disabled = false; }
+      toast(result.message, 'error');
+      return;
+    }
+
     task.done = true;
     task.inputDoneVal = proofPath ? 'Screenshot' : 'Verified';
     if (proofPath) task.proofPath = proofPath;
-    saveUserTasksState(id);
-
-    var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : (function() {
-      var m = (task.reward || '').replace(/[^0-9]/g, '');
-      return m ? parseInt(m, 10) : 2000;
-    })();
-
-    creditUserReward(rewardAmt, task.title, task.id);
+    saveUserTasksState();
     refreshTaskUI();
-    toast('Task verified! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
+    toast('Task verified! +₦' + (result.reward || 0).toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
   }, 1200);
 }
 
@@ -1137,21 +1098,29 @@ function answerQ(chosen) {
       var card = $('tcard-3');
       if (!card) return;
       var wrap = card.querySelector('.quiz-wrap');
+      var scoreLine = 'Score: ' + S.quiz.score + '/' + QUIZ_DATA.length + ' (' + pct + '%)<br>';
       if (wrap) wrap.outerHTML = '<div class="quiz-wrap"><div class="quiz-feedback quiz-feedback--' + (S.quiz.passed ? 'correct' : 'wrong') + '" style="text-align:center;padding:16px;">' +
-        '<strong>' + (S.quiz.passed ? 'Passed!' : 'Not quite!') + '</strong><br>Score: ' + S.quiz.score + '/' + QUIZ_DATA.length + ' (' + pct + '%)<br>' +
-        (S.quiz.passed ? 'Task complete. +N2,500 Bonus earned!' : 'Score 70%+ required. <button class="task-btn" onclick="retryQuiz()" style="margin-top:10px;display:inline-flex;">Try Again</button>') +
+        '<strong>' + (S.quiz.passed ? 'Passed!' : 'Not quite!') + '</strong><br>' + scoreLine +
+        (S.quiz.passed ? 'Crediting your bonus...' : 'Score 70%+ required. <button class="task-btn" onclick="retryQuiz()" style="margin-top:10px;display:inline-flex;">Try Again</button>') +
         '</div></div>';
-      if (S.quiz.passed) {
-        var task = S.tasks.find(function(t) { return t.id === 3; });
-        if (task) {
+      if (!S.quiz.passed) return;
+
+      var task = S.tasks.find(function(t) { return t.id === 3; });
+      if (!task) return;
+
+      creditUserReward((typeof task.rewardAmount === 'number') ? task.rewardAmount : 2500, task.title || 'Investment IQ Quiz', task.id)
+        .then(function(result) {
+          if (!result.ok) {
+            var fb = document.querySelector('#tcard-3 .quiz-feedback');
+            if (fb) fb.innerHTML = '<strong>Bonus not credited</strong><br>' + scoreLine + dEsc(result.message);
+            toast(result.message, 'error');
+            return;
+          }
           task.done = true;
           saveUserTasksState();
-          var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : 2500;
-          creditUserReward(rewardAmt, task.title || 'Investment IQ Quiz', task.id);
           refreshTaskUI();
-          toast('Investment IQ Quiz passed! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
-        }
-      }
+          toast('Investment IQ Quiz passed! +₦' + (result.reward || 0).toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
+        });
     }, 1700);
   }
 }
@@ -1307,12 +1276,14 @@ function gameTradeAction(action) {
       clearInterval(S.game.timer);
       var task = S.tasks.find(function(t) { return t.id === 4; });
       if (task) {
-        task.done = true;
-        saveUserTasksState();
-        var rewardAmt = (typeof task.rewardAmount === 'number') ? task.rewardAmount : 3500;
-        creditUserReward(rewardAmt, task.title || 'Market Timing Mini-Game', task.id);
-        refreshTaskUI();
-        toast('Market Sprint Complete! +₦' + rewardAmt.toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
+        creditUserReward((typeof task.rewardAmount === 'number') ? task.rewardAmount : 3500, task.title || 'Market Timing Mini-Game', task.id)
+          .then(function(result) {
+            if (!result.ok) { toast(result.message, 'error'); return; }
+            task.done = true;
+            saveUserTasksState();
+            refreshTaskUI();
+            toast('Market Sprint Complete! +₦' + (result.reward || 0).toLocaleString('en-NG') + ' added to your cash balance.', 'emerald');
+          });
       }
     }
   }
@@ -1596,7 +1567,7 @@ async function submitDeposit() {
     '0.142': 'Bronze Lock (14.2% p.a.)',
     '0.168': 'Silver Growth (16.8% p.a.)',
     '0.195': 'Gold Vault (19.5% p.a.)',
-    '0.240': 'VaultX VIP (24.0% p.a.)'
+    '0.240': 'Level 5 Package (24.0% p.a.)'
   };
   var planName = planMap[planRate] || 'Crest Stash (11.5%)';
   var bInfo = DEPOSIT_BANKS[currentDepositBank] || DEPOSIT_BANKS.opay;
@@ -1676,26 +1647,49 @@ async function submitDeposit() {
   calcReturns();
 }
 
-/* ── DAILY LOGIN BONUS STREAK (REBUILT FROM SCRATCH) ────────── */
-var STREAK_DAYS = [
-  { day: 1, label: 'Day 1', reward: 200, rewardStr: '+₦200' },
-  { day: 2, label: 'Day 2', reward: 200, rewardStr: '+₦200' },
-  { day: 3, label: 'Day 3', reward: 200, rewardStr: '+₦200' },
-  { day: 4, label: 'Day 4', reward: 200, rewardStr: '+₦200' },
-  { day: 5, label: 'Day 5', reward: 200, rewardStr: '+₦200' },
-  { day: 6, label: 'Day 6', reward: 200, rewardStr: '+₦200' },
-  { day: 7, label: 'Day 7', reward: 1000, rewardStr: '+₦1,000' }
+/* ── INVESTMENT PLAN SYSTEM (PICK → PAY → ADMIN APPROVE → CLAIM) ─── */
+var PLAN_STATE = {
+  plans: [],
+  planLevel: 0,
+  planLastClaimDate: '',
+  planWelcomePaid: false,
+  selectedLevel: 0,
+  step: 'choose',
+  submitting: false,
+  bank: { bankName: '', acctNum: '', acctName: '', bankNote: '' }
+};
+
+/* Client-side mirror of the published plan list. The server remains the
+   authority for every payout — this array only drives the UI. */
+var FALLBACK_INVESTMENT_PLANS = [
+  { level: 1, name: 'Starter', price: 5000, welcomeBonus: 250, dailyEarning: 900 },
+  { level: 2, name: 'Bronze', price: 15000, welcomeBonus: 750, dailyEarning: 2700 },
+  { level: 3, name: 'Silver', price: 30000, welcomeBonus: 1500, dailyEarning: 5400 },
+  { level: 4, name: 'Gold', price: 50000, welcomeBonus: 2500, dailyEarning: 9000 },
+  { level: 5, name: 'Platinum', price: 75000, welcomeBonus: 3750, dailyEarning: 13500 },
+  { level: 6, name: 'Emerald', price: 100000, welcomeBonus: 5000, dailyEarning: 18000 },
+  { level: 7, name: 'Sapphire', price: 200000, welcomeBonus: 10000, dailyEarning: 36000 },
+  { level: 8, name: 'Ruby', price: 350000, welcomeBonus: 17500, dailyEarning: 63000 },
+  { level: 9, name: 'Diamond', price: 500000, welcomeBonus: 25000, dailyEarning: 90000 },
+  { level: 10, name: 'Apex', price: 1000000, welcomeBonus: 50000, dailyEarning: 180000 }
 ];
 
-function getStreakTodayStr() {
-  var d = new Date();
-  var yr = d.getFullYear();
-  var mo = String(d.getMonth() + 1).padStart(2, '0');
-  var da = String(d.getDate()).padStart(2, '0');
-  return yr + '-' + mo + '-' + da;
+function formatNaira(n) {
+  var num = parseFloat(n);
+  if (isNaN(num)) num = 0;
+  return '₦' + Math.round(num).toLocaleString('en-NG');
 }
 
-function isStreakClaimedForToday(lastClaimDate) {
+function getPlanByLevel(level) {
+  var lv = parseInt(level, 10);
+  if (!lv) return null;
+  for (var i = 0; i < PLAN_STATE.plans.length; i++) {
+    if (parseInt(PLAN_STATE.plans[i].level, 10) === lv) return PLAN_STATE.plans[i];
+  }
+  return null;
+}
+
+function isPlanClaimedToday(lastClaimDate) {
   if (!lastClaimDate) return false;
   var d = new Date();
   var localToday = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -1704,171 +1698,205 @@ function isStreakClaimedForToday(lastClaimDate) {
   return rawDate === localToday || rawDate === utcToday;
 }
 
-function getDailyStreakData() {
-  var defaultData = { day: 1, claimedToday: false, lastClaimDate: '', lastClaimedDay: 0 };
-  try {
-    var raw = getCrestStorage('daily_streak', null);
-    if (raw) {
-      var parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      if (parsed && typeof parsed === 'object') {
-        var day = parseInt(parsed.day, 10);
-        if (isNaN(day) || day < 1 || day > 7) day = 1;
-        var claimedToday = isStreakClaimedForToday(parsed.lastClaimDate);
-        var lastClaimedDay = parseInt(parsed.lastClaimedDay, 10) || 0;
-        if (!claimedToday) {
-          lastClaimedDay = 0;
-        }
-        return {
-          day: day,
-          claimedToday: claimedToday,
-          lastClaimDate: parsed.lastClaimDate || '',
-          lastClaimedDay: lastClaimedDay
-        };
-      }
-    }
-  } catch(e) {}
-  return defaultData;
+function planTodayStr() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-function saveDailyStreakData(data) {
-  try {
-    setCrestStorage('daily_streak', data);
-  } catch(e) {}
-}
-
-function renderDailyStreak() {
-  var streak = getDailyStreakData();
-  var track = $('streakDaysTrack');
-  var btn = $('claimStreakBtn');
-  var btnTxt = $('claimStreakBtnText');
-
-  if (track) {
-    track.innerHTML = STREAK_DAYS.map(function(item) {
-      var isDone = false;
-      var isAvailable = false;
-
-      if (streak.claimedToday) {
-        // If claimed today, all days up to the one claimed today are green checkmarks
-        isDone = item.day <= streak.lastClaimedDay;
-      } else {
-        // Not claimed today yet: days before current streak day are done, current day is available
-        isDone = item.day < streak.day;
-        isAvailable = item.day === streak.day;
-      }
-
-      var cls = 'streak-day-item' + (isDone ? ' done' : '') + (isAvailable ? ' today' : '');
-      var statusTxt = isDone ? 'Claimed ✓' : (isAvailable ? 'Available' : 'Locked');
-
-      return '<div class="' + cls + '">' +
-        '<div class="sdi-day">' + item.label + '</div>' +
-        '<div class="sdi-reward">' + item.rewardStr + '</div>' +
-        '<div class="sdi-status">' + statusTxt + '</div>' +
-        '</div>';
-    }).join('');
+/* Reads the admin-published plan list and the receiving bank details. */
+async function loadInvestmentPlans() {
+  if (!window.supabaseClient) {
+    PLAN_STATE.plans = FALLBACK_INVESTMENT_PLANS.slice();
+    renderPlanUI();
+    return;
   }
+  try {
+    var res = await window.supabaseClient
+      .from('app_settings')
+      .select('key, value')
+      .in('key', ['investment_plans', 'platform_settings']);
+
+    var rows = (res && res.data) || [];
+    var plansRow = null;
+    var bankRow = null;
+    rows.forEach(function(r) {
+      if (r.key === 'investment_plans') plansRow = r;
+      if (r.key === 'platform_settings') bankRow = r;
+    });
+
+    var list = plansRow && Array.isArray(plansRow.value) ? plansRow.value : null;
+    PLAN_STATE.plans = (list && list.length ? list : FALLBACK_INVESTMENT_PLANS).slice();
+
+    if (bankRow && bankRow.value && typeof bankRow.value === 'object') {
+      PLAN_STATE.bank = {
+        bankName: bankRow.value.bankName || '',
+        acctNum: bankRow.value.acctNum || '',
+        acctName: bankRow.value.acctName || '',
+        bankNote: bankRow.value.bankNote || ''
+      };
+    }
+  } catch (err) {
+    console.warn('[Crest] Investment plans load:', err);
+    PLAN_STATE.plans = FALLBACK_INVESTMENT_PLANS.slice();
+  }
+
+  renderPlanUI();
+  var bd = $('planModalBackdrop');
+  if (bd && bd.classList.contains('active')) renderPlanModal();
+}
+
+/* Decides which surface the investor sees: the plan picker (no plan yet) or
+   the daily reward claim card (plan active). */
+function renderPlanUI() {
+  var level = parseInt(PLAN_STATE.planLevel, 10) || 0;
+  var claimCard = $('planClaimCard');
+  var gateCard = $('planGateCard');
+  var tasksGate = $('tasksPlanGate');
+  var tasksWrap = $('tasksGateWrap');
+
+  if (level > 0) {
+    if (claimCard) claimCard.style.display = 'block';
+    if (gateCard) gateCard.style.display = 'none';
+    if (tasksGate) tasksGate.style.display = 'none';
+    if (tasksWrap) tasksWrap.style.display = 'block';
+    renderPlanClaimCard();
+  } else {
+    if (claimCard) claimCard.style.display = 'none';
+    if (gateCard) gateCard.style.display = 'block';
+    if (tasksGate) tasksGate.style.display = 'block';
+    if (tasksWrap) tasksWrap.style.display = 'none';
+    renderPlanGate();
+  }
+}
+
+function renderPlanClaimCard() {
+  var plan = getPlanByLevel(PLAN_STATE.planLevel);
+  var badge = $('planClaimBadge');
+  var dailyEl = $('planStatDaily');
+  var welcomeEl = $('planStatWelcome');
+  var statusEl = $('planStatStatus');
+  var sub = $('planClaimSub');
+  var btn = $('claimPlanBtn');
+  var btnTxt = $('claimPlanBtnText');
+
+  var name = plan ? plan.name : 'Active Plan';
+  var daily = plan ? plan.dailyEarning : 0;
+  var welcome = plan ? plan.welcomeBonus : 0;
+
+  if (badge) badge.textContent = 'Level ' + (PLAN_STATE.planLevel || 0) + ' · ' + name;
+  if (dailyEl) dailyEl.textContent = formatNaira(daily);
+  if (welcomeEl) welcomeEl.textContent = PLAN_STATE.planWelcomePaid ? 'Claimed' : formatNaira(welcome);
+
+  var claimed = isPlanClaimedToday(PLAN_STATE.planLastClaimDate);
 
   if (btn && btnTxt) {
-    if (streak.claimedToday) {
-      btn.className = 'btn-claim-streak claimed';
+    if (claimed) {
       btn.disabled = true;
-      btnTxt.textContent = 'Day ' + (streak.lastClaimedDay || 1) + ' Claimed Today ✓';
+      btn.classList.add('claimed');
+      btnTxt.textContent = 'Claimed Today';
     } else {
-      btn.className = 'btn-claim-streak';
       btn.disabled = false;
-      var curRewardStr = (STREAK_DAYS[streak.day - 1] && STREAK_DAYS[streak.day - 1].rewardStr) ? STREAK_DAYS[streak.day - 1].rewardStr : '+₦200';
-      btnTxt.textContent = 'Claim Day ' + streak.day + ' (' + curRewardStr + ')';
+      btn.classList.remove('claimed');
+      btnTxt.textContent = 'Claim Daily Reward';
+    }
+  }
+
+  if (statusEl) statusEl.textContent = claimed ? 'Tomorrow' : 'Available';
+  if (sub) {
+    if (claimed) {
+      sub.textContent = 'Today\'s reward is in your balance. Come back tomorrow for the next payout.';
+    } else if (!PLAN_STATE.planWelcomePaid && parseFloat(welcome) > 0) {
+      sub.textContent = 'Your one-time ' + formatNaira(welcome) + ' welcome bonus is included in this claim.';
+    } else {
+      sub.textContent = 'Claim your daily reward every 24 hours.';
     }
   }
 }
 
-async function claimDailyStreak() {
-  var streak = getDailyStreakData();
-  if (streak.claimedToday) {
-    toast('You have already claimed today\'s login bonus! Please come back tomorrow.', 'info');
+function renderPlanGate() {
+  var grid = $('dashPlansGrid');
+  if (!grid) return;
+  if (!PLAN_STATE.plans || !PLAN_STATE.plans.length) {
+    grid.innerHTML = '<p class="muted-text">Plans are loading…</p>';
+    return;
+  }
+  grid.innerHTML = PLAN_STATE.plans.map(function(p) {
+    var lv = parseInt(p.level, 10) || 0;
+    return '<div class="dash-plan-card">' +
+      '<div class="dpc-top"><span class="dpc-level">Level ' + lv + '</span></div>' +
+      '<div class="dpc-name">' + dEsc(p.name) + '</div>' +
+      '<div class="dpc-price">' + formatNaira(p.price) + '</div>' +
+      '<ul class="dpc-facts">' +
+        '<li class="dpc-daily"><span>Daily earning</span><strong>' + formatNaira(p.dailyEarning) + '</strong></li>' +
+        '<li><span>Welcome bonus</span><strong>' + formatNaira(p.welcomeBonus) + '</strong></li>' +
+      '</ul>' +
+      '<button class="dpc-cta" onclick="openPlanPicker(' + lv + ')">Start Plan</button>' +
+    '</div>';
+  }).join('');
+}
+
+/* The server resolves the payout from the active plan — we never send an
+   amount. The welcome bonus is added once, on the very first claim. */
+async function claimPlanDailyReward() {
+  if (!PLAN_STATE.planLevel) {
+    toast('Pick an investment plan to start earning daily rewards.', 'info');
+    renderPlanUI();
+    switchView('overview');
     return;
   }
 
-  var btn = $('claimStreakBtn');
-  var btnTxt = $('claimStreakBtnText');
-  if (btn) btn.disabled = true;
-  if (btnTxt) btnTxt.textContent = 'Claiming Bonus...';
-
-  var curDay = streak.day || 1;
-  var curReward = (STREAK_DAYS[curDay - 1] && STREAK_DAYS[curDay - 1].reward) ? STREAK_DAYS[curDay - 1].reward : 200;
-  var curRewardStr = (STREAK_DAYS[curDay - 1] && STREAK_DAYS[curDay - 1].rewardStr) ? STREAK_DAYS[curDay - 1].rewardStr : '+₦200';
-
-  // 1. Authenticated Supabase flow
-  if (window.supabaseClient) {
-    try {
-      var sessRes = await window.supabaseClient.auth.getSession();
-      var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
-      if (u && typeof u.id === 'string' && !u.id.startsWith('demo_')) {
-        var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('claim_daily_streak_reward', {
-          p_custom_amount: curReward
-        });
-
-        if (rpcErr || !rpcRes || !rpcRes.success) {
-          console.error('[Crest Streak] RPC failure:', rpcErr || rpcRes);
-          // Re-enable claim button so user is never stuck in false claimed state
-          if (btn) btn.disabled = false;
-          renderDailyStreak();
-          var errMsg = (rpcRes && rpcRes.message) || (rpcErr && rpcErr.message) || 'Failed to claim streak bonus. Please verify your database functions or try again.';
-          toast(errMsg, 'error');
-          return;
-        }
-
-        // RPC succeeded! Database has atomically updated balance and streak tracking
-        var dayClaimed = rpcRes.day_claimed || curDay;
-        var nextDay = rpcRes.next_day || (dayClaimed >= 7 ? 1 : dayClaimed + 1);
-        var newBal = parseFloat(rpcRes.new_balance);
-
-        if (!isNaN(newBal)) {
-          S.cashBalance = newBal;
-          saveUserBalance();
-        }
-
-        var updatedStreak = {
-          day: nextDay,
-          claimedToday: true,
-          lastClaimDate: getStreakTodayStr(),
-          lastClaimedDay: dayClaimed
-        };
-        saveDailyStreakData(updatedStreak);
-        updateBalanceDisplays();
-        renderDailyStreak();
-        if (typeof loadUserTransactionsFromDB === 'function') {
-          loadUserTransactionsFromDB();
-        }
-
-        toast('🎉 Claimed Day ' + dayClaimed + ' bonus! +₦' + Number(rpcRes.reward || curReward).toLocaleString('en-NG') + ' added to your cash balance!', 'emerald');
-        return;
-      }
-    } catch(err) {
-      console.error('[Crest Streak] Exception during claim:', err);
-      if (btn) btn.disabled = false;
-      renderDailyStreak();
-      toast('Network error claiming bonus: ' + err.message, 'error');
-      return;
-    }
+  if (isPlanClaimedToday(PLAN_STATE.planLastClaimDate)) {
+    toast('You have already claimed today\'s plan reward. Please come back tomorrow.', 'info');
+    renderPlanClaimCard();
+    return;
   }
 
-  // 2. Demo / Guest / Offline mode fallback
-  var offlineClaimedDay = curDay;
-  var offlineNextDay = (curDay >= 7 ? 1 : curDay + 1);
-  S.cashBalance = (S.cashBalance || 0) + curReward;
-  saveUserBalance();
+  var btn = $('claimPlanBtn');
+  var btnTxt = $('claimPlanBtnText');
+  if (btn) btn.disabled = true;
+  if (btnTxt) btnTxt.textContent = 'Claiming...';
 
-  var offlineStreak = {
-    day: offlineNextDay,
-    claimedToday: true,
-    lastClaimDate: getStreakTodayStr(),
-    lastClaimedDay: offlineClaimedDay
-  };
-  saveDailyStreakData(offlineStreak);
-  updateBalanceDisplays();
-  renderDailyStreak();
+  if (!window.supabaseClient) {
+    if (btn) btn.disabled = false;
+    renderPlanClaimCard();
+    toast('You need to be online to claim your reward.', 'error');
+    return;
+  }
 
-  toast('🎉 Claimed Day ' + offlineClaimedDay + ' bonus! +₦' + curReward.toLocaleString('en-NG') + ' added to your balance!', 'emerald');
+  try {
+    var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('claim_plan_daily_reward');
+
+    if (rpcErr || !rpcRes || !rpcRes.success) {
+      if (btn) btn.disabled = false;
+      renderPlanClaimCard();
+      var msg = (rpcRes && rpcRes.message) || (rpcErr && rpcErr.message) || 'Failed to claim your plan reward. Please try again.';
+      toast(msg, 'error');
+      return;
+    }
+
+    var newBal = parseFloat(rpcRes.new_balance);
+    if (!isNaN(newBal) && typeof S !== 'undefined') {
+      S.cashBalance = newBal;
+      saveUserBalance();
+      updateBalanceDisplays();
+    }
+
+    PLAN_STATE.planLastClaimDate = planTodayStr();
+    if (rpcRes.welcome_paid) PLAN_STATE.planWelcomePaid = true;
+
+    renderPlanClaimCard();
+    if (typeof loadUserTransactionsFromDB === 'function') loadUserTransactionsFromDB();
+
+    var credited = Number(rpcRes.amount_credited || 0);
+    var bonus = Number(rpcRes.welcome_bonus || 0);
+    var toastMsg = '🎉 +' + formatNaira(credited) + ' credited to your cash balance';
+    if (bonus > 0) toastMsg += ' (includes your ' + formatNaira(bonus) + ' welcome bonus)';
+    toast(toastMsg + '!', 'emerald');
+  } catch (err) {
+    if (btn) btn.disabled = false;
+    renderPlanClaimCard();
+    toast('Network error claiming reward: ' + err.message, 'error');
+  }
 }
 
 /* ── 24-HOUR TASK CYCLE CLOCK ────────────────────────── */
@@ -2221,7 +2249,11 @@ function initSettingsInteractions() {
           if (!window.crestUser.user_metadata) window.crestUser.user_metadata = {};
           window.crestUser.user_metadata.full_name = full;
           window.crestUser.email = email || window.crestUser.email;
-          localStorage.setItem('crest_current_user', JSON.stringify(window.crestUser));
+          if (typeof crestPersistCurrentUser === 'function') {
+            crestPersistCurrentUser(window.crestUser);
+          } else {
+            localStorage.setItem('crest_current_user', JSON.stringify(window.crestUser));
+          }
 
           if (window.supabaseClient && window.crestUser.id && !window.crestUser.id.startsWith('demo_')) {
             try {
@@ -2288,7 +2320,11 @@ function initSettingsInteractions() {
         if (window.supabaseClient) {
           await window.supabaseClient.auth.signOut();
         }
-        localStorage.removeItem('crest_current_user');
+        if (typeof crestPersistCurrentUser === 'function') {
+          crestPersistCurrentUser(null);
+        } else {
+          localStorage.removeItem('crest_current_user');
+        }
         setTimeout(function() {
           window.location.href = '../index/index.html';
         }, 500);
@@ -2298,119 +2334,212 @@ function initSettingsInteractions() {
 }
 
 /* ============================================================
-   VAULTX VIP TIERS, DYNAMIC PORTFOLIO & REFERRALS (DB LINKED)
+   PLAN PICKER, BANK-TRANSFER PAYMENT & DYNAMIC PORTFOLIO
    ============================================================ */
-var VAULTX_TIERS = [
-  { level: 1, rank: 'Bronze VIP', badgeCls: 'vx-badge-bronze', package: 5000, welcomeBonus: 1500, dailyEarning: 900 },
-  { level: 2, rank: 'Silver VIP', badgeCls: 'vx-badge-silver', package: 15000, welcomeBonus: 5000, dailyEarning: 2700 },
-  { level: 3, rank: 'Gold VIP', badgeCls: 'vx-badge-gold', package: 30000, welcomeBonus: 10000, dailyEarning: 5400 },
-  { level: 4, rank: 'Platinum VIP', badgeCls: 'vx-badge-platinum', package: 50000, welcomeBonus: 17000, dailyEarning: 9000 },
-  { level: 5, rank: 'Emerald VIP', badgeCls: 'vx-badge-emerald', package: 75000, welcomeBonus: 25000, dailyEarning: 13500 },
-  { level: 6, rank: 'Sapphire VIP', badgeCls: 'vx-badge-sapphire', package: 100000, welcomeBonus: 35000, dailyEarning: 18000 },
-  { level: 7, rank: 'Ruby VIP', badgeCls: 'vx-badge-ruby', package: 200000, welcomeBonus: 70000, dailyEarning: 36000 },
-  { level: 8, rank: 'Diamond VIP', badgeCls: 'vx-badge-diamond', package: 350000, welcomeBonus: 90000, dailyEarning: 63000 },
-  { level: 9, rank: 'Obsidian VIP', badgeCls: 'vx-badge-obsidian', package: 500000, welcomeBonus: 150000, dailyEarning: 90000 },
-  { level: 10, rank: 'Apex Imperial VIP', badgeCls: 'vx-badge-apex', package: 1000000, welcomeBonus: 350000, dailyEarning: 180000 }
-];
 
-function renderVaultXModal() {
-  var grid = $('vxTiersGrid');
-  if (!grid) return;
-  var fmt = function(n) { return '₦' + n.toLocaleString('en-NG'); };
+function openPlanPicker(level) {
+  var backdrop = $('planModalBackdrop');
+  if (!backdrop) return;
 
-  grid.innerHTML = VAULTX_TIERS.map(function(t) {
-    return '<div class="vx-tier-card" data-level="' + t.level + '">' +
-      '<div class="vx-tier-head">' +
-        '<span class="vx-tier-num">LEVEL ' + t.level + '</span>' +
-        '<span class="vx-tier-badge ' + t.badgeCls + '">' + t.rank.toUpperCase() + '</span>' +
-      '</div>' +
-      '<div class="vx-tier-cost">' +
-        '<span class="vx-cost-num">' + fmt(t.package) + '</span>' +
-        '<span class="vx-cost-label">Capital</span>' +
-      '</div>' +
-      '<div class="vx-tier-metrics">' +
-        '<div class="vx-tm-item">' +
-          '<span class="vx-tm-label">DAILY YIELD</span>' +
-          '<span class="vx-tm-val positive">' + fmt(t.dailyEarning) + '/day</span>' +
-        '</div>' +
-        '<div class="vx-tm-item vx-tm-right">' +
-          '<span class="vx-tm-label">BONUS</span>' +
-          '<span class="vx-tm-val vx-bonus-val">+' + fmt(t.welcomeBonus) + ' instant</span>' +
-        '</div>' +
-      '</div>' +
-      '<button class="vx-btn-activate" onclick="subscribeToVaultXTier(' + t.level + ')">' +
-        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> ' +
-        '<span>Activate ' + t.rank + '</span>' +
-      '</button>' +
-    '</div>';
-  }).join('');
-}
-
-function openVaultXModal() {
-  var m = $('vaultxModalBackdrop');
-  if (m) {
-    m.classList.add('active');
-    renderVaultXModal();
+  PLAN_STATE.submitting = false;
+  var lv = parseInt(level, 10) || 0;
+  if (lv) {
+    PLAN_STATE.selectedLevel = lv;
+    PLAN_STATE.step = 'pay';
+  } else {
+    PLAN_STATE.selectedLevel = 0;
+    PLAN_STATE.step = 'choose';
   }
+
+  renderPlanModal();
+  backdrop.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  var closeBtn = backdrop.querySelector('.plan-modal-close');
+  if (closeBtn) closeBtn.focus();
 }
 
-function closeVaultXModal() {
-  var m = $('vaultxModalBackdrop');
-  if (m) m.classList.remove('active');
+function closePlanModal() {
+  var backdrop = $('planModalBackdrop');
+  if (backdrop) backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+  PLAN_STATE.submitting = false;
+  PLAN_STATE.selectedLevel = 0;
+  PLAN_STATE.step = 'choose';
 }
 
-async function subscribeToVaultXTier(level) {
-  var tier = VAULTX_TIERS.find(function(t) { return t.level === level; });
-  if (!tier) return;
+function selectPlan(level) {
+  PLAN_STATE.selectedLevel = parseInt(level, 10) || 0;
+  PLAN_STATE.step = 'pay';
+  renderPlanModal();
+}
 
-  if (S.cashBalance < tier.package) {
-    var diff = tier.package - S.cashBalance;
-    toast('Insufficient cash balance. You need ₦' + diff.toLocaleString('en-NG') + ' more to activate ' + tier.rank + '.', 'warn');
-    closeVaultXModal();
-    switchView('deposit');
-    var amtEl = $('depositAmount');
-    if (amtEl) amtEl.value = diff;
+function backToPlanList() {
+  PLAN_STATE.selectedLevel = 0;
+  PLAN_STATE.step = 'choose';
+  renderPlanModal();
+}
+
+function renderPlanModal() {
+  var body = $('planModalBody');
+  var title = $('planModalTitle');
+  var sub = $('planModalSub');
+  if (!body) return;
+
+  if (!PLAN_STATE.plans || !PLAN_STATE.plans.length) {
+    body.innerHTML = '<p class="muted-text">Plans are loading…</p>';
     return;
   }
 
-  // Database atomic activation via RPC
-  if (window.supabaseClient) {
-    try {
-      var sessRes = await window.supabaseClient.auth.getSession();
-      var u = sessRes && sessRes.data && sessRes.data.session ? sessRes.data.session.user : null;
-      if (u && !u.id.startsWith('demo_')) {
-        toast('Activating ' + tier.rank + ' package...', 'info');
-        var { data: rpcRes } = await window.supabaseClient.rpc('subscribe_vaultx_package', { p_level: level });
-        if (rpcRes && rpcRes.success) {
-          S.cashBalance = parseFloat(rpcRes.new_cash_balance);
-          S.investedBalance = parseFloat(rpcRes.new_invested_balance);
-          saveUserBalance();
-          updateBalanceDisplays();
-          closeVaultXModal();
-          toast('🎉 ' + tier.rank + ' activated successfully! Welcome bonus credited.', 'emerald');
-          loadUserInvestmentsFromDB();
-          loadUserTransactionsFromDB();
-          switchView('portfolio');
-          return;
-        } else if (rpcRes && !rpcRes.success) {
-          toast(rpcRes.message || 'Subscription failed.', 'warn');
-          return;
-        }
-      }
-    } catch(e) {
-      console.warn('subscribeToVaultXTier RPC error, using local fallback:', e);
+  // Step 3 — payment submitted, awaiting the admin
+  if (PLAN_STATE.step === 'success') {
+    var donePlan = getPlanByLevel(PLAN_STATE.selectedLevel);
+    if (title) title.textContent = 'Payment Submitted';
+    if (sub) sub.textContent = 'Awaiting administrator confirmation.';
+    body.innerHTML =
+      '<div class="pm-success">' +
+        '<div class="pm-success-icon">' +
+          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' +
+        '</div>' +
+        '<div class="pm-success-title">Payment Received</div>' +
+        '<div class="pm-success-sub">Your ' + (donePlan ? dEsc(formatNaira(donePlan.price)) + ' payment for the ' + dEsc(donePlan.name) + ' plan' : 'payment') +
+        ' has been submitted. An administrator will confirm the transfer, and your balance, daily reward and claim button activate the moment it is approved.</div>' +
+      '</div>' +
+      '<button class="pm-submit" onclick="closePlanModal()">Done</button>';
+    return;
+  }
+
+  // Step 2 — bank transfer instructions
+  if (PLAN_STATE.step === 'pay') {
+    var plan = getPlanByLevel(PLAN_STATE.selectedLevel);
+    if (!plan) {
+      PLAN_STATE.step = 'choose';
+    } else {
+      var bank = PLAN_STATE.bank || {};
+      if (title) title.textContent = 'Fund with Bank Transfer';
+      if (sub) sub.textContent = 'Transfer the package amount, then confirm below.';
+      body.innerHTML =
+        '<div class="pm-plan-row" style="cursor:default;">' +
+          '<div class="pm-plan-row-left">' +
+            '<div class="pm-plan-row-name">Level ' + (parseInt(plan.level, 10) || 0) + ' · ' + dEsc(plan.name) + '</div>' +
+            '<div class="pm-plan-row-meta">Daily ' + formatNaira(plan.dailyEarning) + ' · Bonus ' + formatNaira(plan.welcomeBonus) + '</div>' +
+          '</div>' +
+          '<div class="pm-plan-row-price">' + formatNaira(plan.price) + '</div>' +
+        '</div>' +
+        '<div class="pm-summary">' +
+          '<div class="pm-summary-row"><span>Package amount</span><strong>' + formatNaira(plan.price) + '</strong></div>' +
+          '<div class="pm-summary-row"><span>Daily earning</span><strong>' + formatNaira(plan.dailyEarning) + '</strong></div>' +
+          '<div class="pm-summary-row"><span>Welcome bonus</span><strong>' + formatNaira(plan.welcomeBonus) + '</strong></div>' +
+          '<div class="pm-summary-row pm-total"><span>Amount to transfer</span><strong>' + formatNaira(plan.price) + '</strong></div>' +
+        '</div>' +
+        '<div class="pm-bank-box">' +
+          '<div class="pm-bank-title">Transfer to</div>' +
+          '<div class="pm-bank-row"><span>Bank</span><strong>' + dEsc(bank.bankName || '—') + '</strong></div>' +
+          '<div class="pm-bank-row"><span>Account number</span><strong class="acct">' + dEsc(bank.acctNum || '—') + '</strong></div>' +
+          '<div class="pm-bank-row"><span>Account name</span><strong>' + dEsc(bank.acctName || '—') + '</strong></div>' +
+          '<div class="pm-bank-note">' + dEsc(bank.bankNote || 'Use your full name as the payment narration.') + '</div>' +
+        '</div>' +
+        '<div class="pm-field">' +
+          '<label class="pm-label" for="pmSenderBank">Your bank</label>' +
+          '<input class="pm-input" id="pmSenderBank" type="text" placeholder="e.g. GTBank" autocomplete="off">' +
+        '</div>' +
+        '<div class="pm-field">' +
+          '<label class="pm-label" for="pmSenderAcct">Your account number</label>' +
+          '<input class="pm-input" id="pmSenderAcct" type="text" inputmode="numeric" placeholder="Account number you paid from" autocomplete="off">' +
+        '</div>' +
+        '<div class="pm-field">' +
+          '<label class="pm-label" for="pmSenderName">Account name</label>' +
+          '<input class="pm-input" id="pmSenderName" type="text" placeholder="Name on the paying account" autocomplete="off">' +
+        '</div>' +
+        '<button class="pm-submit" id="pmSubmitBtn" onclick="submitPlanPayment()">I have made the transfer</button>' +
+        '<button class="pm-back" onclick="backToPlanList()">Back to plans</button>' +
+        '<p class="pm-note">Your payment is only credited after an administrator confirms the transfer into the receiving account above.</p>';
+      return;
     }
   }
 
-  // Fallback for demo or local session
-  S.cashBalance = S.cashBalance - tier.package + tier.welcomeBonus;
-  S.investedBalance = (S.investedBalance || 0) + tier.package;
-  saveUserBalance();
-  updateBalanceDisplays();
-  closeVaultXModal();
-  toast('🎉 ' + tier.rank + ' activated! +₦' + tier.welcomeBonus.toLocaleString('en-NG') + ' welcome bonus credited.', 'emerald');
-  switchView('portfolio');
+  // Step 1 — choose a plan
+  if (title) title.textContent = 'Pick an Investment Plan';
+  if (sub) sub.textContent = 'Choose the package you want to activate.';
+  body.innerHTML = PLAN_STATE.plans.map(function(p) {
+    var lv = parseInt(p.level, 10) || 0;
+    return '<button class="pm-plan-row" onclick="selectPlan(' + lv + ')">' +
+      '<div class="pm-plan-row-left">' +
+        '<div class="pm-plan-row-name">Level ' + lv + ' · ' + dEsc(p.name) + '</div>' +
+        '<div class="pm-plan-row-meta">Daily ' + formatNaira(p.dailyEarning) + ' · Bonus ' + formatNaira(p.welcomeBonus) + '</div>' +
+      '</div>' +
+      '<div class="pm-plan-row-price">' + formatNaira(p.price) + '</div>' +
+    '</button>';
+  }).join('');
 }
+
+async function submitPlanPayment() {
+  if (PLAN_STATE.submitting) return;
+
+  var plan = getPlanByLevel(PLAN_STATE.selectedLevel);
+  if (!plan) {
+    toast('Please pick a plan first.', 'warn');
+    return;
+  }
+
+  var bankEl = $('pmSenderBank');
+  var acctEl = $('pmSenderAcct');
+  var nameEl = $('pmSenderName');
+  var bankName = bankEl ? bankEl.value.trim() : '';
+  var acctNum = acctEl ? acctEl.value.trim() : '';
+  var acctName = nameEl ? nameEl.value.trim() : '';
+
+  if (!bankName || !acctNum || !acctName) {
+    toast('Enter the bank, account number and account name you paid from.', 'warn');
+    return;
+  }
+  if (!/^[0-9]{6,20}$/.test(acctNum)) {
+    toast('Enter a valid account number (6–20 digits).', 'warn');
+    return;
+  }
+
+  var btn = $('pmSubmitBtn');
+  PLAN_STATE.submitting = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+  if (!window.supabaseClient) {
+    PLAN_STATE.submitting = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'I have made the transfer'; }
+    toast('You need to be online to submit a payment.', 'error');
+    return;
+  }
+
+  try {
+    // The server resolves the price and plan name; we only name the level.
+    var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc('submit_plan_payment', {
+      p_level: parseInt(plan.level, 10),
+      p_bank_name: bankName,
+      p_account_number: acctNum,
+      p_account_name: acctName
+    });
+
+    if (rpcErr || !rpcRes || !rpcRes.success) {
+      PLAN_STATE.submitting = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'I have made the transfer'; }
+      toast((rpcRes && rpcRes.message) || (rpcErr && rpcErr.message) || 'Could not submit your payment. Please try again.', 'error');
+      return;
+    }
+
+    PLAN_STATE.step = 'success';
+    renderPlanModal();
+    if (typeof loadUserTransactionsFromDB === 'function') loadUserTransactionsFromDB();
+    toast('Payment submitted! An administrator will confirm it shortly.', 'emerald');
+  } catch (err) {
+    PLAN_STATE.submitting = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'I have made the transfer'; }
+    toast('Network error submitting payment: ' + err.message, 'error');
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  var bd = $('planModalBackdrop');
+  if (bd && bd.classList.contains('active')) closePlanModal();
+});
 
 /* ── DYNAMIC USER PORTFOLIO HOLDINGS ─────────────────── */
 async function loadUserInvestmentsFromDB() {
@@ -2461,7 +2590,7 @@ async function loadUserInvestmentsFromDB() {
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
           '</div>' +
           '<div>' +
-            '<div class="inv-name">' + (inv.asset_name || 'VaultX VIP Package') + '</div>' +
+            '<div class="inv-name">' + (inv.asset_name || 'Investment Plan') + '</div>' +
             '<div class="inv-meta">Day ' + daysActive + ' of 30 &bull; Earning ₦' + dailyYield.toLocaleString('en-NG') + '/day</div>' +
           '</div>' +
           '<span class="badge badge--active">Active</span>' +
@@ -2502,8 +2631,8 @@ function renderEmptyPortfolioState() {
       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' +
     '</div>' +
     '<div class="empty-title">No Active Investments Yet</div>' +
-    '<div class="empty-desc">You do not have any active VaultX packages. Subscribe to any of our 10 VIP tiers starting from ₦5,000 to earn up to 18% daily returns.</div>' +
-    '<button class="btn-primary" onclick="openVaultXModal()">+ Choose a VaultX Plan</button>' +
+    '<div class="empty-desc">You do not have an active investment plan. Pick any of our 10 plans starting from ₦5,000 to unlock your daily reward.</div>' +
+    '<button class="btn-primary" onclick="openPlanPicker()">+ Choose a Plan</button>' +
   '</div>';
 
   if ($('portfolioTotalValue')) $('portfolioTotalValue').textContent = '₦' + Math.round(S.cashBalance).toLocaleString('en-NG');
@@ -2518,7 +2647,7 @@ function renderLocalOrEmptyPortfolio() {
       list.innerHTML = '<div class="inv-card inv-card--featured">' +
         '<div class="inv-card-header">' +
           '<div class="inv-icon inv-icon-ember"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>' +
-          '<div><div class="inv-name">VaultX Active Portfolio</div><div class="inv-meta">Auto-Compounding &bull; 18.0% Daily</div></div>' +
+          '<div><div class="inv-name">Active Investment Plan</div><div class="inv-meta">Auto-Compounding &bull; Daily Reward</div></div>' +
           '<span class="badge badge--active">Active</span>' +
         '</div>' +
         '<div class="inv-metrics">' +
@@ -2543,14 +2672,14 @@ function setupUserReferralUI(refCode) {
 
   if ($('refLink')) $('refLink').textContent = userReferralUrl;
 
-  var waShareText = "Hey! Join VaultX on Crest Wealth and earn daily returns up to 18% passive income. Register with my official VIP link to get an instant welcome bonus: " + userReferralUrl;
+  var waShareText = "Hey! Join Crest Wealth and earn a daily reward from your investment plan. Register with my official link to get started: " + userReferralUrl;
   var waBtn = $('shareWaBtn');
   if (waBtn) {
     waBtn.href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(waShareText);
   }
   var xBtn = $('shareXBtn');
   if (xBtn) {
-    xBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent("Growing my portfolio daily with VaultX. Use my VIP invite code " + code + " for instant welcome bonus: " + userReferralUrl);
+    xBtn.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent("Growing my portfolio daily with Crest Wealth. Use my invite code " + code + " to get started: " + userReferralUrl);
   }
 
   // Also dynamically update Task 5 in tasks list if present
@@ -2739,7 +2868,6 @@ function initDashboard() {
   switchView('overview');
   updateBalanceDisplays();
   refreshTaskUI();
-  renderDailyStreak();
   startDepositSessionTimer();
   startTaskCycleClock();
   updateWithdrawalTimeline();
@@ -2752,8 +2880,8 @@ function initDashboard() {
 
   try {
     var urlP = new URLSearchParams(window.location.search);
-    if (urlP.get('modal') === 'vaultx' || window.location.hash === '#vaultx') {
-      setTimeout(openVaultXModal, 350);
+    if (urlP.get('modal') === 'vaultx' || urlP.get('modal') === 'plan' || window.location.hash === '#plan' || window.location.hash === '#vaultx') {
+      setTimeout(function() { openPlanPicker(); }, 350);
     }
   } catch(e) {}
 }
@@ -2763,4 +2891,3 @@ if (document.readyState === 'loading') {
 } else {
   initDashboard();
 }
-

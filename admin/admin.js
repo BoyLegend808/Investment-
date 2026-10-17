@@ -177,7 +177,7 @@ var SEED_DEPOSITS = [
     user: 'Fatima Bello',
     email: 'fatima.bello@kpmg.com',
     amount: 500000,
-    plan: 'VaultX Level 9 (₦500k)',
+    plan: 'Diamond Plan (₦500k)',
     method: 'BANK TRANSFER',
     date: 'Sep 24, 2026',
     status: 'Pending Confirmation'
@@ -251,6 +251,7 @@ var AdminState = {
   users: SEED_USERS.slice(),
   investments: [],
   userTasks: [],
+  investmentPlans: [],
   gatekeeperEnforced: true,
   inspectedWdId: null,
   inspectedUserId: null
@@ -381,7 +382,21 @@ function loadRemoteTasks() {
       if (res.error) { setTaskSyncBadge('Sync: Not set up', false); return; }
       if (res.data && Array.isArray(res.data.value) && res.data.value.length) {
         AdminState.tasks = res.data.value;
-        AdminState.tasks.forEach(function(t) { t.verificationType = normalizeVerificationType(t); });
+        AdminState.tasks.forEach(function(t) {
+          t.verificationType = normalizeVerificationType(t);
+          // Re-derive the reward fields from remote config. Without this a task
+          // saved by an older build (or hand-edited in the DB) could reach the
+          // editor with rewardAmount missing, and the published figure the
+          // dashboard pays out would not match what the admin sees.
+          if (typeof t.rewardAmount !== 'number') {
+            var m = (t.reward || '').replace(/[^0-9]/g, '');
+            t.rewardAmount = m ? parseInt(m, 10) : 2000;
+          }
+          if (!t.reward) {
+            t.reward = '+₦' + t.rewardAmount.toLocaleString('en-NG');
+          }
+          if (t.verificationType === 'timed' && !t.minSeconds) t.minSeconds = 30;
+        });
         saveTasksToStorage(true);
         renderAdminTasks();
         setTaskSyncBadge('Sync: Live', true);
@@ -479,6 +494,7 @@ function switchAdminView(viewName) {
     setTimeout(drawFlowChart, 60);
   } else if (viewName === 'treasury') {
     loadPlatformSettings();
+    loadInvestmentPlansAdmin();
   }
 }
 
@@ -539,8 +555,13 @@ function renderAdminTasks() {
     var displayReward = t.reward || ('+₦' + (t.rewardAmount || 2000).toLocaleString('en-NG'));
     var safeTitle = escapeHtml(t.title);
     var safePlatform = escapeHtml(t.platform);
-    var safeUrl = escapeHtml(t.url);
-    var safeUrlLabel = escapeHtml(t.urlLabel || t.url);
+    var rawUrl = t.url || '';
+    var safeHref = (typeof crestSanitizeUrl === 'function') ? crestSanitizeUrl(rawUrl) : '';
+    var safeUrl = escapeHtml(safeHref);
+    var safeUrlLabel = escapeHtml(t.urlLabel || rawUrl);
+    var safeUrlHtml = safeHref
+      ? ('<span class="tac-sep">&bull;</span><a href="' + safeUrl + '" target="_blank" rel="noopener" class="tac-url-link" title="' + safeUrl + '">' + safeUrlLabel + '</a>')
+      : (rawUrl ? '<span class="tac-sep">&bull;</span><span class="tac-interactive-tag">Link blocked</span>' : '<span class="tac-sep">&bull;</span><span class="tac-interactive-tag">In-App Simulation</span>');
 
     return '<div class="task-admin-card ' + (isActive ? 'task-status--active' : 'task-status--inactive') + '" id="tac-' + t.id + '">' +
       '<div class="tac-header-row">' +
@@ -551,7 +572,7 @@ function renderAdminTasks() {
             '<div class="tac-meta">' +
               '<span class="tac-platform-tag">' + safePlatform + '</span>' +
               '<span class="tac-sep">&bull;</span>' + vTypeBadge +
-              (t.url ? ('<span class="tac-sep">&bull;</span><a href="' + safeUrl + '" target="_blank" rel="noopener" class="tac-url-link" title="' + safeUrl + '">' + safeUrlLabel + '</a>') : '<span class="tac-sep">&bull;</span><span class="tac-interactive-tag">In-App Simulation</span>') +
+              safeUrlHtml +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -597,13 +618,34 @@ function toggleGatekeeperMaster(isEnforced) {
 }
 
 function triggerGlobalTaskReset() {
-  if (confirm('Are you sure you want to trigger a Global User Task Cycle Reset?\n\nThis will clear completed tasks for all users, requiring them to complete tasks again before subsequent withdrawals.')) {
-    try {
-      localStorage.removeItem('crest_user_tasks');
-    } catch(e) {}
-    toast('Global task cycle reset complete! All user dashboards must re-verify tasks.', 'emerald');
-    addAuditLog('CYCLE_RESET', 'Admin triggered platform-wide user withdrawal task reset.');
-  }
+  if (!confirm('Are you sure you want to trigger a Global User Task Cycle Reset?\n\nThis will clear completed tasks for all users, requiring them to complete tasks again before subsequent withdrawals.')) return;
+
+  // Clear local caches. The dashboard stores per-user task state under
+  // crest_<uid>_user_tasks, so match the suffix rather than one fixed key.
+  try {
+    Object.keys(localStorage).forEach(function(k) {
+      if (k === 'crest_user_tasks' || k.indexOf('_user_tasks') !== -1) localStorage.removeItem(k);
+    });
+  } catch(e) {}
+
+  // The authoritative completion flags live in the user_tasks table. The reset
+  // only really happens once those rows are gone — clearing localStorage alone
+  // left every user still flagged as "already completed" on the server.
+  waitForSupabase().then(function(sb) {
+    if (!sb) {
+      toast('Local task state cleared, but the server could not be reached — user task records were NOT reset.', 'error');
+      return;
+    }
+    sb.from('user_tasks').delete().neq('id', '00000000-0000-0000-0000-000000000000').then(function(res) {
+      if (res.error) {
+        console.warn('[Admin] Global task reset failed:', res.error);
+        toast('Global task reset failed: ' + res.error.message, 'error');
+        return;
+      }
+      toast('Global task cycle reset complete! All users must re-verify their tasks.', 'emerald');
+      addAuditLog('CYCLE_RESET', 'Admin triggered platform-wide user withdrawal task reset.');
+    });
+  });
 }
 
 /* ── MODAL HELPERS & TASK EDIT/ADD CONTROLLER ───────────── */
@@ -739,6 +781,13 @@ function saveTaskFromModal() {
     return;
   }
 
+  // A ₦0 task is publishable but unclaimable: the reward is resolved from the
+  // published config server-side, and claim_user_task_reward rejects it.
+  if (!rewardAmt || rewardAmt <= 0) {
+    toast('Enter a reward greater than ₦0 — the reward is paid from this figure.', 'warn');
+    return;
+  }
+
   var formattedReward = '+₦' + rewardAmt.toLocaleString('en-NG');
   var steps = stepsRaw ? stepsRaw.split('\n').map(function(s) { return s.trim(); }).filter(Boolean) : [];
   var isQuiz = verificationType === 'quiz';
@@ -805,6 +854,20 @@ function deleteAdminTask(id) {
   AdminState.tasks = AdminState.tasks.filter(function(t) { return t.id !== id; });
   saveTasksToStorage();
   renderAdminTasks();
+
+  // Clear the completion records this task left behind. Left in place, each row
+  // keeps telling claim_user_task_reward "this user already did this task", so
+  // the id can never pay again — even if the task is later re-added.
+  waitForSupabase().then(function(sb) {
+    if (!sb) return;
+    sb.from('user_tasks').delete().eq('task_id', String(id)).then(function(res) {
+      if (res.error) {
+        console.warn('[Admin] Could not clear user_tasks for deleted task:', res.error);
+        toast('Task removed, but its user completion records could not be cleared.', 'warn');
+      }
+    });
+  });
+
   toast('Task "' + task.title + '" deleted and removed from user dashboards.', 'warn');
   addAuditLog('TASK_DELETED', 'Task ID #' + id + ' "' + task.title + '" deleted by admin');
 }
@@ -1438,6 +1501,111 @@ function savePlatformSettingsToDB() {
   });
 }
 
+/* ── INVESTMENT PLANS (LIVE PRICING, DAILY REWARDS & BONUSES) ── */
+var DEFAULT_INVESTMENT_PLANS = [
+  { level: 1, name: 'Starter', price: 5000, welcomeBonus: 250, dailyEarning: 900 },
+  { level: 2, name: 'Bronze', price: 15000, welcomeBonus: 750, dailyEarning: 2700 },
+  { level: 3, name: 'Silver', price: 30000, welcomeBonus: 1500, dailyEarning: 5400 },
+  { level: 4, name: 'Gold', price: 50000, welcomeBonus: 2500, dailyEarning: 9000 },
+  { level: 5, name: 'Platinum', price: 75000, welcomeBonus: 3750, dailyEarning: 13500 },
+  { level: 6, name: 'Emerald', price: 100000, welcomeBonus: 5000, dailyEarning: 18000 },
+  { level: 7, name: 'Sapphire', price: 200000, welcomeBonus: 10000, dailyEarning: 36000 },
+  { level: 8, name: 'Ruby', price: 350000, welcomeBonus: 17500, dailyEarning: 63000 },
+  { level: 9, name: 'Diamond', price: 500000, welcomeBonus: 25000, dailyEarning: 90000 },
+  { level: 10, name: 'Apex', price: 1000000, welcomeBonus: 50000, dailyEarning: 180000 }
+];
+
+function getAdminPlanByLevel(level) {
+  var lv = parseInt(level, 10);
+  if (!lv) return null;
+  for (var i = 0; i < AdminState.investmentPlans.length; i++) {
+    if (parseInt(AdminState.investmentPlans[i].level, 10) === lv) return AdminState.investmentPlans[i];
+  }
+  return null;
+}
+
+function loadInvestmentPlansAdmin() {
+  waitForSupabase().then(function(sb) {
+    if (!sb) {
+      AdminState.investmentPlans = DEFAULT_INVESTMENT_PLANS.map(function(p) { return Object.assign({}, p); });
+      renderPlanEditorRows();
+      return;
+    }
+    sb.from('app_settings').select('value').eq('key', 'investment_plans').maybeSingle().then(function(res) {
+      var list = (res && res.data && Array.isArray(res.data.value) && res.data.value.length)
+        ? res.data.value
+        : DEFAULT_INVESTMENT_PLANS;
+      AdminState.investmentPlans = list.map(function(p) { return Object.assign({}, p); });
+      renderPlanEditorRows();
+      renderUsersTable();
+    }).catch(function() {
+      AdminState.investmentPlans = DEFAULT_INVESTMENT_PLANS.map(function(p) { return Object.assign({}, p); });
+      renderPlanEditorRows();
+    });
+  });
+}
+
+function renderPlanEditorRows() {
+  var tbody = $('planEditorBody');
+  if (!tbody) return;
+  tbody.innerHTML = AdminState.investmentPlans.map(function(p) {
+    var lv = parseInt(p.level, 10) || 0;
+    return '<tr>' +
+      '<td><span class="badge badge--pending">Level ' + lv + '</span></td>' +
+      '<td><input type="text" class="form-input" id="iplName' + lv + '" value="' + escapeHtml(p.name || ('Level ' + lv)) + '"></td>' +
+      '<td><input type="number" min="0" step="1" class="form-input" id="iplPrice' + lv + '" value="' + (parseFloat(p.price) || 0) + '"></td>' +
+      '<td><input type="number" min="0" step="1" class="form-input" id="iplWelcome' + lv + '" value="' + (parseFloat(p.welcomeBonus) || 0) + '"></td>' +
+      '<td><input type="number" min="0" step="1" class="form-input" id="iplDaily' + lv + '" value="' + (parseFloat(p.dailyEarning) || 0) + '"></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function saveInvestmentPlansToDB() {
+  var rows = [];
+  AdminState.investmentPlans.forEach(function(p) {
+    var lv = parseInt(p.level, 10) || 0;
+    if (!lv || !$('iplName' + lv)) return;
+    rows.push({
+      level: lv,
+      name: ($('iplName' + lv).value || ('Level ' + lv)).trim(),
+      price: parseFloat($('iplPrice' + lv).value) || 0,
+      welcomeBonus: parseFloat($('iplWelcome' + lv).value) || 0,
+      dailyEarning: parseFloat($('iplDaily' + lv).value) || 0
+    });
+  });
+
+  if (!rows.length) {
+    toast('No plans to publish. Reload the plan list first.', 'warn');
+    return;
+  }
+
+  var invalid = rows.filter(function(r) { return r.price <= 0 || r.dailyEarning <= 0; });
+  if (invalid.length) {
+    toast('Every plan needs a package price and a daily earning greater than zero.', 'warn');
+    return;
+  }
+
+  waitForSupabase().then(function(sb) {
+    if (!sb) {
+      toast('Supabase offline. Cannot publish plans.', 'warn');
+      return;
+    }
+    sb.from('app_settings').upsert({
+      key: 'investment_plans',
+      value: rows,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' }).then(function(res) {
+      if (res.error) {
+        toast('Failed to publish plans: ' + res.error.message, 'warn');
+      } else {
+        AdminState.investmentPlans = rows.map(function(p) { return Object.assign({}, p); });
+        toast('Investment plans published live to all dashboards!', 'emerald');
+        addAuditLog('INVESTMENT_PLANS_PUBLISHED', 'Updated live pricing and daily rewards for ' + rows.length + ' investment plans.');
+      }
+    });
+  });
+}
+
 /* ── OBSERVATORY KPIS (REALTIME DATABASE MATCHED) ────────── */
 function updateKpis() {
   var pendingWds = AdminState.withdrawals.filter(function(w) { return w.status === 'Pending Review' || w.status === 'Pending'; });
@@ -1549,30 +1717,34 @@ async function loadRealAdminDataFromDB() {
           totalInv = userInvs.reduce(function(sum, x) { return sum + (parseFloat(x.amount_invested) || 0); }, 0);
         }
 
-        // Determine VIP ranking / tier
-        var tier = 'Starter (₦0)';
-        if (userInvs.length > 0) {
+        // An activated plan wins; otherwise fall back to the invested-balance ladder
+        var tier = 'No Plan Selected';
+        var planLevel = parseInt(p.plan_level, 10) || 0;
+        if (planLevel > 0) {
+          var activePlan = getAdminPlanByLevel(planLevel);
+          tier = 'Level ' + planLevel + (activePlan && activePlan.name ? ' · ' + activePlan.name : '');
+        } else if (userInvs.length > 0) {
           tier = userInvs[0].asset_name || 'Active Investor';
         } else if (totalInv >= 1000000) {
-          tier = 'Level 10 (Apex Imperial VIP)';
+          tier = 'Level 10 · Apex';
         } else if (totalInv >= 500000) {
-          tier = 'Level 9 (Obsidian VIP)';
+          tier = 'Level 9 · Diamond';
         } else if (totalInv >= 350000) {
-          tier = 'Level 8 (Diamond VIP)';
+          tier = 'Level 8 · Ruby';
         } else if (totalInv >= 200000) {
-          tier = 'Level 7 (Ruby VIP)';
+          tier = 'Level 7 · Sapphire';
         } else if (totalInv >= 100000) {
-          tier = 'Level 6 (Sapphire VIP)';
+          tier = 'Level 6 · Emerald';
         } else if (totalInv >= 75000) {
-          tier = 'Level 5 (Emerald VIP)';
+          tier = 'Level 5 · Platinum';
         } else if (totalInv >= 50000) {
-          tier = 'Level 4 (Platinum VIP)';
+          tier = 'Level 4 · Gold';
         } else if (totalInv >= 30000) {
-          tier = 'Level 3 (Gold VIP)';
+          tier = 'Level 3 · Silver';
         } else if (totalInv >= 15000) {
-          tier = 'Level 2 (Silver VIP)';
+          tier = 'Level 2 · Bronze';
         } else if (totalInv >= 5000) {
-          tier = 'Level 1 (Bronze VIP)';
+          tier = 'Level 1 · Starter';
         } else if (totalInv > 0) {
           tier = 'Active Investor';
         }
@@ -1830,6 +2002,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Load real users, investments, tasks, and balances directly from Supabase DB
   loadRealAdminDataFromDB();
+  loadInvestmentPlansAdmin();
   setupAdminRealtime();
 });
 

@@ -15,9 +15,11 @@ function showToast(message, type = 'success', duration = 4000) {
   const existingToast = document.querySelector('.toast-notification');
   if (existingToast) existingToast.remove();
 
+  const msgStr = message === null || message === undefined ? '' : String(message);
   const isSuccess = type === 'success';
   const isError = type === 'error';
-  const isAuthComplete = isSuccess && (message.toLowerCase().includes('auth') || message.toLowerCase().includes('success'));
+  const isAuthComplete = isSuccess && (msgStr.toLowerCase().includes('auth') || msgStr.toLowerCase().includes('success'));
+  const safeMessage = escapeHtml(msgStr);
 
   // Create toast element
   const toast = document.createElement('div');
@@ -40,7 +42,7 @@ function showToast(message, type = 'success', duration = 4000) {
       ${iconSvg}
     </div>
     <div style="display: flex; flex-direction: column; text-align: left;">
-      <span style="font-weight: 700; font-size: 0.92rem; color: #ffffff; line-height: 1.2;">${isAuthComplete ? 'Authentication Complete' : message}</span>
+      <span style="font-weight: 700; font-size: 0.92rem; color: #ffffff; line-height: 1.2;">${isAuthComplete ? 'Authentication Complete' : safeMessage}</span>
       ${isAuthComplete ? '<span style="font-size: 0.75rem; color: #A7F3D0; font-weight: 500; margin-top: 1px;">Verified • Loading Investor Portal</span>' : ''}
     </div>
   `;
@@ -130,6 +132,35 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function crestSanitizeUrl(url) {
+  if (url === null || url === undefined) return '';
+  var raw = String(url).trim();
+  if (!raw) return '';
+  if (raw.indexOf('/') === 0 || raw.indexOf('./') === 0 || raw.indexOf('../') === 0) return raw;
+  try {
+    var u = new URL(raw, window.location.origin);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return u.href;
+  } catch (e) {}
+  return '';
+}
+
+function crestPersistCurrentUser(user) {
+  try {
+    if (!user) {
+      localStorage.removeItem('crest_current_user');
+      return;
+    }
+    var safe = {
+      id: user.id,
+      email: user.email,
+      user_metadata: {
+        full_name: (user.user_metadata && user.user_metadata.full_name) || user.full_name || (user.email ? user.email.split('@')[0] : '')
+      }
+    };
+    localStorage.setItem('crest_current_user', JSON.stringify(safe));
+  } catch (e) {}
+}
+
 /**
  * Toggle password input visibility with SVG eye/eye-off icons.
  * @param {string} inputId - ID of password input
@@ -206,7 +237,7 @@ async function waitForSupabase() {
     try {
       sb.auth.onAuthStateChange(async (event, session) => {
         if (session && session.user) {
-          localStorage.setItem('crest_current_user', JSON.stringify(session.user));
+          crestPersistCurrentUser(session.user);
           try {
             sb.from('profiles').upsert({
               id: session.user.id,
@@ -268,7 +299,7 @@ async function crestSignIn(email, password) {
   }
   if (!data || !data.user) return { success: false, error: 'Login failed. Please try again.' };
 
-  localStorage.setItem('crest_current_user', JSON.stringify(data.user));
+  crestPersistCurrentUser(data.user);
 
   // Non-blocking background sync for profile row (do not await)
   try {
@@ -333,7 +364,7 @@ async function crestSignUp(email, password, fullName, phone, pkg) {
     refCode = urlParams.get('ref') || localStorage.getItem('crest_ref_code');
   } catch(e) {}
 
-  localStorage.setItem('crest_current_user', JSON.stringify(data.user));
+  crestPersistCurrentUser(data.user);
   try {
     let referrerId = null;
     if (refCode && sb) {
@@ -396,7 +427,7 @@ async function crestSignOut() {
     try { await sb.auth.signOut(); } catch(e) {}
   }
   
-  localStorage.removeItem('crest_current_user');
+  crestPersistCurrentUser(null);
   window.crestUser = null;
 
   const depth = window.location.pathname.split('/').filter(Boolean).length;
@@ -456,13 +487,10 @@ function crestLoadAuthGuard(defaultTab) {
 
 // Capture-phase delegation: runs before any page-specific handlers, works immediately.
 document.addEventListener('click', async (e) => {
-  const trigger = e.target.closest('a.btn-sign-in, a.btn-get-started, a[data-modal="signin"], a[data-modal="signup"]');
+  const trigger = e.target.closest('a.btn-sign-in, a.btn-get-started, a[data-modal="signin"], a[data-modal="signup"], a[data-modal="forgot"]');
   if (!trigger) return;
   e.preventDefault();
   e.stopImmediatePropagation();
-
-  const isSignin = trigger.matches('a.btn-sign-in, a[data-modal="signin"]');
-  const targetTab = isSignin ? 'login' : 'signup';
 
   // If the user is already authenticated, always go straight to dashboard
   // Never re-open the login modal for a user who is already logged in
@@ -470,6 +498,15 @@ document.addEventListener('click', async (e) => {
     crestRedirectToDashboard();
     return;
   }
+
+  // Forgot password opens the reset-request panel of the auth modal
+  if (trigger.matches('a[data-modal="forgot"]')) {
+    crestLoadAuthGuard('forgot');
+    return;
+  }
+
+  const isSignin = trigger.matches('a.btn-sign-in, a[data-modal="signin"]');
+  const targetTab = isSignin ? 'login' : 'signup';
 
   // If the user clicked "Client Dashboard" link without being signed in, open sign-in modal
   const isDashboardBtn = trigger.textContent.trim().toLowerCase().includes('client dashboard');

@@ -569,7 +569,11 @@
   function showToast(msg, isError) {
     const t = document.getElementById('crest-auth-toast');
     if (!t) return;
-    const isComplete = !isError && (msg.toLowerCase().includes('success') || msg.toLowerCase().includes('complete') || msg.toLowerCase().includes('welcome') || msg.toLowerCase().includes('demo'));
+    var raw = msg === null || msg === undefined ? '' : String(msg);
+    var safe = (typeof escapeHtml === 'function')
+      ? escapeHtml(raw)
+      : raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const isComplete = !isError && (raw.toLowerCase().includes('success') || raw.toLowerCase().includes('complete') || raw.toLowerCase().includes('welcome') || raw.toLowerCase().includes('demo'));
     
     t.innerHTML = `
       <div class="crest-toast-circle ${isError ? 'error' : ''}">
@@ -579,7 +583,7 @@
         }
       </div>
       <div class="crest-toast-text">
-        <span class="crest-toast-title">${isComplete ? 'Authentication Complete' : msg}</span>
+        <span class="crest-toast-title">${isComplete ? 'Authentication Complete' : safe}</span>
         ${isComplete ? '<span class="crest-toast-sub">Verified • Loading Investor Portal</span>' : ''}
       </div>
     `;
@@ -694,7 +698,11 @@
     demoBtn.addEventListener('click', () => {
       showToast('Continuing as Demo Investor...');
       const demoUser = { id: 'demo_investor', email: 'demo@crestwealth.com', user_metadata: { full_name: 'Demo Investor' } };
-      localStorage.setItem('crest_current_user', JSON.stringify(demoUser));
+      if (typeof crestPersistCurrentUser === 'function') {
+        crestPersistCurrentUser(demoUser);
+      } else {
+        localStorage.setItem('crest_current_user', JSON.stringify(demoUser));
+      }
       window.crestUser = demoUser;
       setTimeout(redirectAfterAuth, 250);
     });
