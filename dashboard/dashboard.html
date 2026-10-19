@@ -327,39 +327,8 @@
           <div class="card-title">Recent Activity</div>
           <button class="link-btn" onclick="switchView('transactions')">View all</button>
         </div>
-        <div class="txn-rows">
-          <div class="txn-row">
-            <div class="txn-dot txn-dot--green"></div>
-            <div class="txn-detail">
-              <div class="txn-name">Level 1 Package Deposit</div>
-              <div class="txn-meta">Sep 24, 2026</div>
-            </div>
-            <div class="txn-amt credit">+&#8358;200,000</div>
-          </div>
-          <div class="txn-row">
-            <div class="txn-dot txn-dot--dim"></div>
-            <div class="txn-detail">
-              <div class="txn-name">Level 2 Package Purchase</div>
-              <div class="txn-meta">Sep 20, 2026</div>
-            </div>
-            <div class="txn-amt">-&#8358;45,000</div>
-          </div>
-          <div class="txn-row">
-            <div class="txn-dot txn-dot--green"></div>
-            <div class="txn-detail">
-              <div class="txn-name">Interest Credit &mdash; Stash</div>
-              <div class="txn-meta">Sep 17, 2026</div>
-            </div>
-            <div class="txn-amt credit">+&#8358;4,200</div>
-          </div>
-          <div class="txn-row">
-            <div class="txn-dot txn-dot--orange"></div>
-            <div class="txn-detail">
-              <div class="txn-name">Withdrawal Request &mdash; Locked</div>
-              <div class="txn-meta">Sep 15, 2026 &bull; Complete tasks to release</div>
-            </div>
-            <div class="txn-amt"><span class="badge badge--warn">Locked</span></div>
-          </div>
+        <div class="txn-rows" id="recentActivityRows">
+          <div class="txn-empty">Loading your activity&hellip;</div>
         </div>
       </div>
     </div>

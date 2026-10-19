@@ -2800,10 +2800,12 @@ function renderEmptyReferralsState() {
 var allUserTransactions = [];
 async function loadUserTransactionsFromDB() {
   var tbody = $('txnTableBody');
-  if (!tbody) return;
-
   var user = window.crestUser;
+
+  // Demo / signed-out visitors have no server-side ledger of their own.
   if (!user || !user.id || user.id.startsWith('demo_') || !window.supabaseClient) {
+    allUserTransactions = [];
+    renderRecentActivity([]);
     return;
   }
 
@@ -2815,16 +2817,60 @@ async function loadUserTransactionsFromDB() {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error || !txns || txns.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8;">No transaction records found yet.</td></tr>';
-      return;
+    var rows = (!error && txns) ? txns : [];
+    allUserTransactions = rows;
+
+    if (tbody) {
+      if (rows.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:#94A3B8;">No transaction records found yet.</td></tr>';
+      } else {
+        renderTransactionsTable(rows);
+      }
     }
 
-    allUserTransactions = txns;
-    renderTransactionsTable(txns);
+    renderRecentActivity(rows);
   } catch(e) {
     console.warn('loadUserTransactionsFromDB error:', e);
+    allUserTransactions = [];
+    renderRecentActivity([]);
   }
+}
+
+/* Overview "Recent Activity" — mirrors the newest rows of the same ledger */
+function renderRecentActivity(txns) {
+  var wrap = $('recentActivityRows');
+  if (!wrap) return;
+
+  var list = (txns || []).slice(0, 5);
+  if (list.length === 0) {
+    wrap.innerHTML = '<div class="txn-empty">No activity yet. Your deposits, rewards and withdrawals will appear here.</div>';
+    return;
+  }
+
+  wrap.innerHTML = list.map(function(tx) {
+    var amt = parseFloat(tx.amount) || 0;
+    var status = String(tx.status || 'Completed');
+    var isPending = /pending|lock|process|review/i.test(status);
+    var isPositive = amt >= 0;
+    var dotClass = isPending ? 'txn-dot--orange' : (isPositive ? 'txn-dot--green' : 'txn-dot--dim');
+    var name = tx.title || tx.description || (tx.type ? tx.type + ' transaction' : 'Account Transaction');
+    var dateStr = tx.created_at
+      ? new Date(tx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'Recent';
+    var meta = isPending ? (dateStr + ' \u2022 ' + status) : dateStr;
+    var amountHtml = isPending
+      ? '<span class="badge badge--warn">' + escapeHtml(status) + '</span>'
+      : ((isPositive ? '+' : '-') + '\u20A6' + Math.abs(amt).toLocaleString('en-NG'));
+
+    return '<div class="txn-row">' +
+      '<div class="txn-dot ' + dotClass + '"></div>' +
+      '<div class="txn-detail">' +
+        '<div class="txn-name">' + escapeHtml(name) + '</div>' +
+        '<div class="txn-meta">' + escapeHtml(meta) + '</div>' +
+      '</div>' +
+      '<div class="txn-amt' + ((!isPending && isPositive) ? ' credit' : '') + '">' + amountHtml + '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function renderTransactionsTable(txns) {
