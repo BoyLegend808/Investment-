@@ -229,13 +229,29 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- 10. FIELD PROTECTION TRIGGER (Prevents client-side balance/role tampering)
+--
+-- Who these guards are FOR matters. They exist to stop the API, not the person
+-- who owns the database. A write arriving through PostgREST carries a JWT, so
+-- auth.role() reads 'anon' or 'authenticated'. A statement typed into the
+-- Supabase SQL editor carries no JWT at all, so auth.role() is NULL there.
+--
+-- Without that distinction the trigger could not tell a browser apart from the
+-- owner, and a hand-run "UPDATE profiles SET is_admin = true" was silently
+-- reverted: auth.uid() is NULL in the SQL editor, is_admin() returned FALSE,
+-- and the trigger put the old value back. The row reported "1 row updated" and
+-- changed nothing. Promotion by hand is now possible, because the owner is
+-- recognised and left alone.
 CREATE OR REPLACE FUNCTION public.protect_profile_fields()
 RETURNS TRIGGER AS $$
 DECLARE
   v_is_internal BOOLEAN := COALESCE(current_setting('app.internal_balance_update', true), 'false') = 'true';
+  v_from_api BOOLEAN := COALESCE(auth.role(), '') IN ('anon', 'authenticated');
 BEGIN
-  IF TG_OP = 'INSERT' THEN
-    IF NOT public.is_admin() THEN
+  IF v_from_api THEN
+    IF TG_OP = 'INSERT' THEN
+      -- A profile created through the API is never an admin and never carries
+      -- money. handle_new_user() is unaffected: it runs as the table owner, so
+      -- v_from_api is false for the signup path.
       NEW.is_admin := FALSE;
       NEW.cash_balance := 0.00;
       NEW.invested_balance := 0.00;
@@ -248,47 +264,50 @@ BEGIN
       NEW.welcome_bonus_balance := 0.00;
       -- A brand-new row can never carry a pre-made PIN hash.
       NEW.withdrawal_pin_hash := NULL;
-    END IF;
-  ELSIF TG_OP = 'UPDATE' THEN
-    -- Role, freeze and KYC are admin-only fields. They used to pass straight
-    -- through, so a frozen user could unfreeze themselves and anyone could set
-    -- their own kyc_status to 'verified' with a plain table update.
-    IF NOT public.is_admin() THEN
+    ELSIF TG_OP = 'UPDATE' THEN
+      -- is_admin is pinned for EVERY API caller, including an existing admin.
+      -- Nothing that reaches the API - not the app, not a stolen admin token -
+      -- can create another administrator. The only way to promote someone is a
+      -- deliberate SQL statement run by the owner, and that is the intent.
       NEW.is_admin := OLD.is_admin;
-      NEW.is_frozen := OLD.is_frozen;
-      NEW.kyc_status := OLD.kyc_status;
-      -- Balances and plan state are writable only by our SECURITY DEFINER RPCs,
-      -- which raise app.internal_balance_update for the duration of the call.
-      -- A plain table update from the browser has no such flag, so a user cannot
-      -- self-activate a plan or reset their own claim date.
-      IF NOT v_is_internal THEN
-        NEW.cash_balance := OLD.cash_balance;
-        NEW.invested_balance := OLD.invested_balance;
-        NEW.plan_level := OLD.plan_level;
-        NEW.plan_activated_at := OLD.plan_activated_at;
-        NEW.plan_last_claim_date := OLD.plan_last_claim_date;
-        NEW.plan_welcome_paid := OLD.plan_welcome_paid;
-        -- welcome_bonus_balance decides how much is withdrawable on a non-Friday
-        -- (request_withdrawal lets you pull up to the welcome bonus any day), so
-        -- a user who could write it could inflate it to their cash balance and
-        -- drain the whole account mid-week. It is RPC-only, same as the rest.
-        NEW.welcome_bonus_balance := OLD.welcome_bonus_balance;
-        -- Same rule for the PIN hash: only set_withdrawal_pin() may change it.
-        NEW.withdrawal_pin_hash := OLD.withdrawal_pin_hash;
-      END IF;
-      -- Referral attribution is written once, at signup. It has to stay
-      -- settable on that first write, but if it stayed writable afterwards a
-      -- user could re-point referred_by at an accomplice just before their
-      -- deposit was approved, or clone someone else's referral_code so that
-      -- their referrals resolved to the wrong account.
-      IF OLD.referred_by IS NOT NULL THEN
-        NEW.referred_by := OLD.referred_by;
-      END IF;
-      IF OLD.referral_code IS NOT NULL THEN
-        NEW.referral_code := OLD.referral_code;
+
+      IF NOT public.is_admin() THEN
+        NEW.is_frozen := OLD.is_frozen;
+        NEW.kyc_status := OLD.kyc_status;
+        -- Balances and plan state are writable only by our SECURITY DEFINER RPCs,
+        -- which raise app.internal_balance_update for the duration of the call.
+        -- A plain table update from the browser has no such flag, so a user cannot
+        -- self-activate a plan or reset their own claim date.
+        IF NOT v_is_internal THEN
+          NEW.cash_balance := OLD.cash_balance;
+          NEW.invested_balance := OLD.invested_balance;
+          NEW.plan_level := OLD.plan_level;
+          NEW.plan_activated_at := OLD.plan_activated_at;
+          NEW.plan_last_claim_date := OLD.plan_last_claim_date;
+          NEW.plan_welcome_paid := OLD.plan_welcome_paid;
+          -- welcome_bonus_balance decides how much is withdrawable on a non-Friday
+          -- (request_withdrawal lets you pull up to the welcome bonus any day), so
+          -- a user who could write it could inflate it to their cash balance and
+          -- drain the whole account mid-week. It is RPC-only, same as the rest.
+          NEW.welcome_bonus_balance := OLD.welcome_bonus_balance;
+          -- Same rule for the PIN hash: only set_withdrawal_pin() may change it.
+          NEW.withdrawal_pin_hash := OLD.withdrawal_pin_hash;
+        END IF;
+        -- Referral attribution is written once, at signup. It has to stay
+        -- settable on that first write, but if it stayed writable afterwards a
+        -- user could re-point referred_by at an accomplice just before their
+        -- deposit was approved, or clone someone else's referral_code so that
+        -- their referrals resolved to the wrong account.
+        IF OLD.referred_by IS NOT NULL THEN
+          NEW.referred_by := OLD.referred_by;
+        END IF;
+        IF OLD.referral_code IS NOT NULL THEN
+          NEW.referral_code := OLD.referral_code;
+        END IF;
       END IF;
     END IF;
   END IF;
+
   NEW.updated_at := NOW();
   RETURN NEW;
 END;
@@ -1665,6 +1684,22 @@ GRANT EXECUTE ON FUNCTION public.admin_update_kyc_status(UUID, TEXT) TO authenti
 --   SELECT column_name FROM information_schema.columns
 --   WHERE table_schema = 'public' AND table_name = 'profiles'
 --     AND column_name IN ('withdrawal_pin_hash','two_factor_enabled');
+--
+-- 5. WHO IS AN ADMIN. This should list only accounts you promoted by hand.
+--    Run it after the script, and again any time you want to be sure. If a name
+--    appears here that you did not put there, that is a problem worth knowing
+--    about immediately. Set the flag yourself with the statement underneath.
+--
+--   SELECT id, email, created_at FROM public.profiles
+--   WHERE is_admin = TRUE ORDER BY created_at;
+--
+--   UPDATE public.profiles SET is_admin = TRUE  WHERE email = 'you@example.com';
+--   UPDATE public.profiles SET is_admin = FALSE WHERE email = 'someone@example.com';
+--
+--    Run as the owner (the SQL editor), those two statements now take effect.
+--    Through the API they are refused: is_admin is pinned for every API caller,
+--    including an existing admin, so nothing the app can reach can hand out
+--    administrator rights. Only you, in SQL, can.
 -- ==============================================================================
 
 
