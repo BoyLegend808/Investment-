@@ -1293,6 +1293,8 @@ DECLARE
   v_welcome_paid BOOLEAN := FALSE;
   v_new_bal NUMERIC;
   v_today_str TEXT := TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD');
+  v_task_total INT;
+  v_task_done INT;
 BEGIN
   IF v_uid IS NULL THEN
     RETURN jsonb_build_object('success', false, 'message', 'Authentication required.');
@@ -1335,6 +1337,44 @@ BEGIN
       'daily_earning', v_daily,
       'current_balance', v_prof.cash_balance
     );
+  END IF;
+
+  -- The daily reward is EARNED by completing the day's tasks, so it is not paid
+  -- until every published task has been completed today. The once-per-day guard
+  -- above is keyed to the server calendar date, so the task window is the same
+  -- calendar day the claim belongs to: yesterday's completions cannot be
+  -- recycled for today, and today's completions cannot unlock tomorrow.
+  SELECT COUNT(*) INTO v_task_total
+  FROM public.app_settings s
+  CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+  WHERE s.key = 'tasks_config'
+    AND jsonb_typeof(s.value) = 'array'
+    AND COALESCE((elem->>'active')::BOOLEAN, TRUE);
+
+  IF COALESCE(v_task_total, 0) > 0 THEN
+    SELECT COUNT(DISTINCT ut.task_id) INTO v_task_done
+    FROM public.user_tasks ut
+    WHERE ut.user_id = v_uid
+      AND ut.completed IS TRUE
+      AND ut.completed_at >= DATE_TRUNC('day', NOW())
+      AND ut.task_id IN (
+        SELECT elem->>'id'
+        FROM public.app_settings s
+        CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+        WHERE s.key = 'tasks_config' AND jsonb_typeof(s.value) = 'array'
+      );
+
+    IF COALESCE(v_task_done, 0) < v_task_total THEN
+      RETURN jsonb_build_object(
+        'success', false,
+        'tasks_incomplete', true,
+        'tasks_done', COALESCE(v_task_done, 0),
+        'tasks_total', v_task_total,
+        'daily_earning', v_daily,
+        'message', 'Complete all ' || v_task_total || ' daily tasks to unlock today''s reward. You are at ' ||
+                   COALESCE(v_task_done, 0) || '/' || v_task_total || '.'
+      );
+    END IF;
   END IF;
 
   v_pay := v_daily;

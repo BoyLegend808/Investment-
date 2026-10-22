@@ -483,6 +483,21 @@ var QUIZ_DATA = [
 ];
 
 /* ── STATE MANAGEMENT & PERSISTENCE ──────────────────── */
+/* UTC calendar day, matching the server. Supabase runs its day boundary at UTC
+   midnight and claim_plan_daily_reward counts task completions with
+   DATE_TRUNC('day', NOW()), so the client must use the same key or a Lagos user
+   just after local midnight would drift a day ahead of the payout window. */
+function taskDayKeyUTC(d) {
+  var dt = d || new Date();
+  return (
+    dt.getUTCFullYear() +
+    "-" +
+    String(dt.getUTCMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(dt.getUTCDate()).padStart(2, "0")
+  );
+}
+
 function loadTasksState() {
   var config = null;
   try {
@@ -1099,6 +1114,10 @@ function refreshTaskUI() {
 
   renderLockedTasksList();
   renderTasksGrid();
+
+  // Completing the last task unlocks the daily reward, so keep the claim card
+  // in step with the task list.
+  if (typeof renderPlanClaimCard === "function") renderPlanClaimCard();
 }
 
 function enableWelcomeWithdrawal() {
@@ -1569,22 +1588,24 @@ function loadRemoteTasksConfig() {
       if (!u || u.id.startsWith("demo_")) return null;
       return sb
         .from("user_tasks")
-        .select("task_id, proof_url, status")
+        .select("task_id, proof_url, status, completed_at")
         .eq("user_id", u.id);
     })
     .then(function (tres) {
       if (tres && !tres.error && Array.isArray(tres.data)) {
+        // Rebuild from scratch, counting only completions from today. The task
+        // cycle is a calendar day, so carrying yesterday's ticks forward would
+        // leave the claim button looking ready while the server refuses the
+        // payout for incomplete tasks.
+        var todayKey = taskDayKeyUTC();
         var local = {};
-        try {
-          local = JSON.parse(getCrestStorage("user_tasks", "{}")) || {};
-        } catch (e) {}
         tres.data.forEach(function (r) {
-          if (r.status === "completed" && r.task_id != null) {
-            local[r.task_id] = Object.assign({}, local[r.task_id], {
-              done: true,
-              proofPath: r.proof_url || "",
-            });
-          }
+          if (r.status !== "completed" || r.task_id == null) return;
+          if (String(r.completed_at || "").slice(0, 10) !== todayKey) return;
+          local[r.task_id] = {
+            done: true,
+            proofPath: r.proof_url || "",
+          };
         });
         setCrestStorage("user_tasks", local);
       }
@@ -2733,11 +2754,22 @@ function renderPlanClaimCard() {
 
   var claimed = isPlanClaimedToday(PLAN_STATE.planLastClaimDate);
 
+  // The reward is earned by completing the day's tasks, so the button stays
+  // locked until every task in the current cycle is done. The server enforces
+  // this too — this only keeps the UI honest.
+  var tasksTotal = typeof S !== "undefined" && S.tasks ? S.tasks.length : 0;
+  var tasksDone = typeof S !== "undefined" ? S.tasksDone || 0 : 0;
+  var tasksPending = tasksTotal > 0 && !S.allDone;
+
   if (btn && btnTxt) {
     if (claimed) {
       btn.disabled = true;
       btn.classList.add("claimed");
       btnTxt.textContent = "Claimed Today";
+    } else if (tasksPending) {
+      btn.disabled = true;
+      btn.classList.add("claimed");
+      btnTxt.textContent = "Complete Tasks to Unlock";
     } else {
       btn.disabled = false;
       btn.classList.remove("claimed");
@@ -2745,11 +2777,27 @@ function renderPlanClaimCard() {
     }
   }
 
-  if (statusEl) statusEl.textContent = claimed ? "Tomorrow" : "Available";
+  if (statusEl)
+    statusEl.textContent = claimed
+      ? "Tomorrow"
+      : tasksPending
+        ? "Tasks Pending"
+        : "Available";
   if (sub) {
     if (claimed) {
       sub.textContent =
         "Today's reward is in your balance. Come back tomorrow for the next payout.";
+    } else if (tasksPending) {
+      sub.textContent =
+        "Complete all " +
+        tasksTotal +
+        " daily tasks to unlock today's " +
+        formatNaira(daily) +
+        " reward (" +
+        tasksDone +
+        "/" +
+        tasksTotal +
+        " done).";
     } else if (!PLAN_STATE.planWelcomePaid && parseFloat(welcome) > 0) {
       sub.textContent =
         "Your one-time " +
@@ -2846,13 +2894,12 @@ async function claimPlanDailyReward() {
 function startTaskCycleClock() {
   function update() {
     var now = new Date();
-    var midnight = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + 1,
-      0,
-      0,
-      0,
+    // Count down to the next UTC midnight — the server's calendar day is the
+    // window that governs both the task gate and the daily reward.
+    var midnight = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1,
     );
     var diff = Math.floor((midnight - now) / 1000);
     if (diff < 0) diff = 0;
