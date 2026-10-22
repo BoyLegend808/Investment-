@@ -20,6 +20,11 @@
 -- re-run never reverts an account you have since changed from the admin panel.
 -- ==============================================================================
 
+-- 0. EXTENSIONS
+-- pgcrypto provides crypt()/gen_salt(), which hash the withdrawal PIN. It ships
+-- with every Supabase project; this line only guarantees it is present.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- 1. HELPER: NON-RECURSIVE ADMIN VERIFICATION
 -- Uses SECURITY DEFINER to bypass RLS recursion on public.profiles
 CREATE OR REPLACE FUNCTION public.is_admin()
@@ -75,6 +80,14 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_last_claim_date TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_welcome_paid BOOLEAN DEFAULT FALSE;
 -- Welcome bonus balance tracked separately so it can be withdrawn at any time
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS welcome_bonus_balance NUMERIC(15, 2) DEFAULT 0.00;
+-- Hashed 4-digit withdrawal PIN (bcrypt via pgcrypto). NULL means the member has
+-- not set one yet, and request_withdrawal() refuses to move money until they
+-- have. Written only by set_withdrawal_pin(); the profile trigger below pins it
+-- for ordinary client updates, so the hash can never be overwritten from the
+-- browser.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS withdrawal_pin_hash TEXT;
+-- Email one-time-code second factor, switched on by the member from Settings.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE;
 
 -- 3. DEPOSITS TABLE
 CREATE TABLE IF NOT EXISTS public.deposits (
@@ -233,6 +246,8 @@ BEGIN
       NEW.plan_last_claim_date := NULL;
       NEW.plan_welcome_paid := FALSE;
       NEW.welcome_bonus_balance := 0.00;
+      -- A brand-new row can never carry a pre-made PIN hash.
+      NEW.withdrawal_pin_hash := NULL;
     END IF;
   ELSIF TG_OP = 'UPDATE' THEN
     -- Role, freeze and KYC are admin-only fields. They used to pass straight
@@ -258,6 +273,8 @@ BEGIN
         -- a user who could write it could inflate it to their cash balance and
         -- drain the whole account mid-week. It is RPC-only, same as the rest.
         NEW.welcome_bonus_balance := OLD.welcome_bonus_balance;
+        -- Same rule for the PIN hash: only set_withdrawal_pin() may change it.
+        NEW.withdrawal_pin_hash := OLD.withdrawal_pin_hash;
       END IF;
       -- Referral attribution is written once, at signup. It has to stay
       -- settable on that first write, but if it stayed writable afterwards a
@@ -484,17 +501,24 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- User Requests Withdrawal
+-- The 4-argument overload is dropped first. PostgREST cannot pick between two
+-- overloads that share a name, so leaving it in place would make every call
+-- ambiguous the moment the PIN argument is added.
+DROP FUNCTION IF EXISTS public.request_withdrawal(NUMERIC, TEXT, TEXT, TEXT);
+
 CREATE OR REPLACE FUNCTION public.request_withdrawal(
   p_amount NUMERIC,
   p_bank_name TEXT,
   p_account_number TEXT,
-  p_account_name TEXT DEFAULT NULL
+  p_account_name TEXT DEFAULT NULL,
+  p_pin TEXT DEFAULT NULL
 )
 RETURNS JSONB AS $$
 DECLARE
   v_uid UUID := auth.uid();
   v_cur_bal NUMERIC;
   v_welcome_bal NUMERIC;
+  v_pin_hash TEXT;
   v_dow INT;
   v_wth_id TEXT;
 BEGIN
@@ -513,10 +537,20 @@ BEGIN
 
   PERFORM set_config('app.internal_balance_update', 'true', true);
 
-  SELECT cash_balance, COALESCE(welcome_bonus_balance, 0.00)
-  INTO v_cur_bal, v_welcome_bal
+  SELECT cash_balance, COALESCE(welcome_bonus_balance, 0.00), withdrawal_pin_hash
+  INTO v_cur_bal, v_welcome_bal, v_pin_hash
   FROM public.profiles
   WHERE id = v_uid FOR UPDATE;
+
+  -- The PIN gate sits before any balance logic, so a wrong PIN reveals nothing
+  -- about the account. A member who has never set a PIN is told to set one
+  -- instead of being shown a misleading "incorrect PIN".
+  IF v_pin_hash IS NULL THEN
+    RAISE EXCEPTION 'Set your 4-digit withdrawal PIN in Settings before requesting a withdrawal.';
+  END IF;
+  IF p_pin IS NULL OR crypt(p_pin, v_pin_hash) IS DISTINCT FROM v_pin_hash THEN
+    RAISE EXCEPTION 'Incorrect withdrawal PIN.';
+  END IF;
 
   IF v_cur_bal IS NULL OR v_cur_bal < p_amount THEN
     RAISE EXCEPTION 'Insufficient cash balance.';
@@ -554,7 +588,56 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'withdrawal_id', v_wth_id, 'amount', p_amount, 'remaining_balance', v_cur_bal - p_amount);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions;
+
+-- Member Sets / Changes Their Withdrawal PIN
+-- The PIN is bcrypt-hashed here and never stored in clear text. Because the
+-- profile trigger pins withdrawal_pin_hash for any ordinary client update, this
+-- RPC is the only path that can change it.
+CREATE OR REPLACE FUNCTION public.set_withdrawal_pin(p_pin TEXT)
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+  IF p_pin IS NULL OR p_pin !~ '^[0-9]{4}$' THEN
+    RAISE EXCEPTION 'Your PIN must be exactly 4 digits.';
+  END IF;
+
+  PERFORM set_config('app.internal_balance_update', 'true', true);
+
+  UPDATE public.profiles
+  SET withdrawal_pin_hash = crypt(p_pin, gen_salt('bf')),
+      updated_at = NOW()
+  WHERE id = v_uid;
+
+  RETURN jsonb_build_object('success', TRUE);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions;
+
+-- Whether the member has set a PIN and whether their 2FA toggle is on, so the
+-- dashboard can label the Settings rows without exposing the hash.
+CREATE OR REPLACE FUNCTION public.get_my_security_settings()
+RETURNS JSONB AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+  v_pin_set BOOLEAN;
+  v_twofa BOOLEAN;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Authentication required.';
+  END IF;
+
+  SELECT withdrawal_pin_hash IS NOT NULL, COALESCE(two_factor_enabled, FALSE)
+  INTO v_pin_set, v_twofa
+  FROM public.profiles
+  WHERE id = v_uid;
+
+  RETURN jsonb_build_object('pin_set', COALESCE(v_pin_set, FALSE), 'two_factor_enabled', COALESCE(v_twofa, FALSE));
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
 -- Admin Rejects Withdrawal
 CREATE OR REPLACE FUNCTION public.admin_reject_withdrawal(
@@ -1559,15 +1642,22 @@ GRANT EXECUTE ON FUNCTION public.admin_update_kyc_status(UUID, TEXT) TO authenti
 --
 --   SELECT value FROM public.app_settings WHERE key = 'platform_settings';
 --
--- 3. Every object should exist. Expect 11 rows.
+-- 3. Every object should exist. Expect 14 rows.
 --
 --   SELECT proname FROM pg_proc
 --   WHERE pronamespace = 'public'::regnamespace
 --     AND proname IN ('is_admin','admin_confirm_deposit','submit_plan_payment',
 --       'claim_plan_daily_reward','claim_user_task_reward','request_withdrawal',
 --       'admin_reject_withdrawal','admin_adjust_balance','admin_toggle_user_freeze',
---       'admin_update_kyc_status','lookup_referral_code')
+--       'admin_update_kyc_status','lookup_referral_code','set_withdrawal_pin',
+--       'get_my_security_settings','protect_profile_fields')
 --   ORDER BY proname;
+--
+-- 4. The PIN and 2FA columns should exist on profiles. Expect 2 rows.
+--
+--   SELECT column_name FROM information_schema.columns
+--   WHERE table_schema = 'public' AND table_name = 'profiles'
+--     AND column_name IN ('withdrawal_pin_hash','two_factor_enabled');
 -- ==============================================================================
 
 

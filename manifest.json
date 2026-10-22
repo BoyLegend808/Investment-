@@ -1,0 +1,20 @@
+{
+  "name": "Crest Wealth",
+  "short_name": "Crest",
+  "description": "Track your Crest Wealth portfolio, deposits, withdrawals and daily rewards.",
+  "start_url": "./dashboard/dashboard.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B251A",
+  "theme_color": "#0B251A",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -256,6 +256,7 @@ async function initDashboardUserProfile() {
   loadUserInvestmentsFromDB();
   loadUserReferralsFromDB();
   loadUserTransactionsFromDB();
+  renderDepositTracker();
   loadInvestmentPlans();
 
   var parts = fullName.trim().split(/\s+/);
@@ -634,7 +635,8 @@ function updateBalanceDisplays() {
   // Friday vs non-Friday withdrawal logic:
   // Welcome bonus is withdrawable at any time.
   // Other earnings (task earnings, daily earnings, referral earnings) are only withdrawable on Fridays.
-  var isFriday = new Date().getDay() === 5;
+  // UTC, to match the server's EXTRACT(DOW FROM NOW()) definition of Friday.
+  var isFriday = new Date().getUTCDay() === 5;
   var welcomeBal = parseFloat(S.welcomeBonusBalance || 0);
   var otherEarnings = Math.max(0, S.cashBalance - welcomeBal);
   var maxWithdrawableToday = isFriday
@@ -2022,13 +2024,94 @@ function gameTradeAction(action) {
 }
 
 /* ── CHARTS ─────────────────────────────────────────── */
+/* ── REAL LEDGER-DRIVEN OVERVIEW CHARTS ────────────────────────────────
+   Every figure below comes from the member's own transactions and balances.
+   Nothing is hardcoded: an account with no history gets a plain "no history"
+   note instead of an invented growth curve. */
+
+var ledgerTransactions = [];
+var growthPeriod = "6m";
+// How many monthly points each period shows (0 = everything).
+var PERIOD_POINTS = { "6m": 7, "1y": 13, all: 0 };
+
+function fmtNairaCompact(n) {
+  var v = Number(n) || 0;
+  var abs = Math.abs(v);
+  if (abs >= 1000000) return "\u20A6" + (v / 1000000).toFixed(1) + "M";
+  if (abs >= 1000) return "\u20A6" + Math.round(v / 1000) + "k";
+  return "\u20A6" + Math.round(v);
+}
+
+/* Replay the ledger in date order to get a closing balance per month. */
+function buildBalanceSeries(txns) {
+  var rows = (txns || []).slice().sort(function (a, b) {
+    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+  });
+  var running = 0;
+  var monthKeys = [];
+  var monthTotals = {};
+  rows.forEach(function (tx) {
+    var d = tx.created_at ? new Date(tx.created_at) : new Date();
+    if (isNaN(d.getTime())) return;
+    var key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    if (!(key in monthTotals)) {
+      monthTotals[key] = 0;
+      monthKeys.push(key);
+    }
+    monthTotals[key] += parseFloat(tx.amount) || 0;
+  });
+  return monthKeys.map(function (key) {
+    running += monthTotals[key];
+    var parts = key.split("-");
+    var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+    return {
+      label: d.toLocaleDateString("en-US", { month: "short" }),
+      value: Math.max(0, running),
+    };
+  });
+}
+
+function currentGrowthSeries() {
+  var pts = buildBalanceSeries(ledgerTransactions);
+  var take = PERIOD_POINTS[growthPeriod];
+  if (take && pts.length > take) pts = pts.slice(pts.length - take);
+  return pts;
+}
+
+function growthRangeText() {
+  if (growthPeriod === "1y") return "Last 12 months";
+  if (growthPeriod === "all") return "All time";
+  return "Last 6 months";
+}
+
+function drawChartEmpty(ctx, w, h, msg) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = "#9CA3AF";
+  ctx.font = "12px Inter, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(msg, w / 2, h / 2);
+}
+
+function refreshOverviewCharts() {
+  drawSparkline();
+  drawGrowth();
+  drawDonut();
+}
+
 function drawSparkline() {
   var canvas = $("sparklineCanvas");
   if (!canvas) return;
   var ctx = canvas.getContext("2d");
   var w = (canvas.width = canvas.offsetWidth || 160);
   var h = (canvas.height = canvas.offsetHeight || 60);
-  var data = [820, 870, 900, 980, 1050, 1180, 1248];
+  var series = currentGrowthSeries();
+  if (series.length < 2) {
+    drawChartEmpty(ctx, w, h, "No history yet");
+    return;
+  }
+  var data = series.map(function (p) {
+    return p.value;
+  });
   var min = Math.min.apply(null, data) * 0.97;
   var max = Math.max.apply(null, data) * 1.02;
   var xOf = function (i) {
@@ -2088,8 +2171,24 @@ function drawGrowth() {
   var w = (canvas.width = canvas.offsetWidth);
   var h = (canvas.height = canvas.offsetHeight);
   if (!w || !h) return;
-  var data = [820000, 880000, 910000, 970000, 1060000, 1190000, 1248500];
-  var labels = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Now"];
+  var series = currentGrowthSeries();
+  if (series.length < 2) {
+    if ($("growthRangeLabel"))
+      $("growthRangeLabel").textContent = growthRangeText();
+    drawChartEmpty(
+      ctx,
+      w,
+      h,
+      "No transactions yet — your growth curve appears after your first deposit.",
+    );
+    return;
+  }
+  var data = series.map(function (p) {
+    return p.value;
+  });
+  var labels = series.map(function (p) {
+    return p.label;
+  });
   var min = Math.min.apply(null, data) * 0.94;
   var max = Math.max.apply(null, data) * 1.03;
   var pl = 56,
@@ -2158,9 +2257,11 @@ function drawGrowth() {
     ctx.fillText(l, xOf(i), h - 8);
   });
   ctx.textAlign = "right";
-  ["N1.2M", "N1.0M", "N0.8M"].forEach(function (l, i) {
-    ctx.fillText(l, pl - 6, pt + (ch / 2.5) * i + 10);
+  [max, min + (max - min) / 2, min].forEach(function (v, i) {
+    ctx.fillText(fmtNairaCompact(v), pl - 6, pt + (ch / 2.5) * i + 10);
   });
+  if ($("growthRangeLabel"))
+    $("growthRangeLabel").textContent = growthRangeText();
   var lx = xOf(data.length - 1),
     ly = yOf(data[data.length - 1]);
   ctx.beginPath();
@@ -2172,6 +2273,23 @@ function drawGrowth() {
   ctx.stroke();
 }
 
+/* Holding split taken from the member's live balances. */
+function currentAllocation() {
+  var cash = Math.max(0, parseFloat(S.cashBalance) || 0);
+  var invested = Math.max(0, parseFloat(S.investedBalance) || 0);
+  var welcome = Math.min(
+    Math.max(0, parseFloat(S.welcomeBonusBalance) || 0),
+    cash,
+  );
+  return [
+    { label: "Plan holdings", value: invested, color: "#10B981" },
+    { label: "Cash balance", value: cash - welcome, color: "#0B251A" },
+    { label: "Welcome bonus", value: welcome, color: "#F97316" },
+  ].filter(function (s) {
+    return s.value > 0.005;
+  });
+}
+
 function drawDonut() {
   var canvas = $("donutChart");
   if (!canvas) return;
@@ -2179,19 +2297,28 @@ function drawDonut() {
   var W = (canvas.width = canvas.offsetWidth);
   var H = (canvas.height = canvas.offsetHeight);
   if (!W || !H) return;
+
+  var legend = $("donutLegend");
+  var slices = currentAllocation();
+  var total = slices.reduce(function (sum, s) {
+    return sum + s.value;
+  }, 0);
+
+  if (total <= 0) {
+    ctx.clearRect(0, 0, W, H);
+    if (legend)
+      legend.innerHTML =
+        '<div class="txn-empty">No allocation yet. Activate a package and your split will appear here.</div>';
+    return;
+  }
+
   var cx = W / 2,
     cy = H / 2;
   var r = Math.min(cx, cy) - 8;
   var inner = r * 0.56;
-  var slices = [
-    { pct: 0.52, color: "#10B981" },
-    { pct: 0.28, color: "#0B251A" },
-    { pct: 0.14, color: "#F97316" },
-    { pct: 0.06, color: "#D1D5DB" },
-  ];
   var angle = -Math.PI / 2;
   slices.forEach(function (s) {
-    var end = angle + s.pct * 2 * Math.PI;
+    var end = angle + (s.value / total) * 2 * Math.PI;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.arc(cx, cy, r, angle, end);
@@ -2210,44 +2337,78 @@ function drawDonut() {
   ctx.fillStyle = "#111827";
   ctx.font = "bold 13px Space Mono, monospace";
   ctx.textAlign = "center";
-  ctx.fillText("N976k", cx, cy - 4);
+  ctx.fillText(fmtNairaCompact(total), cx, cy - 4);
   ctx.fillStyle = "#9CA3AF";
   ctx.font = "10px Inter, sans-serif";
-  ctx.fillText("invested", cx, cy + 13);
+  ctx.fillText("portfolio", cx, cy + 13);
+
+  if (legend) {
+    legend.innerHTML = slices
+      .map(function (s) {
+        return (
+          '<div class="legend-row">' +
+          '<span class="legend-swatch" style="background:' +
+          s.color +
+          '"></span>' +
+          "<span>" +
+          escapeHtml(s.label) +
+          "</span>" +
+          '<span class="legend-pct">' +
+          Math.round((s.value / total) * 100) +
+          "%</span>" +
+          "</div>"
+        );
+      })
+      .join("");
+  }
 }
 
-/* Chart tabs */
+/* Chart tabs — switch the growth window. */
 document.addEventListener("click", function (e) {
   if (!e.target.matches(".tab")) return;
   var group = e.target.closest(".tab-group");
-  if (group)
-    group.querySelectorAll(".tab").forEach(function (t) {
-      t.classList.remove("active");
-    });
+  if (!group) return;
+  group.querySelectorAll(".tab").forEach(function (t) {
+    t.classList.remove("active");
+  });
   e.target.classList.add("active");
+  growthPeriod = e.target.getAttribute("data-period") || "6m";
   drawGrowth();
+  drawSparkline();
 });
 
 var DEFAULT_RECEIVING_BANK = {
   bankName: "Opay",
   acctNum: "8110858553",
   acctName: "Nwoba Victor Chidera",
-  bankNote: "Transfer to this account from any banking app. Funds appear within 2 minutes. Use your name as narration.",
+  bankNote:
+    "Transfer to this account from any banking app. Funds appear within 2 minutes. Use your name as narration.",
 };
 var depositReceiptData = null;
 
 function getReceivingBank() {
   var s = PLAN_STATE && PLAN_STATE.bank ? PLAN_STATE.bank : null;
-  var bankName = s && s.bankName ? String(s.bankName) : DEFAULT_RECEIVING_BANK.bankName;
-  var acctNum = s && s.acctNum ? String(s.acctNum) : DEFAULT_RECEIVING_BANK.acctNum;
-  var acctName = s && s.acctName ? String(s.acctName) : DEFAULT_RECEIVING_BANK.acctName;
-  var bankNote = s && s.bankNote ? String(s.bankNote) : DEFAULT_RECEIVING_BANK.bankNote;
-  return { bankName: bankName, acctNum: acctNum, acctName: acctName, bankNote: bankNote };
+  var bankName =
+    s && s.bankName ? String(s.bankName) : DEFAULT_RECEIVING_BANK.bankName;
+  var acctNum =
+    s && s.acctNum ? String(s.acctNum) : DEFAULT_RECEIVING_BANK.acctNum;
+  var acctName =
+    s && s.acctName ? String(s.acctName) : DEFAULT_RECEIVING_BANK.acctName;
+  var bankNote =
+    s && s.bankNote ? String(s.bankNote) : DEFAULT_RECEIVING_BANK.bankNote;
+  return {
+    bankName: bankName,
+    acctNum: acctNum,
+    acctName: acctName,
+    bankNote: bankNote,
+  };
 }
 
 function renderReceivingBankBox() {
   var b = getReceivingBank();
-  var title = b.bankName ? (b.bankName + " Dedicated Account") : "Company Receiving Account";
+  var title = b.bankName
+    ? b.bankName + " Dedicated Account"
+    : "Company Receiving Account";
   if ($("depBankTitle")) $("depBankTitle").textContent = title;
   if ($("depAcctName")) $("depAcctName").textContent = b.acctName;
   if ($("depAcctNum")) $("depAcctNum").textContent = b.acctNum;
@@ -2402,7 +2563,8 @@ async function submitDeposit() {
     acctNum: bInfo.acctNum,
     receiptData: receiptUrl || depositReceiptData,
     proofUrl: receiptUrl,
-    method: "BANK TRANSFER (" + String(bInfo.bankName || "BANK").toUpperCase() + ")",
+    method:
+      "BANK TRANSFER (" + String(bInfo.bankName || "BANK").toUpperCase() + ")",
     date: new Date().toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -2465,6 +2627,7 @@ async function submitDeposit() {
   if (amtEl) amtEl.value = "";
   removeReceipt();
   calcReturns();
+  renderDepositTracker();
 }
 
 /* ── INVESTMENT PLAN SYSTEM (PICK → PAY → ADMIN APPROVE → CLAIM) ─── */
@@ -2924,7 +3087,8 @@ function handleNubanInput() {
 }
 
 function setWdPct(pct) {
-  var isFriday = new Date().getDay() === 5;
+  // UTC, to match the server's EXTRACT(DOW FROM NOW()) definition of Friday.
+  var isFriday = new Date().getUTCDay() === 5;
   var welcomeBal = parseFloat(S.welcomeBonusBalance || 0);
   var maxAvailable = isFriday
     ? S.cashBalance
@@ -2944,8 +3108,12 @@ function calcWdSummary() {
   if ($("wdSumReceive")) $("wdSumReceive").textContent = fmt(amt);
 }
 
-function submitWithdrawal() {
-  var isFriday = new Date().getDay() === 5;
+async function submitWithdrawal() {
+  // The server decides the window with EXTRACT(DOW FROM NOW()), which is UTC,
+  // so the client gate reads UTC too and the two can never disagree.
+  var isFriday = new Date().getUTCDay() === 5;
+  // Priority clearance is a real plan perk, read from the member's own tier.
+  var isExpressVIP = (parseInt(PLAN_STATE.planLevel, 10) || 0) >= 8;
   var welcomeBal = parseFloat(S.welcomeBonusBalance || 0);
   var amtEl = $("withdrawAmount");
   var pinEl = $("withdrawPin");
@@ -3058,6 +3226,45 @@ function submitWithdrawal() {
     tasksVerified: S.tasksDone + "/" + S.tasks.length + " Complete",
   };
 
+  // The server is the authority: it verifies the PIN and the balance and is the
+  // only thing allowed to move money. Nothing is written locally until it has
+  // answered, so a rejected request never leaves the member staring at a
+  // "submitted" screen for a withdrawal that did not happen.
+  if (!window.supabaseClient) {
+    toast(
+      "You appear to be offline. Reconnect before requesting a withdrawal.",
+      "warn",
+    );
+    return;
+  }
+
+  var session = null;
+  try {
+    session = await window.supabaseClient.auth.getSession();
+  } catch (e) {}
+  var authedUser =
+    session && session.data && session.data.session
+      ? session.data.session.user
+      : null;
+  if (!authedUser) {
+    toast("Your session has expired. Please sign in again.", "warn");
+    return;
+  }
+
+  var rpcRes = await window.supabaseClient.rpc("request_withdrawal", {
+    p_amount: amt,
+    p_bank_name: selectedBank,
+    p_account_number: nuban,
+    p_account_name: userName,
+    p_pin: pinEl.value.trim(),
+  });
+  if (rpcRes.error) {
+    // Surfaces the server's own wording: "Incorrect withdrawal PIN.",
+    // "Set your 4-digit withdrawal PIN in Settings ...", the Friday rule, etc.
+    toast(rpcRes.error.message || "Withdrawal could not be submitted.", "warn");
+    return;
+  }
+
   var existingWd = [];
   try {
     var wdRaw = getCrestStorage("withdrawals", null);
@@ -3065,29 +3272,6 @@ function submitWithdrawal() {
   } catch (e) {}
   existingWd.unshift(newWd);
   setCrestStorage("withdrawals", existingWd);
-
-  // Sync to Supabase DB via atomic stored procedure
-  if (window.supabaseClient) {
-    try {
-      window.supabaseClient.auth.getSession().then(function (res) {
-        var u =
-          res && res.data && res.data.session ? res.data.session.user : null;
-        if (u) {
-          window.supabaseClient
-            .rpc("request_withdrawal", {
-              p_amount: amt,
-              p_bank_name: selectedBank,
-              p_account_number: nuban,
-              p_account_name: userName,
-            })
-            .then(function (rpcRes) {
-              if (rpcRes.error)
-                console.warn("Supabase withdrawal RPC notice:", rpcRes.error);
-            });
-        }
-      });
-    } catch (e) {}
-  }
 
   // Deduct local balance
   var deductedFromWelcome = Math.min(amt, welcomeBal);
@@ -3441,31 +3625,18 @@ function initSettingsInteractions() {
     });
   }
 
-  // Security action buttons (PIN, 2FA, Password)
+  // Security action buttons (PIN, 2FA, Password) — all three are now real.
   document
-    .querySelectorAll("#view-settings .setting-row button")
+    .querySelectorAll("#view-settings .setting-row button[data-security]")
     .forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var label =
-          this.closest(".setting-row").querySelector("strong").textContent;
-        if (label.includes("PIN")) {
-          var newPin = prompt("Enter your new 4-digit withdrawal PIN:");
-          if (newPin && /^\d{4}$/.test(newPin.trim())) {
-            setCrestStorage("wd_pin", newPin.trim());
-            toast("Withdrawal PIN updated successfully!", "emerald");
-          } else if (newPin !== null) {
-            toast("PIN must be exactly 4 numeric digits.", "warn");
-          }
-        } else if (label.includes("Two-Factor")) {
-          toast(
-            "Two-Factor Authentication configuration link sent to your email.",
-            "info",
-          );
-        } else {
-          toast("Password reset link sent to your registered email.", "info");
-        }
+        var kind = this.getAttribute("data-security");
+        if (kind === "pin") changeWithdrawalPin();
+        else if (kind === "2fa") toggleTwoFactor();
+        else changePassword();
       });
     });
+  refreshSecuritySettings();
 
   // Add Bank Account button in settings
   var addBankBtn = document.querySelector(
@@ -3499,6 +3670,166 @@ function initSettingsInteractions() {
           }, 500);
         });
       }
+    });
+}
+
+/* ── SECURITY SETTINGS (server-backed, no browser-only secrets) ───────
+   The PIN lives in the database as a bcrypt hash and is checked inside
+   request_withdrawal(); nothing is kept in localStorage any more. */
+
+var SECURITY_STATE = { pinSet: false, twoFactor: false };
+
+async function refreshSecuritySettings() {
+  var pinEl = $("secPinStatus");
+  var faEl = $("secTwoFaStatus");
+  if (!window.supabaseClient || !window.crestUser || !window.crestUser.id) {
+    if (pinEl) pinEl.textContent = "Sign in to manage your withdrawal PIN";
+    if (faEl) faEl.textContent = "Sign in to manage two-factor authentication";
+    return;
+  }
+  try {
+    var res = await window.supabaseClient.rpc("get_my_security_settings");
+    if (!res.error && res.data) {
+      SECURITY_STATE.pinSet = res.data.pin_set === true;
+      SECURITY_STATE.twoFactor = res.data.two_factor_enabled === true;
+    } else if (res.error) {
+      console.warn("[Crest] security settings:", res.error);
+    }
+  } catch (e) {
+    console.warn("[Crest] security settings:", e);
+  }
+  renderSecuritySettings();
+}
+
+function renderSecuritySettings() {
+  var pinBtn = document.querySelector(
+    '#view-settings button[data-security="pin"]',
+  );
+  var faBtn = document.querySelector(
+    '#view-settings button[data-security="2fa"]',
+  );
+  var pinEl = $("secPinStatus");
+  var faEl = $("secTwoFaStatus");
+
+  if (pinEl)
+    pinEl.textContent = SECURITY_STATE.pinSet
+      ? "Set. Asked for on every withdrawal."
+      : "Not set — you cannot withdraw until you create one.";
+  if (pinBtn) pinBtn.textContent = SECURITY_STATE.pinSet ? "Change" : "Set PIN";
+
+  if (faEl)
+    faEl.textContent = SECURITY_STATE.twoFactor
+      ? "On for this account."
+      : "Off — your password alone protects your login";
+  if (faBtn) {
+    faBtn.textContent = SECURITY_STATE.twoFactor ? "Disable" : "Enable";
+    faBtn.classList.toggle("btn-outline-sm--green", !SECURITY_STATE.twoFactor);
+  }
+}
+
+function changeWithdrawalPin() {
+  if (!window.supabaseClient || !window.crestUser || !window.crestUser.id) {
+    toast("Sign in to manage your withdrawal PIN.", "warn");
+    return;
+  }
+  var pin = prompt(
+    SECURITY_STATE.pinSet
+      ? "Enter your new 4-digit withdrawal PIN:"
+      : "Create your 4-digit withdrawal PIN:",
+  );
+  if (pin === null) return;
+  pin = String(pin).trim();
+  if (!/^[0-9]{4}$/.test(pin)) {
+    toast("Your PIN must be exactly 4 digits.", "warn");
+    return;
+  }
+  var again = prompt("Type the same 4 digits again to confirm:");
+  if (again === null) return;
+  if (String(again).trim() !== pin) {
+    toast("The two entries did not match. Nothing was changed.", "warn");
+    return;
+  }
+  window.supabaseClient
+    .rpc("set_withdrawal_pin", { p_pin: pin })
+    .then(function (res) {
+      if (res.error) {
+        toast(res.error.message || "Could not save your PIN.", "warn");
+        return;
+      }
+      SECURITY_STATE.pinSet = true;
+      renderSecuritySettings();
+      toast(
+        "Withdrawal PIN saved. You will need it for every withdrawal.",
+        "emerald",
+      );
+    });
+}
+
+function toggleTwoFactor() {
+  var email = window.crestUser && window.crestUser.email;
+  if (!window.supabaseClient || !email || window.crestUser.id === undefined) {
+    toast("Sign in to manage two-factor authentication.", "warn");
+    return;
+  }
+  var next = !SECURITY_STATE.twoFactor;
+  if (
+    next &&
+    !window.confirm(
+      "We will email you a 6-digit code every time you log in.\n\n" +
+        "This relies on Supabase being able to send email. If no custom SMTP " +
+        "is configured for the project, the code may not arrive.\n\n" +
+        "Enable two-factor authentication?",
+    )
+  )
+    return;
+
+  window.supabaseClient
+    .from("profiles")
+    .update({ two_factor_enabled: next })
+    .eq("id", window.crestUser.id)
+    .then(function (res) {
+      if (res.error) {
+        toast(
+          res.error.message || "Could not update two-factor authentication.",
+          "warn",
+        );
+        return;
+      }
+      SECURITY_STATE.twoFactor = next;
+      renderSecuritySettings();
+      toast(
+        next
+          ? "Two-factor authentication enabled."
+          : "Two-factor authentication disabled.",
+        "emerald",
+      );
+    });
+}
+
+function changePassword() {
+  var email = window.crestUser && window.crestUser.email;
+  if (!email) {
+    toast("Sign in to change your password.", "warn");
+    return;
+  }
+  if (typeof crestResetPassword !== "function") {
+    toast("Password reset is unavailable right now.", "warn");
+    return;
+  }
+  toast("Sending a reset link to " + email + "...", "info");
+  Promise.resolve(crestResetPassword(email))
+    .then(function (res) {
+      if (res && res.success) {
+        toast(
+          "Reset link sent. Check " + email + " and your spam folder.",
+          "emerald",
+        );
+      } else {
+        toast((res && res.error) || "Could not send the reset link.", "warn");
+      }
+    })
+    .catch(function () {
+      toast("Could not send the reset link.", "warn");
     });
 }
 
@@ -4169,7 +4500,9 @@ async function loadUserTransactionsFromDB() {
     !window.supabaseClient
   ) {
     allUserTransactions = [];
+    ledgerTransactions = [];
     renderRecentActivity([]);
+    refreshOverviewCharts();
     return;
   }
 
@@ -4183,6 +4516,8 @@ async function loadUserTransactionsFromDB() {
 
     var rows = !error && txns ? txns : [];
     allUserTransactions = rows;
+    // Same ledger, replayed oldest-first, is what draws the growth curve.
+    ledgerTransactions = rows;
 
     if (tbody) {
       if (rows.length === 0) {
@@ -4194,10 +4529,13 @@ async function loadUserTransactionsFromDB() {
     }
 
     renderRecentActivity(rows);
+    refreshOverviewCharts();
   } catch (e) {
     console.warn("loadUserTransactionsFromDB error:", e);
     allUserTransactions = [];
+    ledgerTransactions = [];
     renderRecentActivity([]);
+    refreshOverviewCharts();
   }
 }
 
@@ -4333,6 +4671,213 @@ function filterTransactionsList() {
   renderTransactionsTable(filtered);
 }
 
+/* ── DEPOSIT TRACKER ──────────────────────────────────
+   Reads the member's own deposits and shows how far each one has moved
+   through the review pipeline, using the same status wording the admin desk
+   writes back. */
+var DEPOSIT_STAGES = [
+  { key: "submitted", label: "Submitted" },
+  { key: "review", label: "Under review" },
+  { key: "confirmed", label: "Confirmed" },
+];
+
+function depositStage(status) {
+  var s = String(status || "").toLowerCase();
+  if (s.indexOf("reject") !== -1) return "rejected";
+  if (s.indexOf("review") !== -1) return "review";
+  if (s.indexOf("confirm") !== -1 && s.indexOf("pending") === -1)
+    return "confirmed";
+  return "submitted";
+}
+
+async function renderDepositTracker() {
+  var wrap = $("depositTrackerRows");
+  if (!wrap) return;
+
+  var user = window.crestUser;
+  if (!user || !user.id || !window.supabaseClient) {
+    wrap.innerHTML =
+      '<div class="txn-empty">No deposits yet. Your transfer will appear here the moment you submit it.</div>';
+    return;
+  }
+
+  var res;
+  try {
+    res = await window.supabaseClient
+      .from("deposits")
+      .select("id,amount,plan,status,created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+  } catch (e) {
+    wrap.innerHTML =
+      '<div class="txn-empty">Could not load your deposits right now.</div>';
+    return;
+  }
+
+  var rows = !res.error && res.data ? res.data : [];
+  if (rows.length === 0) {
+    wrap.innerHTML =
+      '<div class="txn-empty">No deposits yet. Your transfer will appear here the moment you submit it.</div>';
+    return;
+  }
+
+  wrap.innerHTML = rows
+    .map(function (d) {
+      var stage = depositStage(d.status);
+      // How many of the three stages have been reached.
+      var reach =
+        stage === "confirmed"
+          ? 3
+          : stage === "review"
+            ? 2
+            : stage === "rejected"
+              ? 0
+              : 1;
+
+      var steps = DEPOSIT_STAGES.map(function (s, i) {
+        var cls = "dep-step";
+        if (stage === "rejected") cls += " dep-step--bad";
+        else if (i < reach - 1) cls += " dep-step--done";
+        else if (i === reach - 1) cls += " dep-step--now";
+        return '<span class="' + cls + '">' + escapeHtml(s.label) + "</span>";
+      }).join('<span class="dep-arrow"></span>');
+
+      var dateStr = d.created_at
+        ? new Date(d.created_at).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          })
+        : "";
+
+      return (
+        '<div class="dep-track-row">' +
+        '<div class="dep-track-top">' +
+        '<span class="dep-track-amt">' +
+        "\u20A6" +
+        (parseFloat(d.amount) || 0).toLocaleString("en-NG") +
+        "</span>" +
+        '<span class="dep-track-ref">' +
+        escapeHtml(String(d.id || "")) +
+        (dateStr ? " \u2022 " + escapeHtml(dateStr) : "") +
+        "</span>" +
+        "</div>" +
+        '<div class="dep-track-plan">' +
+        escapeHtml(d.plan || "Deposit") +
+        "</div>" +
+        '<div class="dep-track-steps">' +
+        steps +
+        "</div>" +
+        "</div>"
+      );
+    })
+    .join("");
+}
+
+/* ── FRIDAY WITHDRAWAL WINDOW ─────────────────────────
+   Everything except the welcome bonus unlocks at 00:00 UTC on Friday and
+   locks again at 00:00 UTC on Saturday — the very same rule the SQL enforces
+   with EXTRACT(DOW FROM NOW()). */
+function startFridayCountdown() {
+  var wrap = $("wdWindowStrip");
+  var textEl = $("wdWindowText");
+  var clockEl = $("wdWindowClock");
+  if (!wrap || !textEl || !clockEl) return;
+
+  function tick() {
+    var now = new Date();
+    var day = now.getUTCDay(); // 0 Sun … 5 Fri … 6 Sat
+    var open = day === 5;
+    var target;
+
+    if (open) {
+      // Open until midnight UTC tonight.
+      target = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1),
+      );
+    } else {
+      var add = (5 - day + 7) % 7 || 7;
+      target = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate() + add,
+        ),
+      );
+    }
+
+    var diff = Math.max(0, target - now);
+    var h = Math.floor(diff / 3600000);
+    var m = Math.floor((diff % 3600000) / 60000);
+    var s = Math.floor((diff % 60000) / 1000);
+
+    clockEl.textContent = [h, m, s]
+      .map(function (v) {
+        return String(v).padStart(2, "0");
+      })
+      .join(":");
+
+    wrap.classList.toggle("wd-window-strip--open", open);
+    textEl.textContent = open
+      ? "Window OPEN — task, daily and referral earnings are withdrawable until 00:00 UTC Saturday."
+      : "Window opens Friday 00:00 UTC. Only your welcome bonus is withdrawable right now.";
+  }
+
+  tick();
+  clearInterval(window.__crestFridayTimer);
+  window.__crestFridayTimer = setInterval(tick, 1000);
+}
+
+/* ── STATEMENT EXPORT ─────────────────────────────────
+   Builds a CSV from the same ledger the on-screen table shows, so the
+   download always matches what the member is looking at. */
+function csvCell(value) {
+  var s = String(value === null || value === undefined ? "" : value);
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+function downloadStatementCSV() {
+  var rows = allUserTransactions || [];
+  if (rows.length === 0) {
+    toast("There is nothing to export yet.", "info");
+    return;
+  }
+
+  var lines = [
+    ["Date", "Description", "Type", "Amount (NGN)", "Status"].join(","),
+  ];
+  rows.forEach(function (tx) {
+    lines.push(
+      [
+        tx.created_at ? new Date(tx.created_at).toISOString().slice(0, 10) : "",
+        tx.title || tx.description || "Account Transaction",
+        tx.type || "",
+        (parseFloat(tx.amount) || 0).toFixed(2),
+        tx.status || "Completed",
+      ]
+        .map(csvCell)
+        .join(","),
+    );
+  });
+
+  // The BOM keeps Excel from mangling the naira sign in the header text.
+  var blob = new Blob(["\uFEFF" + lines.join("\r\n")], {
+    type: "text/csv;charset=utf-8;",
+  });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download =
+    "crest-statement-" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () {
+    URL.revokeObjectURL(url);
+  }, 1000);
+  toast("Statement downloaded.", "emerald");
+}
+
 /* ── INITIALIZATION ──────────────────────────────────── */
 function initDashboard() {
   switchView("overview");
@@ -4340,9 +4885,11 @@ function initDashboard() {
   refreshTaskUI();
   startDepositSessionTimer();
   startTaskCycleClock();
+  startFridayCountdown();
   updateWithdrawalTimeline();
   initTxnFiltering();
   initSettingsInteractions();
+  renderDepositTracker();
   if (typeof loadRemoteTasksConfig === "function") {
     loadRemoteTasksConfig();
   }

@@ -12,6 +12,8 @@
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0B251A">
+  <link rel="manifest" href="../manifest.json">
   <title>Crest Wealth | Investor Portal</title>
   <meta name="description"
     content="Access your investment portfolio, track returns, manage deposits and withdrawals, and complete daily earning tasks.">
@@ -143,7 +145,7 @@
           <circle cx="12" cy="12" r="3" />
           <path
             d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
+        </svg>
         Settings
       </a>
 
@@ -312,7 +314,7 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon
                     points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
+                </svg>
                 <span id="planClaimBadge">Active Plan</span>
               </div>
               <div class="pcc-title">Daily Plan Reward</div>
@@ -384,7 +386,7 @@
             <div class="card-head">
               <div class="card-head-left">
                 <div class="card-title">Portfolio Growth</div>
-                <div class="card-desc">Last 6 months</div>
+                <div class="card-desc" id="growthRangeLabel">Last 6 months</div>
               </div>
               <div class="tab-group">
                 <button class="tab active" data-period="6m">6M</button>
@@ -399,15 +401,8 @@
               <div class="card-title">Allocation</div>
             </div>
             <div class="donut-wrap"><canvas id="donutChart"></canvas></div>
-            <div class="donut-legend">
-              <div class="legend-row"><span class="legend-swatch ember"></span><span>Level 1 Package</span><span
-                  class="legend-pct">52%</span></div>
-              <div class="legend-row"><span class="legend-swatch copper"></span><span>Level 2 Package</span><span
-                  class="legend-pct">28%</span></div>
-              <div class="legend-row"><span class="legend-swatch amber"></span><span>Level 3 Package</span><span
-                  class="legend-pct">14%</span></div>
-              <div class="legend-row"><span class="legend-swatch stone"></span><span>Cash</span><span
-                  class="legend-pct">6%</span></div>
+            <div class="donut-legend" id="donutLegend">
+              <div class="txn-empty">No allocation yet. Activate a package and your split will appear here.</div>
             </div>
           </div>
         </div>
@@ -466,6 +461,7 @@
               <option value="Reward">Rewards</option>
               <option value="Trade">Investments</option>
             </select>
+            <button type="button" class="btn-outline-sm" onclick="downloadStatementCSV()">Download statement</button>
           </div>
         </div>
         <div class="card">
@@ -632,11 +628,31 @@
               Lock plans.</div>
           </div>
         </div>
+
+        <!-- DEPOSIT TRACKER -->
+        <div class="card" id="depositTrackerCard">
+          <div class="card-head">
+            <div class="card-head-left">
+              <div class="card-title">Deposit Tracker</div>
+              <div class="card-desc">Submitted &rarr; Under review &rarr; Confirmed</div>
+            </div>
+          </div>
+          <div id="depositTrackerRows" class="dep-track-rows">
+            <div class="txn-empty">No deposits yet. Your transfer will appear here the moment you submit it.</div>
+          </div>
+        </div>
       </div>
 
       <!-- ============ WITHDRAW ============ -->
       <div class="view" id="view-withdraw">
         <h2 class="page-title">Withdraw Funds</h2>
+
+        <!-- FRIDAY WITHDRAWAL WINDOW COUNTDOWN -->
+        <div class="wd-window-strip" id="wdWindowStrip">
+          <span class="wdw-dot"></span>
+          <span class="wdw-text" id="wdWindowText">Checking the withdrawal window…</span>
+          <span class="wdw-clock" id="wdWindowClock">--:--:--</span>
+        </div>
 
         <!-- REJECTION BANNER INSIDE WITHDRAW VIEW -->
         <div class="notice notice--danger" id="wdRejectionBanner" style="display:none;margin-bottom:16px;">
@@ -1058,18 +1074,18 @@
               <div class="card-title" style="margin-bottom:16px;">Security</div>
               <div class="setting-row">
                 <div><strong>Withdrawal PIN</strong>
-                  <p class="muted-text">4-digit PIN for withdrawals</p>
-                </div><button class="btn-outline-sm">Change</button>
+                  <p class="muted-text" id="secPinStatus">Checking…</p>
+                </div><button class="btn-outline-sm" data-security="pin">Set PIN</button>
               </div>
               <div class="setting-row">
                 <div><strong>Two-Factor Auth</strong>
-                  <p class="muted-text">Status: Disabled</p>
-                </div><button class="btn-outline-sm btn-outline-sm--green">Enable</button>
+                  <p class="muted-text" id="secTwoFaStatus">Checking…</p>
+                </div><button class="btn-outline-sm btn-outline-sm--green" data-security="2fa">Enable</button>
               </div>
               <div class="setting-row">
                 <div><strong>Password</strong>
-                  <p class="muted-text">Last changed 30 days ago</p>
-                </div><button class="btn-outline-sm">Change</button>
+                  <p class="muted-text" id="secPasswordStatus">Send a reset link to your email</p>
+                </div><button class="btn-outline-sm" data-security="password">Change</button>
               </div>
             </div>
             <div class="card">
@@ -1144,7 +1160,7 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path
               d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .36z" />
-            </svg>
+          </svg>
           <div>
             <strong>Join Telegram VIP Channel</strong>
             <span>14,820 Investors &bull; Daily Signals</span>
@@ -1155,7 +1171,7 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path
               d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.62C8.75 21.41 10.38 21.83 12.04 21.83C17.5 21.83 21.95 17.38 21.95 11.92C21.95 9.27 20.92 6.78 19.05 4.91C17.18 3.03 14.69 2 12.04 2M12.05 3.67C14.25 3.67 16.31 4.53 17.87 6.09C19.42 7.65 20.28 9.72 20.28 11.92C20.28 16.46 16.58 20.15 12.04 20.15C10.56 20.15 9.11 19.76 7.85 19.01L7.55 18.83L4.43 19.65L5.26 16.61L5.06 16.29C4.24 14.99 3.8 13.47 3.8 11.91C3.81 7.37 7.5 3.67 12.05 3.67Z" />
-            </svg>
+          </svg>
           <div>
             <strong>WhatsApp Concierge Support</strong>
             <span>Online 24/7 &bull; Instant Human Agent</span>

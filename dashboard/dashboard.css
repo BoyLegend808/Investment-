@@ -863,6 +863,135 @@ table td:nth-child(4),
   text-align: center;
 }
 
+/* ── FRIDAY WITHDRAWAL WINDOW STRIP ──── */
+.wd-window-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  background: var(--c-card);
+  font-size: 0.8rem;
+  color: var(--c-muted);
+}
+
+.wdw-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: var(--c-orange);
+}
+
+.wd-window-strip--open {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: var(--c-green-bg);
+  color: var(--c-green-ink);
+}
+
+.wd-window-strip--open .wdw-dot {
+  background: var(--c-green);
+}
+
+.wdw-text {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.wdw-clock {
+  font-family: var(--f-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--c-ink);
+  white-space: nowrap;
+}
+
+.wd-window-strip--open .wdw-clock {
+  color: var(--c-green-ink);
+}
+
+/* ── DEPOSIT TRACKER ─────────────────── */
+.dep-track-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dep-track-row {
+  padding: 12px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-bg);
+}
+
+.dep-track-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dep-track-amt {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--c-ink);
+  white-space: nowrap;
+}
+
+.dep-track-ref {
+  font-family: var(--f-mono);
+  font-size: 0.7rem;
+  color: var(--c-faint);
+}
+
+.dep-track-plan {
+  margin-top: 2px;
+  font-size: 0.76rem;
+  color: var(--c-muted);
+}
+
+.dep-track-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.dep-step {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: var(--c-border-light);
+  color: var(--c-faint);
+  white-space: nowrap;
+}
+
+.dep-step--done {
+  background: var(--c-green-bg);
+  color: var(--c-green-ink);
+}
+
+.dep-step--now {
+  background: var(--c-orange-bg);
+  color: var(--c-orange-ink);
+}
+
+.dep-step--bad {
+  background: var(--c-red-bg);
+  color: var(--c-red-ink);
+}
+
+.dep-arrow {
+  width: 12px;
+  height: 1px;
+  background: var(--c-border);
+}
+
 /* ── DATA TABLE ──────────────────────── */
 .table-responsive {
   width: 100%;

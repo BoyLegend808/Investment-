@@ -721,3 +721,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.addEventListener("hashchange", handleAuthHash);
   }
 });
+
+// =============================================================================
+// PWA SERVICE WORKER
+// Registered from this shared file so every page gets it without repeating the
+// snippet. The worker is resolved next to shared-utils.js, which keeps it
+// working whether the site sits at a domain root or under a sub-path.
+// =============================================================================
+(function registerCrestServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  if (location.protocol !== "https:" && location.hostname !== "localhost") return;
+
+  const tag = document.querySelector('script[src$="shared-utils.js"]');
+  if (!tag) return;
+
+  let workerUrl;
+  try {
+    workerUrl = new URL("service-worker.js", tag.src).href;
+  } catch (e) {
+    return;
+  }
+
+  const register = () => {
+    navigator.serviceWorker.register(workerUrl).catch(() => {
+      /* offline support is a bonus, never a hard requirement */
+    });
+  };
+
+  if (document.readyState === "complete") register();
+  else window.addEventListener("load", register);
+})();
