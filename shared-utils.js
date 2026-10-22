@@ -370,6 +370,33 @@ async function crestIsAuthenticated() {
 }
 
 /**
+ * Whether a member has switched on email two-factor authentication.
+ * Returns { enabled, error }. A failed read reports an error rather than
+ * defaulting to "off", because quietly skipping the second factor on a
+ * transient database hiccup would defeat the whole point of having one.
+ * @param {string} userId
+ */
+async function crestTwoFactorState(userId) {
+  if (!userId) return { enabled: false, error: null };
+  const sb = await waitForSupabase();
+  if (!sb) return { enabled: false, error: "Cannot reach the server." };
+  try {
+    const { data, error } = await sb
+      .from("profiles")
+      .select("two_factor_enabled")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) return { enabled: false, error: error.message };
+    return {
+      enabled: !!(data && data.two_factor_enabled === true),
+      error: null,
+    };
+  } catch (e) {
+    return { enabled: false, error: "Cannot reach the server." };
+  }
+}
+
+/**
  * Supabase sign-in. Returns { success, error }.
  * @param {string} email
  * @param {string} password
@@ -730,7 +757,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 // =============================================================================
 (function registerCrestServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  if (location.protocol !== "https:" && location.hostname !== "localhost") return;
+  if (location.protocol !== "https:" && location.hostname !== "localhost")
+    return;
 
   const tag = document.querySelector('script[src$="shared-utils.js"]');
   if (!tag) return;

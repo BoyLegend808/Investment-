@@ -3776,8 +3776,12 @@ function toggleTwoFactor() {
     next &&
     !window.confirm(
       "We will email you a 6-digit code every time you log in.\n\n" +
-        "This relies on Supabase being able to send email. If no custom SMTP " +
-        "is configured for the project, the code may not arrive.\n\n" +
+        "Be careful with this. It depends on Crest Wealth being able to send " +
+        "email. If a code cannot be delivered you will be asked to request a " +
+        "new one, and you will not get in until it arrives — so only switch " +
+        "this on if you can reliably receive mail at " +
+        email +
+        ".\n\n" +
         "Enable two-factor authentication?",
     )
   )
