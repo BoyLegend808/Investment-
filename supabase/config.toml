@@ -1,0 +1,7 @@
+project_id = "panxaqueawnqrebikwvb"
+
+# market-quotes is called from the browser with the public Supabase key, not a
+# user JWT, so the platform-level JWT check has to be off. The function's own
+# `auth: 'publishable'` check is what actually gates it.
+[functions.market-quotes]
+verify_jwt = false

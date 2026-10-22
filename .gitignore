@@ -2,6 +2,10 @@ scratch/
 *.log
 # Developer scratch / WIP folder (never deploy)
 node_modules/
+
+# Supabase CLI local state (project link + local branch metadata)
+supabase/.temp/
+supabase/.branches/
 .env
 .env.local
 .env.*.local

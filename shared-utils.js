@@ -228,10 +228,29 @@ function togglePasswordVisibility(inputId, btn) {
 }
 
 // =============================================================================
-// CENTRALIZED API KEY (Alpha Vantage - Free Tier)
-// This is a free-tier public key. For production, proxy calls server-side.
+// MARKET TICKER: STOCK QUOTES VIA EDGE FUNCTION
+// The Alpha Vantage key used to be defined here, which meant any visitor could
+// read it out of the page source. It now lives as a server-side secret on the
+// "market-quotes" Edge Function, and this helper is the only client entry point.
+// On any failure it resolves to {} so the ticker keeps rendering its static
+// fallback values instead of breaking.
 // =============================================================================
-window.CREST_AV_KEY = "QLX2KJ0DDBB1RUST";
+async function crestFetchStockQuotes() {
+  try {
+    let waited = 0;
+    while (!window.supabaseClient && waited < 2000) {
+      await new Promise((r) => setTimeout(r, 25));
+      waited += 25;
+    }
+    const client = window.supabaseClient;
+    if (!client || !client.functions) return {};
+    const { data, error } = await client.functions.invoke("market-quotes");
+    if (error || !data || !data.quotes) return {};
+    return data.quotes;
+  } catch (e) {
+    return {};
+  }
+}
 
 // =============================================================================
 // COOKIE CONSENT BANNER CONTROLLER

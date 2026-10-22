@@ -354,35 +354,14 @@ async function initLiveTickerUpdate() {
     const usdEur = fxData.rates.EUR;
     const usdGbp = fxData.rates.GBP;
 
-    // 3. Fetch Stocks from Alpha Vantage (SPY, AAPL, MSFT, TSLA)
-    const apiKey = window.CREST_AV_KEY || 'QLX2KJ0DDBB1RUST';
-    const symbols = ['SPY', 'AAPL', 'MSFT', 'TSLA'];
-    const stockData = {};
-    
-    // Fetch concurrently, wrapped in try-catch to avoid breaking the ticker if rate limited
+    // 3. Fetch the stock quotes through the Crest "market-quotes" Edge Function.
+    //    The Alpha Vantage key is a server-side function secret, so it is never
+    //    shipped to the browser. The call returns {} when the function is
+    //    unreachable, and the ticker falls back to its static values below.
+    let stockData = {};
     try {
-      const stockPromises = symbols.map(async sym => {
-        const res = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${sym}&apikey=${apiKey}`);
-        if (!res.ok) return null;
-        const json = await res.json();
-        // Fallback or error responses from Alpha Vantage won't contain "Global Quote"
-        if (json["Global Quote"] && json["Global Quote"]["05. price"]) {
-          return {
-            symbol: sym,
-            price: parseFloat(json["Global Quote"]["05. price"]),
-            change: parseFloat(json["Global Quote"]["10. change percent"].replace('%',''))
-          };
-        }
-        return null;
-      });
-      
-      const results = await Promise.all(stockPromises);
-      results.forEach(res => {
-        if (res) stockData[res.symbol] = res;
-      });
-    } catch (e) {
-      // API fetch failed - will use fallback data
-    }
+      stockData = await crestFetchStockQuotes();
+    } catch (e) {}
 
     // Build ticker data object
     const tickerData = {
