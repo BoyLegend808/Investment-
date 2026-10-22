@@ -1610,7 +1610,14 @@ GRANT EXECUTE ON FUNCTION public.credit_user_balance(NUMERIC, TEXT, TEXT, UUID) 
 GRANT EXECUTE ON FUNCTION public.sync_user_balance(NUMERIC) TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.get_user_referrals() TO authenticated, anon;
 GRANT EXECUTE ON FUNCTION public.lookup_referral_code(TEXT) TO authenticated, anon;
-GRANT EXECUTE ON FUNCTION public.request_withdrawal(NUMERIC, TEXT, TEXT, TEXT) TO authenticated, anon;
+-- GRANT has no IF EXISTS form, so this signature must match the definition above
+-- exactly. When the PIN argument was added the function became 5-arg; leaving
+-- the old 4-arg signature here aborts the whole script with error 42883.
+GRANT EXECUTE ON FUNCTION public.request_withdrawal(NUMERIC, TEXT, TEXT, TEXT, TEXT) TO authenticated, anon;
+-- Both of these act on the caller's own row only and refuse an anonymous call,
+-- so they are granted to signed-in members and nobody else.
+GRANT EXECUTE ON FUNCTION public.set_withdrawal_pin(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_my_security_settings() TO authenticated;
 -- The plan funding loop is only ever driven by a signed-in user.
 GRANT EXECUTE ON FUNCTION public.submit_plan_payment(INT, TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_plan_daily_reward() TO authenticated;
