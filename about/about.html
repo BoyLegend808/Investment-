@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://open.er-api.com https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://open.er-api.com https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
@@ -17,21 +19,25 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://crestwealth.com/about/about.html">
   <meta property="og:title" content="Our Story | Crest Wealth — Built to Democratize Wealth">
-  <meta property="og:description" content="Discover how Crest Wealth was founded to give everyone access to institutional-grade investment tools. Our mission, values, and journey.">
+  <meta property="og:description"
+    content="Discover how Crest Wealth was founded to give everyone access to institutional-grade investment tools. Our mission, values, and journey.">
   <meta property="og:image" content="https://crestwealth.com/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Our Story | Crest Wealth — Built to Democratize Wealth">
-  <meta name="twitter:description" content="Discover how Crest Wealth was founded to give everyone access to institutional-grade investment tools. Our mission, values, and journey.">
+  <meta name="twitter:description"
+    content="Discover how Crest Wealth was founded to give everyone access to institutional-grade investment tools. Our mission, values, and journey.">
   <title>Our Story | Crest Wealth — Built to Grow Your Wealth</title>
   <link rel="canonical" href="https://crestwealth.com/about/about.html">
 
-  <meta name="description" content="Discover the story behind Crest Wealth — a mission-driven platform democratizing access to global investment opportunities for everyone.">
+  <meta name="description"
+    content="Discover the story behind Crest Wealth — a mission-driven platform democratizing access to global investment opportunities for everyone.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
 
-  
+
+
 
   <link rel="stylesheet" href="about.css">
   <!-- Supabase -->
@@ -39,28 +45,46 @@
   <script src="../supabase.js"></script>
   <script src="../shared-utils.js" defer></script>
 </head>
+
 <body>
 
   <!-- GLOBAL LIVE MARKET TICKER -->
   <div class="ticker-bar">
-        <div class="ticker-track">
-      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span> <span class="ticker-price">5,620.10</span> <span class="ticker-change up">+0.68%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.40</span> <span class="ticker-change up">+1.25%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">$415.20</span> <span class="ticker-change up">+1.10%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$235.50</span> <span class="ticker-change up">+0.85%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span> <span class="ticker-price">$76,520.00</span> <span class="ticker-change up">+1.20%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">$2,432.00</span> <span class="ticker-change up">+1.58%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span> <span class="ticker-price">&#8364;0.9150</span> <span class="ticker-change up">+0.10%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span> <span class="ticker-price">&#163;0.7850</span> <span class="ticker-change up">+0.15%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">ETH / USD</span><span class="ticker-price">$2,432.47</span><span class="ticker-change up">+1.58%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD / EUR</span><span class="ticker-price">&#8364;0.8693</span><span class="ticker-change down">-0.12%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD / GBP</span><span class="ticker-price">&#163;0.7449</span><span class="ticker-change down">-0.08%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">TSLA</span><span class="ticker-price">$185.00</span><span class="ticker-change up">+2.15%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">BTC / USD</span><span class="ticker-price">$76,141</span><span class="ticker-change up">+0.45%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">ETH / USD</span><span class="ticker-price">$2,418.51</span><span class="ticker-change up">+1.07%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span><span class="ticker-price">5,620.10</span><span class="ticker-change up">+0.68%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">AAPL</span><span class="ticker-price">$228.00</span><span class="ticker-change up">+1.40%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">MSFT</span><span class="ticker-price">$415.20</span><span class="ticker-change up">+0.93%</span></div>
+    <div class="ticker-track">
+      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span> <span class="ticker-price">5,620.10</span>
+        <span class="ticker-change up">+0.68%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.40</span> <span
+          class="ticker-change up">+1.25%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">$415.20</span> <span
+          class="ticker-change up">+1.10%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$235.50</span> <span
+          class="ticker-change up">+0.85%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span> <span class="ticker-price">$76,520.00</span>
+        <span class="ticker-change up">+1.20%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">$2,432.00</span>
+        <span class="ticker-change up">+1.58%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span> <span
+          class="ticker-price">&#8364;0.9150</span> <span class="ticker-change up">+0.10%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span> <span class="ticker-price">&#163;0.7850</span>
+        <span class="ticker-change up">+0.15%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">ETH / USD</span><span
+          class="ticker-price">$2,432.47</span><span class="ticker-change up">+1.58%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD / EUR</span><span
+          class="ticker-price">&#8364;0.8693</span><span class="ticker-change down">-0.12%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD / GBP</span><span
+          class="ticker-price">&#163;0.7449</span><span class="ticker-change down">-0.08%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">TSLA</span><span class="ticker-price">$185.00</span><span
+          class="ticker-change up">+2.15%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">BTC / USD</span><span
+          class="ticker-price">$76,141</span><span class="ticker-change up">+0.45%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">ETH / USD</span><span
+          class="ticker-price">$2,418.51</span><span class="ticker-change up">+1.07%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span><span
+          class="ticker-price">5,620.10</span><span class="ticker-change up">+0.68%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span><span class="ticker-price">$228.00</span><span
+          class="ticker-change up">+1.40%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">MSFT</span><span class="ticker-price">$415.20</span><span
+          class="ticker-change up">+0.93%</span></div>
     </div>
   </div>
 
@@ -71,7 +95,8 @@
         <!-- Logo -->
         <a href="../index/index.html" class="brand-logo" aria-label="Crest Wealth Home">
           <div class="brand-icon">
-            <img src="../favicon.svg" alt="Crest Wealth Logo" loading="lazy" style="width: 100%; height: 100%; object-fit: contain;">
+            <img src="../favicon.svg" alt="Crest Wealth Logo" loading="lazy"
+              style="width: 100%; height: 100%; object-fit: contain;">
           </div>
           <div class="brand-name">
             Crest
@@ -90,38 +115,78 @@
             <a href="../accounts/accounts.html" class="nav-link auth-required">
               Save &amp; Invest
               <svg class="dropdown-arrow" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                <path fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd" />
               </svg>
             </a>
             <div class="mega-dropdown">
               <div class="mega-dropdown-col">
                 <h4>Accounts &amp; Savings</h4>
                 <a href="../accounts/accounts.html#brokerage" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Crest Brokerage</h5><p>Trade Global &amp; US stocks with zero account fees</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 20V10M12 20V4M6 20v-6" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Crest Brokerage</h5>
+                    <p>Trade Global &amp; US stocks with zero account fees</p>
+                  </div>
                 </a>
                 <a href="../accounts/accounts.html#stash" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg></div>
-                  <div class="dropdown-link-info"><h5>High-Yield Stash</h5><p>Earn 4.2% APY with daily interest and instant withdrawals</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+                      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+                      <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>High-Yield Stash</h5>
+                    <p>Earn 4.2% APY with daily interest and instant withdrawals</p>
+                  </div>
                 </a>
                 <a href="../accounts/accounts.html#fixed-lock" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Crest Lock</h5><p>Lock funds for 30–365 days and earn up to 5.5% p.a.</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Crest Lock</h5>
+                    <p>Lock funds for 30–365 days and earn up to 5.5% p.a.</p>
+                  </div>
                 </a>
               </div>
               <div class="mega-dropdown-col">
                 <h4>Goal &amp; Wealth Solutions</h4>
                 <a href="../accounts/accounts.html#goals" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Target Goal Saver</h5><p>Automated savings for home ownership, business &amp; car</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <circle cx="12" cy="12" r="6" />
+                      <circle cx="12" cy="12" r="2" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Target Goal Saver</h5>
+                    <p>Automated savings for home ownership, business &amp; car</p>
+                  </div>
                 </a>
                 <a href="../investments/investments.html#dollar-vault" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/><path d="M12 14v2M10 15h4"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Dollar Vault</h5><p>Hedge against devaluation with US dollar fixed returns</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="20" height="14" x="2" y="5" rx="2" />
+                      <line x1="2" x2="22" y1="10" y2="10" />
+                      <path d="M12 14v2M10 15h4" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Dollar Vault</h5>
+                    <p>Hedge against devaluation with US dollar fixed returns</p>
+                  </div>
                 </a>
                 <a href="../pricing/pricing.html" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Rates &amp; Fee Schedule</h5><p>Transparent zero-hidden-fee pricing comparison</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z" />
+                      <circle cx="7" cy="7" r=".5" fill="currentColor" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Rates &amp; Fee Schedule</h5>
+                    <p>Transparent zero-hidden-fee pricing comparison</p>
+                  </div>
                 </a>
               </div>
             </div>
@@ -132,30 +197,57 @@
             <a href="../investments/investments.html" class="nav-link">
               Investments
               <svg class="dropdown-arrow" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                <path fill-rule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clip-rule="evenodd" />
               </svg>
             </a>
             <div class="mega-dropdown">
               <div class="mega-dropdown-col">
                 <h4>Asset Classes</h4>
                 <a href="../investments/investments.html#stocks" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Global &amp; US Equities</h5><p>Over 5,000+ local &amp; international publicly traded shares</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                      <polyline points="16 7 22 7 22 13" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Global &amp; US Equities</h5>
+                    <p>Over 5,000+ local &amp; international publicly traded shares</p>
+                  </div>
                 </a>
                 <a href="../investments/investments.html#tbills" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Treasury Bills &amp; Bonds</h5><p>Sovereign guaranteed government debt securities</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v4M12 14v4M16 14v4" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Treasury Bills &amp; Bonds</h5>
+                    <p>Sovereign guaranteed government debt securities</p>
+                  </div>
                 </a>
               </div>
               <div class="mega-dropdown-col">
                 <h4>Funds &amp; Real Estate</h4>
                 <a href="../investments/investments.html#mutual-funds" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Mutual &amp; Index Funds</h5><p>Professionally diversified low-risk portfolios</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" x2="8" y1="13" y2="13" />
+                      <line x1="16" x2="8" y1="17" y2="17" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Mutual &amp; Index Funds</h5>
+                    <p>Professionally diversified low-risk portfolios</p>
+                  </div>
                 </a>
                 <a href="../investments/investments.html#real-estate" class="dropdown-link-card">
-                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01"/></svg></div>
-                  <div class="dropdown-link-info"><h5>Real Estate Trust Notes</h5><p>Fractional commercial &amp; residential income assets</p></div>
+                  <div class="dropdown-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect width="16" height="20" x="4" y="2" rx="2" ry="2" />
+                      <path d="M9 22v-4h6v4M8 6h.01M16 6h.01M8 10h.01M16 10h.01M8 14h.01M16 14h.01" /></svg></div>
+                  <div class="dropdown-link-info">
+                    <h5>Real Estate Trust Notes</h5>
+                    <p>Fractional commercial &amp; residential income assets</p>
+                  </div>
                 </a>
               </div>
             </div>
@@ -218,11 +310,14 @@
         <!-- Left: Copy -->
         <div>
           <div class="about-hero-tag">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
             Our Story
           </div>
           <h1>Built to make <em>wealth creation</em> accessible to everyone.</h1>
-          <p>Crest Wealth was founded on a single, bold idea: every person deserves access to the same financial tools that the world's wealthiest investors use every day. We tore down the barriers and built a platform that puts institutional-grade investing in your pocket.</p>
+          <p>Crest Wealth was founded on a single, bold idea: every person deserves access to the same financial tools
+            that the world's wealthiest investors use every day. We tore down the barriers and built a platform that
+            puts institutional-grade investing in your pocket.</p>
 
           <div class="about-hero-stats">
             <div class="hero-stat-card">
@@ -249,14 +344,20 @@
           <div class="hero-card">
             <div class="hero-card-label">Our Mission</div>
             <div class="hero-card-title">Democratize global wealth</div>
-            <div class="hero-card-desc">Give every individual access to equities, bonds, and alternative assets — with zero barriers to entry and maximum transparency.</div>
-            <span class="hero-card-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> SEC-Compliant Trustees</span>
+            <div class="hero-card-desc">Give every individual access to equities, bonds, and alternative assets — with
+              zero barriers to entry and maximum transparency.</div>
+            <span class="hero-card-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12" /></svg> SEC-Compliant Trustees</span>
           </div>
           <div class="hero-card">
             <div class="hero-card-label">Our Approach</div>
             <div class="hero-card-title">Technology-first investing</div>
-            <div class="hero-card-desc">We combine smart automation, real-time market data, and licensed fund management to deliver returns that consistently outpace inflation.</div>
-            <span class="hero-card-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> GDPR &amp; ISO 27001 Certified</span>
+            <div class="hero-card-desc">We combine smart automation, real-time market data, and licensed fund management
+              to deliver returns that consistently outpace inflation.</div>
+            <span class="hero-card-badge"><svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12" /></svg> GDPR &amp; ISO 27001 Certified</span>
           </div>
         </div>
       </div>
@@ -272,7 +373,10 @@
           <img src="../assets/about_team.jpg" alt="Crest Wealth team collaborating" loading="lazy">
           <div class="mission-image-overlay">
             <div class="mission-overlay-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                <polyline points="16 7 22 7 22 13" /></svg>
             </div>
             <div class="mission-overlay-text">
               <strong>+5.5% Average Annual Return</strong>
@@ -283,9 +387,14 @@
         <div>
           <span class="mission-tag">Our Genesis</span>
           <h2>A platform built out of necessity.</h2>
-          <p>We watched traditional banking systems leave everyday people behind. High-net-worth individuals enjoyed access to global equities, high-yield fixed income, and inflation-hedging tools — but the average person was stuck with savings accounts that barely kept pace with rising costs.</p>
-          <p>So we built the solution. By leveraging fintech innovation and strategic partnerships with SEC-registered trustees, Crest Wealth gives you the exact same institutional-grade investment tools — with a minimum investment starting from just $10.</p>
-          <p>No complex jargon. No hidden fees. No gatekeeping. Just clear, transparent, and powerful wealth-building instruments, designed for real people with real financial goals.</p>
+          <p>We watched traditional banking systems leave everyday people behind. High-net-worth individuals enjoyed
+            access to global equities, high-yield fixed income, and inflation-hedging tools — but the average person was
+            stuck with savings accounts that barely kept pace with rising costs.</p>
+          <p>So we built the solution. By leveraging fintech innovation and strategic partnerships with SEC-registered
+            trustees, Crest Wealth gives you the exact same institutional-grade investment tools — with a minimum
+            investment starting from just $10.</p>
+          <p>No complex jargon. No hidden fees. No gatekeeping. Just clear, transparent, and powerful wealth-building
+            instruments, designed for real people with real financial goals.</p>
         </div>
       </div>
     </div>
@@ -298,51 +407,77 @@
       <div class="section-header-center">
         <span class="section-tag">OUR PRINCIPLES</span>
         <h2 class="section-title">The values that guide every decision</h2>
-        <p class="section-subtitle">From product design to investment policy, these are the non-negotiables that make Crest Wealth different.</p>
+        <p class="section-subtitle">From product design to investment policy, these are the non-negotiables that make
+          Crest Wealth different.</p>
       </div>
 
       <div class="values-grid">
         <div class="value-card">
           <div class="value-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
           </div>
           <h3>Absolute Security</h3>
-          <p>Your capital is held in segregated accounts by independent licensed custodians. We use bank-grade AES-256 encryption, two-factor authentication, and real-time fraud monitoring on every transaction.</p>
+          <p>Your capital is held in segregated accounts by independent licensed custodians. We use bank-grade AES-256
+            encryption, two-factor authentication, and real-time fraud monitoring on every transaction.</p>
         </div>
         <div class="value-card">
           <div class="value-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" /></svg>
           </div>
           <h3>Radical Transparency</h3>
-          <p>No hidden fees, no complex jargon, and absolutely no surprises. Every charge, every rate, and every investment is clearly disclosed before you commit a single dollar.</p>
+          <p>No hidden fees, no complex jargon, and absolutely no surprises. Every charge, every rate, and every
+            investment is clearly disclosed before you commit a single dollar.</p>
         </div>
         <div class="value-card">
           <div class="value-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l2-9 5 18 3-10h6"/></svg>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12h4l2-9 5 18 3-10h6" /></svg>
           </div>
           <h3>Relentless Innovation</h3>
-          <p>Markets evolve. Your tools should too. We continuously enhance our platform with AI-driven insights, automated rebalancing, and access to emerging asset classes before they go mainstream.</p>
+          <p>Markets evolve. Your tools should too. We continuously enhance our platform with AI-driven insights,
+            automated rebalancing, and access to emerging asset classes before they go mainstream.</p>
         </div>
         <div class="value-card">
           <div class="value-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
           </div>
           <h3>Client First</h3>
-          <p>Every feature we build, every rate we negotiate, and every policy we write starts with a single question: does this serve our investors better? Your growth is the only metric that matters to us.</p>
+          <p>Every feature we build, every rate we negotiate, and every policy we write starts with a single question:
+            does this serve our investors better? Your growth is the only metric that matters to us.</p>
         </div>
         <div class="value-card">
           <div class="value-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" /></svg>
           </div>
           <h3>Global Reach</h3>
-          <p>Your wealth should not be confined by borders. We give you exposure to S&amp;P 500 companies, Eurobonds, US Treasury Bills, and emerging market assets — all from a single unified account.</p>
+          <p>Your wealth should not be confined by borders. We give you exposure to S&amp;P 500 companies, Eurobonds, US
+            Treasury Bills, and emerging market assets — all from a single unified account.</p>
         </div>
         <div class="value-card">
           <div class="value-icon">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>
           </div>
           <h3>Financial Education</h3>
-          <p>Wealth starts with knowledge. Our Crest Academy features curated courses, tools, and market explainers so that every investor — from beginner to advanced — can make confident, informed decisions.</p>
+          <p>Wealth starts with knowledge. Our Crest Academy features curated courses, tools, and market explainers so
+            that every investor — from beginner to advanced — can make confident, informed decisions.</p>
         </div>
       </div>
     </div>
@@ -355,7 +490,8 @@
       <div class="section-header-center">
         <span class="section-tag">LEADERSHIP</span>
         <h2 class="section-title">The people behind the platform</h2>
-        <p class="section-subtitle">A diverse team of fintech veterans, investment strategists, and engineers united by one mission.</p>
+        <p class="section-subtitle">A diverse team of fintech veterans, investment strategists, and engineers united by
+          one mission.</p>
       </div>
 
       <div class="team-grid">
@@ -406,7 +542,8 @@
           <div class="timeline-content">
             <div class="timeline-year">2021 — The Beginning</div>
             <h3>Crest Wealth is incorporated</h3>
-            <p>Founded in Lagos with a seed round of $2.5M, we launched our first product: a high-yield savings account offering 4.2% APY — 6x the average bank rate.</p>
+            <p>Founded in Lagos with a seed round of $2.5M, we launched our first product: a high-yield savings account
+              offering 4.2% APY — 6x the average bank rate.</p>
           </div>
         </div>
         <div class="timeline-item">
@@ -414,7 +551,8 @@
           <div class="timeline-content">
             <div class="timeline-year">2022 — First 10,000 Users</div>
             <h3>Launching the investment platform</h3>
-            <p>We opened access to Nigerian Treasury Bills, Eurobonds, and our Goal Tracker feature. In 8 months, we surpassed $10M in assets under management.</p>
+            <p>We opened access to Nigerian Treasury Bills, Eurobonds, and our Goal Tracker feature. In 8 months, we
+              surpassed $10M in assets under management.</p>
           </div>
         </div>
         <div class="timeline-item">
@@ -422,7 +560,8 @@
           <div class="timeline-content">
             <div class="timeline-year">2023 — Going Global</div>
             <h3>US &amp; Global equities unlocked</h3>
-            <p>We partnered with international custodians to give our users direct access to the S&amp;P 500, NASDAQ stocks, and US Dollar-denominated savings. AUM crossed $100M.</p>
+            <p>We partnered with international custodians to give our users direct access to the S&amp;P 500, NASDAQ
+              stocks, and US Dollar-denominated savings. AUM crossed $100M.</p>
           </div>
         </div>
         <div class="timeline-item">
@@ -430,7 +569,8 @@
           <div class="timeline-content">
             <div class="timeline-year">2024 — Series A Funding</div>
             <h3>$20M raised for platform expansion</h3>
-            <p>A successful Series A funded the launch of the Crest Academy, real estate trust products, and our mobile application. We surpassed 35,000 active investors.</p>
+            <p>A successful Series A funded the launch of the Crest Academy, real estate trust products, and our mobile
+              application. We surpassed 35,000 active investors.</p>
           </div>
         </div>
         <div class="timeline-item">
@@ -438,7 +578,8 @@
           <div class="timeline-content">
             <div class="timeline-year">2025 — Present</div>
             <h3>$250M+ and growing</h3>
-            <p>Today, Crest Wealth manages over $250M in assets for 50,000+ investors across 12 global markets. We are just getting started.</p>
+            <p>Today, Crest Wealth manages over $250M in assets for 50,000+ investors across 12 global markets. We are
+              just getting started.</p>
           </div>
         </div>
       </div>
@@ -452,7 +593,8 @@
       <h2>Your wealth journey starts here.</h2>
       <p>Join over 50,000 investors who trust Crest Wealth to grow, protect, and manage their financial future.</p>
       <div class="cta-btns">
-        <a href="../index/index.html#signup" class="btn-get-started" style="padding: 14px 36px; font-size: 1rem;">Open a Free Account</a>
+        <a href="../index/index.html#signup" class="btn-get-started" style="padding: 14px 36px; font-size: 1rem;">Open a
+          Free Account</a>
         <a href="../index/index.html#how-it-works" class="btn-cta-outline">How It Works</a>
       </div>
     </div>
@@ -467,8 +609,13 @@
           <h3>Crest Wealth</h3>
           <p>Secure, transparent, and accessible investment solutions engineered for global wealth creation.</p>
           <div style="display: flex; gap: 16px; color: #FFFFFF; font-size: 0.82rem; align-items: center;">
-            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SEC-Compliant Trustees</span>
-            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>GDPR Certified</span>
+            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>SEC-Compliant Trustees</span>
+            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>GDPR Certified</span>
           </div>
         </div>
         <div class="footer-col">
@@ -507,36 +654,25 @@
             <li><a href="../about/about.html">Our Story</a></li>
             <li><a href="../security/security.html">Security Architecture</a></li>
             <li><a href="../about/about.html">Leadership</a></li>
-            <li><a href="../support/support.html">Contact Support</a></li>
-            <li><a href="../careers/careers.html">Careers</a></li>
           </ul>
         </div>
       </div>
       <div class="footer-bottom">
         <p style="text-align: center; margin-bottom: 12px;">
-          Crest Wealth is an investment platform. All investments carry risk. Read disclosures <a href="../security/security.html">here</a>.
+          Crest Wealth is an investment platform. All investments carry risk. Read disclosures <a
+            href="../security/security.html">here</a>.
         </p>
         <p style="text-align: center; font-size: 0.75rem; color: #5B7068;">
-          &copy; 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
+          &copy; 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with
+          SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
         </p>
       </div>
     </div>
   </footer>
 
-  
+
 
   <script src="about.js" defer></script>
 </body>
+
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
