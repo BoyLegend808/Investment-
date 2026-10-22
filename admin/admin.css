@@ -1040,6 +1040,108 @@ input:checked + .toggle-slider:before {
   color: #FFFFFF;
 }
 
+/* ── TASK EDITOR: LIVE PREVIEW, INLINE ERRORS & FOOTER ───── */
+.task-form-preview:empty { display: none; }
+.task-form-preview {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+}
+.tfp-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.tfp-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.tfp-icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--color-emerald);
+}
+.tfp-main { flex: 1 1 auto; min-width: 0; }
+.tfp-title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #FFFFFF;
+  word-break: break-word;
+}
+.tfp-title--empty { color: var(--text-muted); font-weight: 500; font-style: italic; }
+.tfp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+.tfp-platform, .tfp-badge {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+.tfp-badge { color: var(--color-emerald); border-color: rgba(16, 185, 129, 0.25); }
+.tfp-steps {
+  margin-top: 8px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  word-break: break-word;
+}
+.tfp-reward {
+  flex: 0 0 auto;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-emerald);
+  white-space: nowrap;
+}
+.tfp-btn {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--color-emerald);
+}
+
+.task-form-error {
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #FCA5A5;
+}
+
+.task-modal-footer { justify-content: space-between; }
+.task-modal-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .task-modal-toggle-row {
   display: flex;
   align-items: center;

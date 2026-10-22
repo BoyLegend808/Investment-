@@ -243,6 +243,17 @@ BEGIN
         -- drain the whole account mid-week. It is RPC-only, same as the rest.
         NEW.welcome_bonus_balance := OLD.welcome_bonus_balance;
       END IF;
+      -- Referral attribution is written once, at signup. It has to stay
+      -- settable on that first write, but if it stayed writable afterwards a
+      -- user could re-point referred_by at an accomplice just before their
+      -- deposit was approved, or clone someone else's referral_code so that
+      -- their referrals resolved to the wrong account.
+      IF OLD.referred_by IS NOT NULL THEN
+        NEW.referred_by := OLD.referred_by;
+      END IF;
+      IF OLD.referral_code IS NOT NULL THEN
+        NEW.referral_code := OLD.referral_code;
+      END IF;
     END IF;
   END IF;
   NEW.updated_at := NOW();
@@ -269,6 +280,7 @@ DECLARE
   v_ref_id UUID;
   v_ref_bonus NUMERIC := 0;
   v_buyer_name TEXT;
+  v_plan_price NUMERIC;
 BEGIN
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'Access denied: Admin privileges required.';
@@ -283,6 +295,36 @@ BEGIN
 
   IF v_dep.status = 'Confirmed' THEN
     RETURN jsonb_build_object('success', false, 'message', 'Deposit already confirmed.');
+  END IF;
+
+  -- A plan purchase must be for exactly the published price.
+  --
+  -- The depositing user writes this row's amount (the dashboard inserts it
+  -- directly, and the insert policy only pins user_id and status='Pending'), so
+  -- without this check a user could file a ₦100 transfer tagged as Level 10 and
+  -- be credited the full ₦350,000 welcome bonus plus a ₦1,000,000 plan on
+  -- confirmation. Legitimate purchases go through submit_plan_payment(), which
+  -- reads the price from the same published list — so a genuine plan deposit
+  -- always matches. The admin's own bank/receipt check still applies; this only
+  -- stops a mismatch from ever reaching the ledger.
+  IF v_dep.plan_level IS NOT NULL THEN
+    SELECT elem INTO v_plan
+    FROM public.app_settings s
+    CROSS JOIN LATERAL jsonb_array_elements(s.value) elem
+    WHERE s.key = 'investment_plans'
+      AND jsonb_typeof(s.value) = 'array'
+      AND (elem->>'level')::INT = v_dep.plan_level
+    LIMIT 1;
+
+    IF v_plan IS NOT NULL THEN
+      v_plan_price := COALESCE(NULLIF(v_plan->>'price', '')::NUMERIC, 0);
+      IF v_plan_price > 0 AND v_dep.amount <> v_plan_price THEN
+        RAISE EXCEPTION
+          'Amount mismatch: deposit % was filed for ₦% but % costs ₦%. Reject it, or correct the amount before confirming.',
+          deposit_id, v_dep.amount,
+          COALESCE(v_plan->>'name', 'Level ' || v_dep.plan_level), v_plan_price;
+      END IF;
+    END IF;
   END IF;
 
   UPDATE public.deposits
@@ -555,7 +597,7 @@ DROP POLICY IF EXISTS "Profiles insert policy" ON public.profiles;
 -- investor's email, phone and balance. Referral lookup goes through the
 -- SECURITY DEFINER lookup_referral_code() RPC instead, which needs no such hole.
 CREATE POLICY "Profiles select policy" ON public.profiles FOR SELECT USING (auth.uid() = id OR referred_by = auth.uid() OR public.is_admin());
-CREATE POLICY "Profiles update policy" ON public.profiles FOR UPDATE USING (auth.uid() = id OR public.is_admin());
+CREATE POLICY "Profiles update policy" ON public.profiles FOR UPDATE USING (auth.uid() = id OR public.is_admin()) WITH CHECK (auth.uid() = id OR public.is_admin());
 CREATE POLICY "Profiles insert policy" ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
 DROP POLICY IF EXISTS "Deposits select policy" ON public.deposits;
@@ -564,7 +606,11 @@ DROP POLICY IF EXISTS "Deposits update policy" ON public.deposits;
 CREATE POLICY "Deposits select policy" ON public.deposits FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
 -- A user may file a deposit of their own, but only as Pending. Allowing them to
 -- write status='Confirmed' would let them pre-confirm their own deposit row.
-CREATE POLICY "Deposits insert policy" ON public.deposits FOR INSERT WITH CHECK (auth.uid() = user_id AND status = 'Pending');
+-- plan_level must stay NULL here: a row carrying a plan_level is a plan
+-- purchase, and those are created only by submit_plan_payment(), which resolves
+-- the price server-side. A user-set plan_level would let them tag a token
+-- amount as Level 10 and have admin_confirm_deposit activate and bonus it.
+CREATE POLICY "Deposits insert policy" ON public.deposits FOR INSERT WITH CHECK (auth.uid() = user_id AND status = 'Pending' AND plan_level IS NULL);
 CREATE POLICY "Deposits update policy" ON public.deposits FOR UPDATE USING (public.is_admin());
 
 DROP POLICY IF EXISTS "Withdrawals select policy" ON public.withdrawals;
@@ -616,8 +662,14 @@ DROP POLICY IF EXISTS "User tasks admin write" ON public.user_tasks;
 CREATE POLICY "User tasks select own" ON public.user_tasks FOR SELECT
   USING (auth.uid() = user_id);
 
-CREATE POLICY "User tasks insert own" ON public.user_tasks FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+-- There is deliberately no INSERT policy for ordinary users. A "WITH CHECK
+-- (auth.uid() = user_id)" rule let a signed-in user insert their own
+-- completed rows straight into the table, which forged the prerequisite
+-- without doing the task. That also defeats the newer rule in
+-- claim_plan_daily_reward that pays the daily reward only once every task is
+-- done, because the count it reads comes from this table. Completion rows are
+-- written only by claim_user_task_reward, which is SECURITY DEFINER and so
+-- bypasses RLS entirely.
 
 CREATE POLICY "User tasks admin write" ON public.user_tasks FOR ALL
   USING (public.is_admin()) WITH CHECK (public.is_admin());
@@ -1202,6 +1254,22 @@ VALUES (
 )
 ON CONFLICT (key) DO UPDATE
 SET value = EXCLUDED.value;
+
+-- The account investors pay into. Seeded once with DO NOTHING on purpose: this
+-- is a value the admin is expected to change from the Treasury panel, so a
+-- re-run must never revert it. Edit it at Admin -> Treasury -> Platform
+-- Settings, or change the JSON below before the first run.
+INSERT INTO public.app_settings (key, value)
+VALUES (
+  'platform_settings',
+  '{
+    "bankName": "Opay",
+    "acctNum": "8110858553",
+    "acctName": "Nwoba Victor Chidera",
+    "bankNote": "Transfer to this account from any banking app. Funds appear within 2 minutes. Use your name as narration."
+  }'::jsonb
+)
+ON CONFLICT (key) DO NOTHING;
 
 -- RPC: Submit a plan payment (bank transfer)
 -- The caller names only the level and where the money was sent from. The

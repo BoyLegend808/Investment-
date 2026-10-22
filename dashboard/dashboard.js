@@ -275,9 +275,6 @@ async function initDashboardUserProfile() {
       el.textContent = initials;
     });
 
-  var depAcctName = document.getElementById("depAcctName");
-  if (depAcctName) depAcctName.textContent = "Crest Wealth / " + fullName;
-
   var settingsView = document.getElementById("view-settings");
   if (settingsView) {
     var textInputs = settingsView.querySelectorAll('input[type="text"]');
@@ -2231,67 +2228,37 @@ document.addEventListener("click", function (e) {
   drawGrowth();
 });
 
-/* ── DEPOSIT CALCULATOR & MULTI-BANK SELECTOR ───────── */
-var DEPOSIT_BANKS = {
-  opay: {
-    name: "OPay Digital Services",
-    title: "OPay Digital Services Dedicated Account",
-    acctNum: "8023456789",
-    acctName: "Crest Wealth / Adaeze Okonkwo",
-    note: "Transfer from your OPay or any Nigerian banking app. Verified within 2 minutes.",
-  },
-  palmpay: {
-    name: "PalmPay Limited",
-    title: "PalmPay Dedicated Virtual Account",
-    acctNum: "9012345678",
-    acctName: "Crest Wealth / Adaeze Okonkwo",
-    note: "Send exact amount via PalmPay or bank transfer. Instant auto-crediting.",
-  },
-  moniepoint: {
-    name: "Moniepoint MFB",
-    title: "Moniepoint MFB Dedicated Commercial Account",
-    acctNum: "5501234567",
-    acctName: "Crest Wealth / Adaeze Okonkwo",
-    note: "Instant NIP settlement supported. Use your full name as payment narration.",
-  },
-  kuda: {
-    name: "Kuda Microfinance Bank",
-    title: "Kuda Microfinance Bank Account",
-    acctNum: "2001234567",
-    acctName: "Crest Wealth / Adaeze Okonkwo",
-    note: "Transfer to Kuda account. Zero transfer fees across all banking channels.",
-  },
-  gtbank: {
-    name: "Guaranty Trust Bank (GTBank)",
-    title: "GTBank Dedicated Corporate Account",
-    acctNum: "0123456789",
-    acctName: "Crest Wealth / Adaeze Okonkwo",
-    note: "Transfer to this account from any banking app. Funds appear within 2 minutes.",
-  },
+var DEFAULT_RECEIVING_BANK = {
+  bankName: "Opay",
+  acctNum: "8110858553",
+  acctName: "Nwoba Victor Chidera",
+  bankNote: "Transfer to this account from any banking app. Funds appear within 2 minutes. Use your name as narration.",
 };
-var currentDepositBank = "opay";
 var depositReceiptData = null;
 
-function selectDepositBank(key) {
-  if (!DEPOSIT_BANKS[key]) return;
-  currentDepositBank = key;
-  document.querySelectorAll(".bank-chip").forEach(function (b) {
-    if (b.getAttribute("data-bank") === key) b.classList.add("active");
-    else b.classList.remove("active");
-  });
-  var b = DEPOSIT_BANKS[key];
-  if ($("depBankTitle")) $("depBankTitle").textContent = b.title;
+function getReceivingBank() {
+  var s = PLAN_STATE && PLAN_STATE.bank ? PLAN_STATE.bank : null;
+  var bankName = s && s.bankName ? String(s.bankName) : DEFAULT_RECEIVING_BANK.bankName;
+  var acctNum = s && s.acctNum ? String(s.acctNum) : DEFAULT_RECEIVING_BANK.acctNum;
+  var acctName = s && s.acctName ? String(s.acctName) : DEFAULT_RECEIVING_BANK.acctName;
+  var bankNote = s && s.bankNote ? String(s.bankNote) : DEFAULT_RECEIVING_BANK.bankNote;
+  return { bankName: bankName, acctNum: acctNum, acctName: acctName, bankNote: bankNote };
+}
+
+function renderReceivingBankBox() {
+  var b = getReceivingBank();
+  var title = b.bankName ? (b.bankName + " Dedicated Account") : "Company Receiving Account";
+  if ($("depBankTitle")) $("depBankTitle").textContent = title;
   if ($("depAcctName")) $("depAcctName").textContent = b.acctName;
   if ($("depAcctNum")) $("depAcctNum").textContent = b.acctNum;
-  if ($("depBankNote")) $("depBankNote").textContent = b.note;
-  toast("Switched to " + b.name + " dedicated virtual account");
+  if ($("depBankNote")) $("depBankNote").textContent = b.bankNote;
 }
 
 function copyDepAccount() {
-  var b = DEPOSIT_BANKS[currentDepositBank];
-  if (!b) return;
+  var b = getReceivingBank();
+  if (!b || !b.acctNum) return;
   navigator.clipboard.writeText(b.acctNum).then(function () {
-    toast(b.name + " account number copied (" + b.acctNum + ")");
+    toast("Account number copied (" + b.acctNum + ")");
   });
 }
 
@@ -2391,7 +2358,7 @@ async function submitDeposit() {
     "0.240": "Level 5 Package (24.0% p.a.)",
   };
   var planName = planMap[planRate] || "Crest Stash (11.5%)";
-  var bInfo = DEPOSIT_BANKS[currentDepositBank] || DEPOSIT_BANKS.opay;
+  var bInfo = getReceivingBank();
 
   var currentUserName =
     (window.crestUser &&
@@ -2431,11 +2398,11 @@ async function submitDeposit() {
     email: currentUserEmail,
     amount: amt,
     plan: planName,
-    bank: bInfo.name,
+    bank: bInfo.bankName,
     acctNum: bInfo.acctNum,
     receiptData: receiptUrl || depositReceiptData,
     proofUrl: receiptUrl,
-    method: "BANK TRANSFER (" + bInfo.name.toUpperCase() + ")",
+    method: "BANK TRANSFER (" + String(bInfo.bankName || "BANK").toUpperCase() + ")",
     date: new Date().toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -2467,7 +2434,7 @@ async function submitDeposit() {
             user_email: u.email,
             amount: amt,
             plan: planName,
-            bank_name: bInfo.name,
+            bank_name: bInfo.bankName,
             account_number: bInfo.acctNum,
             proof_url:
               receiptUrl || (depositReceiptData ? "base64_attached" : null),
@@ -2701,6 +2668,7 @@ async function loadInvestmentPlans() {
     PLAN_STATE.plans = FALLBACK_INVESTMENT_PLANS.slice();
   }
 
+  renderReceivingBankBox();
   renderPlanUI();
   var bd = $("planModalBackdrop");
   if (bd && bd.classList.contains("active")) renderPlanModal();
