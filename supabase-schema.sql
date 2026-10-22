@@ -1,7 +1,23 @@
 -- ==============================================================================
 -- Crest Wealth - Complete Production Supabase Database Schema & Security
+-- THE ALL-IN-ONE SCRIPT. This is the only SQL file in the project.
 -- Execute this script in your Supabase SQL Editor:
 -- https://supabase.com/dashboard/project/panxaqueawnqrebikwvb/sql
+-- ==============================================================================
+--
+-- Paste the whole file and run it. It is idempotent, so it is the correct move
+-- in both situations:
+--
+--   * A brand-new, empty project — it creates every table, function, trigger,
+--     policy and index, then seeds the plan list and the treasury account.
+--   * The project that is already live — it re-creates the same objects and
+--     pushes the corrected plan list (welcome bonuses 1,500 … 350,000, plus the
+--     level-matched referral commissions) over whatever is published now.
+--
+-- Nothing here drops a table or deletes rows. The only ORDER-dependent seed is
+-- the plan list, which uses ON CONFLICT DO UPDATE on purpose so the corrected
+-- values overwrite the stale ones. The treasury row uses DO NOTHING so that a
+-- re-run never reverts an account you have since changed from the admin panel.
 -- ==============================================================================
 
 -- 1. HELPER: NON-RECURSIVE ADMIN VERIFICATION
@@ -349,20 +365,24 @@ BEGIN
 
     v_plan_name := COALESCE(v_plan->>'name', 'Level ' || v_dep.plan_level);
 
-    -- Calculate level-based welcome bonus
-    v_welcome_bonus := CASE v_dep.plan_level
-      WHEN 1 THEN 1500
-      WHEN 2 THEN 5000
-      WHEN 3 THEN 10000
-      WHEN 4 THEN 17000
-      WHEN 5 THEN 25000
-      WHEN 6 THEN 35000
-      WHEN 7 THEN 70000
-      WHEN 8 THEN 90000
-      WHEN 9 THEN 150000
-      WHEN 10 THEN 350000
-      ELSE COALESCE(NULLIF(v_plan->>'welcomeBonus', '')::NUMERIC, 0)
-    END;
+    -- Level-based welcome bonus. The published plan list is the authority here;
+    -- the CASE values are only a safety net for levels outside 1-10.
+    v_welcome_bonus := COALESCE(NULLIF(v_plan->>'welcomeBonus', '')::NUMERIC, 0);
+    IF v_welcome_bonus = 0 THEN
+      v_welcome_bonus := CASE v_dep.plan_level
+        WHEN 1 THEN 1500
+        WHEN 2 THEN 5000
+        WHEN 3 THEN 10000
+        WHEN 4 THEN 17000
+        WHEN 5 THEN 25000
+        WHEN 6 THEN 35000
+        WHEN 7 THEN 70000
+        WHEN 8 THEN 90000
+        WHEN 9 THEN 150000
+        WHEN 10 THEN 350000
+        ELSE 0
+      END;
+    END IF;
 
     -- Credit welcome bonus directly into cash balance and welcome bonus balance
     UPDATE public.profiles
@@ -398,19 +418,24 @@ BEGIN
     WHERE id = v_dep.user_id;
 
     IF v_ref_id IS NOT NULL THEN
-      v_ref_bonus := CASE v_dep.plan_level
-        WHEN 1 THEN 1000
-        WHEN 2 THEN 3000
-        WHEN 3 THEN 6000
-        WHEN 4 THEN 10000
-        WHEN 5 THEN 12500
-        WHEN 6 THEN 15000
-        WHEN 7 THEN 30000
-        WHEN 8 THEN 60000
-        WHEN 9 THEN 100000
-        WHEN 10 THEN 200000
-        ELSE COALESCE(NULLIF(v_plan->>'referralBonus', '')::NUMERIC, 0)
-      END;
+      -- Same rule: the published list drives the commission, keyed to the level
+      -- the referred member bought.
+      v_ref_bonus := COALESCE(NULLIF(v_plan->>'referralBonus', '')::NUMERIC, 0);
+      IF v_ref_bonus = 0 THEN
+        v_ref_bonus := CASE v_dep.plan_level
+          WHEN 1 THEN 1000
+          WHEN 2 THEN 3000
+          WHEN 3 THEN 6000
+          WHEN 4 THEN 10000
+          WHEN 5 THEN 12500
+          WHEN 6 THEN 15000
+          WHEN 7 THEN 30000
+          WHEN 8 THEN 60000
+          WHEN 9 THEN 100000
+          WHEN 10 THEN 200000
+          ELSE 0
+        END;
+      END IF;
 
       IF v_ref_bonus > 0 THEN
         UPDATE public.profiles
@@ -1514,6 +1539,36 @@ GRANT EXECUTE ON FUNCTION public.admin_reject_withdrawal(TEXT, TEXT) TO authenti
 GRANT EXECUTE ON FUNCTION public.admin_adjust_balance(UUID, NUMERIC, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_toggle_user_freeze(UUID, BOOLEAN) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_update_kyc_status(UUID, TEXT) TO authenticated;
+
+
+-- ==============================================================================
+-- VERIFY — run these after the script finishes. Nothing below writes; these are
+-- read-only checks that the script landed. Copy them out and run them one at a
+-- time, or select them and hit Run on the selection.
+-- ==============================================================================
+--
+-- 1. The plan list: expect 10 rows with the corrected welcomeBonus values
+--    (1,500 / 5,000 / 10,000 / 17,000 / 25,000 / 35,000 / 70,000 / 90,000 /
+--    150,000 / 350,000) and their matching referralBonus values.
+--
+--   SELECT jsonb_array_elements(value) AS plan
+--   FROM public.app_settings WHERE key = 'investment_plans';
+--
+-- 2. The treasury account: expect one row, Opay / 8110858553 / Nwoba Victor
+--    Chidera.
+--
+--   SELECT value FROM public.app_settings WHERE key = 'platform_settings';
+--
+-- 3. Every object should exist. Expect 11 rows.
+--
+--   SELECT proname FROM pg_proc
+--   WHERE pronamespace = 'public'::regnamespace
+--     AND proname IN ('is_admin','admin_confirm_deposit','submit_plan_payment',
+--       'claim_plan_daily_reward','claim_user_task_reward','request_withdrawal',
+--       'admin_reject_withdrawal','admin_adjust_balance','admin_toggle_user_freeze',
+--       'admin_update_kyc_status','lookup_referral_code')
+--   ORDER BY proname;
+-- ==============================================================================
 
 
 
