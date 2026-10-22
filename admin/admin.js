@@ -1503,16 +1503,16 @@ function savePlatformSettingsToDB() {
 
 /* ── INVESTMENT PLANS (LIVE PRICING, DAILY REWARDS & BONUSES) ── */
 var DEFAULT_INVESTMENT_PLANS = [
-  { level: 1, name: 'Starter', price: 5000, welcomeBonus: 250, dailyEarning: 900 },
-  { level: 2, name: 'Bronze', price: 15000, welcomeBonus: 750, dailyEarning: 2700 },
-  { level: 3, name: 'Silver', price: 30000, welcomeBonus: 1500, dailyEarning: 5400 },
-  { level: 4, name: 'Gold', price: 50000, welcomeBonus: 2500, dailyEarning: 9000 },
-  { level: 5, name: 'Platinum', price: 75000, welcomeBonus: 3750, dailyEarning: 13500 },
-  { level: 6, name: 'Emerald', price: 100000, welcomeBonus: 5000, dailyEarning: 18000 },
-  { level: 7, name: 'Sapphire', price: 200000, welcomeBonus: 10000, dailyEarning: 36000 },
-  { level: 8, name: 'Ruby', price: 350000, welcomeBonus: 17500, dailyEarning: 63000 },
-  { level: 9, name: 'Diamond', price: 500000, welcomeBonus: 25000, dailyEarning: 90000 },
-  { level: 10, name: 'Apex', price: 1000000, welcomeBonus: 50000, dailyEarning: 180000 }
+  { level: 1, name: 'Starter', price: 5000, welcomeBonus: 1500, dailyEarning: 900, referralBonus: 1000 },
+  { level: 2, name: 'Bronze', price: 15000, welcomeBonus: 5000, dailyEarning: 2700, referralBonus: 3000 },
+  { level: 3, name: 'Silver', price: 30000, welcomeBonus: 10000, dailyEarning: 5400, referralBonus: 6000 },
+  { level: 4, name: 'Gold', price: 50000, welcomeBonus: 17000, dailyEarning: 9000, referralBonus: 10000 },
+  { level: 5, name: 'Platinum', price: 75000, welcomeBonus: 25000, dailyEarning: 13500, referralBonus: 12500 },
+  { level: 6, name: 'Emerald', price: 100000, welcomeBonus: 35000, dailyEarning: 18000, referralBonus: 15000 },
+  { level: 7, name: 'Sapphire', price: 200000, welcomeBonus: 70000, dailyEarning: 36000, referralBonus: 30000 },
+  { level: 8, name: 'Ruby', price: 350000, welcomeBonus: 90000, dailyEarning: 63000, referralBonus: 60000 },
+  { level: 9, name: 'Diamond', price: 500000, welcomeBonus: 150000, dailyEarning: 90000, referralBonus: 100000 },
+  { level: 10, name: 'Apex', price: 1000000, welcomeBonus: 350000, dailyEarning: 180000, referralBonus: 200000 }
 ];
 
 function getAdminPlanByLevel(level) {
@@ -1555,6 +1555,7 @@ function renderPlanEditorRows() {
       '<td><input type="text" class="form-input" id="iplName' + lv + '" value="' + escapeHtml(p.name || ('Level ' + lv)) + '"></td>' +
       '<td><input type="number" min="0" step="1" class="form-input" id="iplPrice' + lv + '" value="' + (parseFloat(p.price) || 0) + '"></td>' +
       '<td><input type="number" min="0" step="1" class="form-input" id="iplWelcome' + lv + '" value="' + (parseFloat(p.welcomeBonus) || 0) + '"></td>' +
+      '<td><input type="number" min="0" step="1" class="form-input" id="iplReferral' + lv + '" value="' + (parseFloat(p.referralBonus) || 0) + '"></td>' +
       '<td><input type="number" min="0" step="1" class="form-input" id="iplDaily' + lv + '" value="' + (parseFloat(p.dailyEarning) || 0) + '"></td>' +
     '</tr>';
   }).join('');
@@ -1570,6 +1571,7 @@ function saveInvestmentPlansToDB() {
       name: ($('iplName' + lv).value || ('Level ' + lv)).trim(),
       price: parseFloat($('iplPrice' + lv).value) || 0,
       welcomeBonus: parseFloat($('iplWelcome' + lv).value) || 0,
+      referralBonus: parseFloat($('iplReferral' + lv).value) || 0,
       dailyEarning: parseFloat($('iplDaily' + lv).value) || 0
     });
   });

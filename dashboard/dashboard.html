@@ -244,17 +244,6 @@
         </div>
       </div>
 
-      <!-- PICK AN INVESTMENT (shown until a plan is active) -->
-      <div class="plan-gate-card" id="planGateCard" style="display:none;">
-        <div class="plan-gate-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-        </div>
-        <div class="plan-gate-title">Pick an Investment to Start Earning</div>
-        <div class="plan-gate-sub">Choose a plan below and pay the package amount by bank transfer. Your daily reward, welcome bonus and claim button appear the moment an administrator confirms your payment.</div>
-        <div class="dash-plans-grid" id="dashPlansGrid">
-          <p class="muted-text">Loading the current plans&hellip;</p>
-        </div>
-      </div>
 
       <!-- TASK LOCK NOTICE -->
       <div class="notice notice--warning" id="taskLockNotice">
@@ -566,6 +555,11 @@
           </div>
           <h3>Withdrawal Gatekeeper Active</h3>
           <p id="wdLockedHeroDesc">Complete the required tasks to unlock withdrawal.</p>
+          <div id="wdLockedWelcomePrompt" style="display:none;margin-top:12px;padding:12px;background:rgba(16,185,129,0.1);border-radius:8px;border:1px solid rgba(16,185,129,0.3);text-align:left;">
+            <div style="color:#059669;font-weight:700;margin-bottom:4px;">✨ Welcome Bonus Available Anytime</div>
+            <div style="font-size:13px;color:#334155;">You have <strong id="wdLockedWelcomeAmt" style="color:#059669;">₦0.00</strong> welcome bonus available to withdraw right now without waiting for tasks or Friday.</div>
+            <div style="margin-top:10px;"><button type="button" class="btn-outline-sm" onclick="enableWelcomeWithdrawal()">Withdraw Welcome Bonus</button></div>
+          </div>
         </div>
         <div class="locked-tasks-list" id="lockedTasksList">
           <!-- JS rendered -->
@@ -579,29 +573,63 @@
 
       <!-- UNLOCKED STATE -->
       <div id="wdUnlocked" style="display:none">
-        <div class="unlocked-banner">
+        <!-- PAYOUT SCHEDULE & RULES BANNER -->
+        <div class="wd-schedule-card" id="wdScheduleCard">
+          <div class="wd-sc-icon" id="wdScIcon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="wd-sc-info">
+            <div class="wd-sc-header">
+              <span class="wd-sc-badge" id="wdScBadge">Friday Payout Schedule</span>
+              <span class="wd-sc-timer" id="wdScTimer">Weekly Cycle</span>
+            </div>
+            <div class="wd-sc-desc" id="wdScDesc">
+              Welcome bonuses can be withdrawn <strong>at any time</strong>. Withdrawals for task earnings, daily earnings, and referral earnings are open exclusively on <strong>Fridays</strong>.
+            </div>
+          </div>
+        </div>
+
+        <div class="unlocked-banner" id="wdUnlockedBanner">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          All tasks verified &mdash; Withdrawal channel is 100% unlocked
+          <span id="wdUnlockedBannerText">Withdrawal channel is active &bull; Fast settlement</span>
         </div>
         <div class="two-col">
           <div class="card">
             <div class="card-title" style="margin-bottom:16px;">Withdrawal Details</div>
+
+            <!-- BALANCE BREAKDOWN -->
+            <div class="wd-balance-box">
+              <div class="wd-bb-head">
+                <span class="wd-bb-label">Available to Withdraw Today</span>
+                <span class="wd-bb-badge" id="wdTodayWindowBadge">Welcome Bonus Available</span>
+              </div>
+              <div class="wd-bb-amount" id="wdAvailTodayVal">&#8358;0.00</div>
+              <div class="wd-bb-rows">
+                <div class="wd-bb-row">
+                  <span>Welcome Bonus <em class="positive">(Withdrawable anytime)</em></span>
+                  <strong class="positive" id="wdWelcomeBal">&#8358;0.00</strong>
+                </div>
+                <div class="wd-bb-row">
+                  <span>Other Earnings <em class="muted-text">(Daily, tasks &amp; referrals &bull; Fridays only)</em></span>
+                  <strong id="wdOtherBal">&#8358;0.00</strong>
+                </div>
+                <div class="wd-bb-row wd-bb-row--total">
+                  <span>Total Cash Balance</span>
+                  <strong class="balance-display">&#8358;0.00</strong>
+                </div>
+              </div>
+            </div>
             
-            <div class="field-group">
+            <div class="field-group" style="margin-top:16px;">
               <label class="field-label" for="withdrawAmount">Amount to Withdraw (&#8358;)</label>
-              <input type="number" class="field-input" id="withdrawAmount" placeholder="Min &#8358;2,000" oninput="calcWdSummary()">
+              <input type="number" class="field-input" id="withdrawAmount" placeholder="Min &#8358;1,000" oninput="calcWdSummary()">
             </div>
             
             <div class="quick-picks" style="margin-bottom:14px;">
               <button type="button" class="quick-pick" onclick="setWdPct(0.25)">25%</button>
               <button type="button" class="quick-pick" onclick="setWdPct(0.5)">50%</button>
               <button type="button" class="quick-pick" onclick="setWdPct(0.75)">75%</button>
-              <button type="button" class="quick-pick" onclick="setWdPct(1.0)">100% Max</button>
-            </div>
-
-            <div class="field-group">
-              <label class="field-label">Available Cash Balance</label>
-              <div class="balance-display">&#8358;84,200.00</div>
+              <button type="button" class="quick-pick" onclick="setWdPct(1.0)">100% Max Today</button>
             </div>
 
             <!-- COMPREHENSIVE NIGERIAN BANK SELECTOR -->
@@ -686,9 +714,9 @@
         <div class="plan-gate-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
-        <div class="plan-gate-title">Pick a Plan to Unlock Tasks</div>
-        <div class="plan-gate-sub">Task rewards are paid out of your investment plan, so your task list unlocks as soon as you pick a plan and an administrator confirms your payment.</div>
-        <button class="btn-primary" onclick="openPlanPicker()">Pick an Investment</button>
+        <div class="plan-gate-title">Activate a Package to Unlock Tasks</div>
+        <div class="plan-gate-sub">Tasks are locked until a package is activated. Pick any package, and your task list unlocks as soon as an administrator confirms your payment.</div>
+        <button class="btn-primary" onclick="openPlanPicker()">Activate a Package</button>
       </div>
 
       <div id="tasksGateWrap" style="display:none;">
@@ -738,7 +766,7 @@
             <div class="referral-kpi"><div class="referral-kpi-val positive" id="refTotalEarned">&#8358;0</div><div class="referral-kpi-label">Earned</div></div>
             <div class="referral-kpi"><div class="referral-kpi-val" id="refActiveCount">0</div><div class="referral-kpi-label">Active</div></div>
           </div>
-          <div class="referral-desc">Earn <strong>10% instant commission</strong> (up to &#8358;100,000) for every partner who registers with your link and activates an investment plan.</div>
+          <div class="referral-desc">Earn an instant cash bonus corresponding directly to your referral's investment level (up to <strong>&#8358;200,000</strong>) whenever a partner registers with your VIP link and activates a plan.</div>
           <div class="referral-link-row">
             <code class="referral-link-code" id="refLink">Loading your referral link...</code>
             <button class="btn-outline-sm" onclick="copyReferralLink()">Copy Link</button>
@@ -747,6 +775,28 @@
             <a href="#" id="shareWaBtn" target="_blank" rel="noopener" class="share-btn share-btn--wa">WhatsApp</a>
             <a href="#" id="shareXBtn" target="_blank" rel="noopener" class="share-btn share-btn--x">Share on X</a>
           </div>
+        </div>
+      </div>
+
+      <!-- REFERRAL COMMISSION SCHEDULE -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-head">
+          <div class="card-head-left">
+            <div class="card-title">Referral Commission Schedule</div>
+            <div class="card-desc">Your bonus corresponds directly to the investment level of the person you refer:</div>
+          </div>
+        </div>
+        <div class="ref-tiers-grid">
+          <div class="ref-tier-chip"><span class="rtc-level">Level 1</span><span class="rtc-plan">Starter</span><strong class="rtc-bonus">&#8358;1,000</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 2</span><span class="rtc-plan">Bronze</span><strong class="rtc-bonus">&#8358;3,000</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 3</span><span class="rtc-plan">Silver</span><strong class="rtc-bonus">&#8358;6,000</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 4</span><span class="rtc-plan">Gold</span><strong class="rtc-bonus">&#8358;10,000</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 5</span><span class="rtc-plan">Platinum</span><strong class="rtc-bonus">&#8358;12,500</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 6</span><span class="rtc-plan">Emerald</span><strong class="rtc-bonus">&#8358;15,000</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 7</span><span class="rtc-plan">Sapphire</span><strong class="rtc-bonus">&#8358;30,000</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 8</span><span class="rtc-plan">Ruby</span><strong class="rtc-bonus">&#8358;60,000</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 9</span><span class="rtc-plan">Diamond</span><strong class="rtc-bonus">&#8358;100,000</strong></div>
+          <div class="ref-tier-chip"><span class="rtc-level">Level 10</span><span class="rtc-plan">Apex</span><strong class="rtc-bonus">&#8358;200,000</strong></div>
         </div>
       </div>
       <div class="card" style="margin-top:16px;">

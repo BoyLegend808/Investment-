@@ -57,6 +57,8 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_activated_at TIMESTAMP
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_last_claim_date TEXT;
 -- The plan's one-off welcome bonus is paid once, on the first daily claim.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan_welcome_paid BOOLEAN DEFAULT FALSE;
+-- Welcome bonus balance tracked separately so it can be withdrawn at any time
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS welcome_bonus_balance NUMERIC(15, 2) DEFAULT 0.00;
 
 -- 3. DEPOSITS TABLE
 CREATE TABLE IF NOT EXISTS public.deposits (
@@ -214,6 +216,7 @@ BEGIN
       NEW.plan_activated_at := NULL;
       NEW.plan_last_claim_date := NULL;
       NEW.plan_welcome_paid := FALSE;
+      NEW.welcome_bonus_balance := 0.00;
     END IF;
   ELSIF TG_OP = 'UPDATE' THEN
     -- Role, freeze and KYC are admin-only fields. They used to pass straight
@@ -234,6 +237,11 @@ BEGIN
         NEW.plan_activated_at := OLD.plan_activated_at;
         NEW.plan_last_claim_date := OLD.plan_last_claim_date;
         NEW.plan_welcome_paid := OLD.plan_welcome_paid;
+        -- welcome_bonus_balance decides how much is withdrawable on a non-Friday
+        -- (request_withdrawal lets you pull up to the welcome bonus any day), so
+        -- a user who could write it could inflate it to their cash balance and
+        -- drain the whole account mid-week. It is RPC-only, same as the rest.
+        NEW.welcome_bonus_balance := OLD.welcome_bonus_balance;
       END IF;
     END IF;
   END IF;
@@ -257,6 +265,10 @@ DECLARE
   v_new_bal NUMERIC;
   v_plan JSONB;
   v_plan_name TEXT;
+  v_welcome_bonus NUMERIC := 0;
+  v_ref_id UUID;
+  v_ref_bonus NUMERIC := 0;
+  v_buyer_name TEXT;
 BEGIN
   IF NOT public.is_admin() THEN
     RAISE EXCEPTION 'Access denied: Admin privileges required.';
@@ -282,8 +294,8 @@ BEGIN
   WHERE id = v_dep.user_id
   RETURNING cash_balance INTO v_new_bal;
 
-  -- A plan purchase also activates the plan. That is what unlocks the daily
-  -- claim box and the task list on the user's dashboard.
+  -- A plan purchase also activates the plan. That unlocks the daily claim box,
+  -- tasks, credits the welcome bonus immediately, and awards referral commissions.
   IF v_dep.plan_level IS NOT NULL THEN
     SELECT elem INTO v_plan
     FROM public.app_settings s
@@ -295,19 +307,92 @@ BEGIN
 
     v_plan_name := COALESCE(v_plan->>'name', 'Level ' || v_dep.plan_level);
 
+    -- Calculate level-based welcome bonus
+    v_welcome_bonus := CASE v_dep.plan_level
+      WHEN 1 THEN 1500
+      WHEN 2 THEN 5000
+      WHEN 3 THEN 10000
+      WHEN 4 THEN 17000
+      WHEN 5 THEN 25000
+      WHEN 6 THEN 35000
+      WHEN 7 THEN 70000
+      WHEN 8 THEN 90000
+      WHEN 9 THEN 150000
+      WHEN 10 THEN 350000
+      ELSE COALESCE(NULLIF(v_plan->>'welcomeBonus', '')::NUMERIC, 0)
+    END;
+
+    -- Credit welcome bonus directly into cash balance and welcome bonus balance
     UPDATE public.profiles
     SET plan_level = v_dep.plan_level,
         plan_activated_at = NOW(),
         plan_last_claim_date = NULL,
-        plan_welcome_paid = FALSE,
+        plan_welcome_paid = TRUE,
+        welcome_bonus_balance = COALESCE(welcome_bonus_balance, 0) + v_welcome_bonus,
+        cash_balance = cash_balance + v_welcome_bonus,
         updated_at = NOW()
-    WHERE id = v_dep.user_id;
+    WHERE id = v_dep.user_id
+    RETURNING cash_balance INTO v_new_bal;
+
+    IF v_welcome_bonus > 0 THEN
+      INSERT INTO public.transactions (user_id, type, amount, title, description, reference_id, status)
+      VALUES (
+        v_dep.user_id, 'reward', v_welcome_bonus,
+        'Welcome Bonus',
+        'One-time welcome bonus — ' || v_plan_name || ' (Withdrawable anytime)',
+        deposit_id, 'completed'
+      );
+    END IF;
 
     INSERT INTO public.notifications (user_id, title, message, type)
     VALUES (v_dep.user_id, 'Plan Activated',
-      'Your ' || v_plan_name || ' plan is now active. Your daily reward is ₦' ||
-      COALESCE(NULLIF(v_plan->>'dailyEarning', ''), '0') || ' with a one-time ₦' ||
-      COALESCE(NULLIF(v_plan->>'welcomeBonus', ''), '0') || ' welcome bonus.', 'success');
+      'Your ' || v_plan_name || ' plan is now active! ₦' || TO_CHAR(v_welcome_bonus, 'FM999,999,990') ||
+      ' welcome bonus has been credited to your balance (withdrawable anytime). Your daily earning is ₦' ||
+      COALESCE(NULLIF(v_plan->>'dailyEarning', ''), '0') || '.', 'success');
+
+    -- Award referral bonus to the referrer based on the level purchased
+    SELECT referred_by, full_name INTO v_ref_id, v_buyer_name
+    FROM public.profiles
+    WHERE id = v_dep.user_id;
+
+    IF v_ref_id IS NOT NULL THEN
+      v_ref_bonus := CASE v_dep.plan_level
+        WHEN 1 THEN 1000
+        WHEN 2 THEN 3000
+        WHEN 3 THEN 6000
+        WHEN 4 THEN 10000
+        WHEN 5 THEN 12500
+        WHEN 6 THEN 15000
+        WHEN 7 THEN 30000
+        WHEN 8 THEN 60000
+        WHEN 9 THEN 100000
+        WHEN 10 THEN 200000
+        ELSE COALESCE(NULLIF(v_plan->>'referralBonus', '')::NUMERIC, 0)
+      END;
+
+      IF v_ref_bonus > 0 THEN
+        UPDATE public.profiles
+        SET cash_balance = cash_balance + v_ref_bonus, updated_at = NOW()
+        WHERE id = v_ref_id;
+
+        INSERT INTO public.transactions (user_id, type, amount, title, description, reference_id, status)
+        VALUES (
+          v_ref_id, 'reward', v_ref_bonus,
+          'Referral Commission',
+          'Referral bonus for downline member investing in ' || v_plan_name || ' (Level ' || v_dep.plan_level || ')',
+          deposit_id, 'completed'
+        );
+
+        INSERT INTO public.notifications (user_id, title, message, type)
+        VALUES (
+          v_ref_id,
+          'Referral Commission Earned',
+          'You earned ₦' || TO_CHAR(v_ref_bonus, 'FM999,999,990') || ' referral commission because your referral ' ||
+          COALESCE(v_buyer_name, 'a member') || ' invested in ' || v_plan_name || ' (Level ' || v_dep.plan_level || ').',
+          'success'
+        );
+      END IF;
+    END IF;
   END IF;
 
   INSERT INTO public.transactions (user_id, type, amount, title, description, reference_id, status)
@@ -342,6 +427,8 @@ RETURNS JSONB AS $$
 DECLARE
   v_uid UUID := auth.uid();
   v_cur_bal NUMERIC;
+  v_welcome_bal NUMERIC;
+  v_dow INT;
   v_wth_id TEXT;
 BEGIN
   IF v_uid IS NULL THEN
@@ -352,21 +439,37 @@ BEGIN
     RAISE EXCEPTION 'Invalid withdrawal amount.';
   END IF;
 
-  -- A frozen account must not be able to move money out. Previously the flag
-  -- was set by the admin desk but nothing ever read it.
+  -- A frozen account must not be able to move money out.
   IF EXISTS (SELECT 1 FROM public.profiles WHERE id = v_uid AND is_frozen IS TRUE) THEN
     RAISE EXCEPTION 'This account is frozen. Please contact support.';
   END IF;
 
   PERFORM set_config('app.internal_balance_update', 'true', true);
 
-  SELECT cash_balance INTO v_cur_bal FROM public.profiles WHERE id = v_uid FOR UPDATE;
+  SELECT cash_balance, COALESCE(welcome_bonus_balance, 0.00)
+  INTO v_cur_bal, v_welcome_bal
+  FROM public.profiles
+  WHERE id = v_uid FOR UPDATE;
+
   IF v_cur_bal IS NULL OR v_cur_bal < p_amount THEN
     RAISE EXCEPTION 'Insufficient cash balance.';
   END IF;
 
+  -- Day of week: 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
+  v_dow := EXTRACT(DOW FROM NOW())::INT;
+  IF v_dow != 5 THEN
+    -- On non-Fridays, only the welcome bonus is withdrawable anytime
+    IF v_welcome_bal <= 0 THEN
+      RAISE EXCEPTION 'Regular withdrawals (daily earnings, tasks, and referral bonuses) are only available on Fridays. You currently have no withdrawable welcome bonus.';
+    ELSIF p_amount > v_welcome_bal THEN
+      RAISE EXCEPTION 'Regular earnings can only be withdrawn on Fridays. Only your welcome bonus (₦% available) can be withdrawn today.', TO_CHAR(v_welcome_bal, 'FM999,999,990.00');
+    END IF;
+  END IF;
+
   UPDATE public.profiles
-  SET cash_balance = cash_balance - p_amount, updated_at = NOW()
+  SET cash_balance = cash_balance - p_amount,
+      welcome_bonus_balance = GREATEST(0.00, COALESCE(welcome_bonus_balance, 0.00) - p_amount),
+      updated_at = NOW()
   WHERE id = v_uid;
 
   v_wth_id := 'WTH-' || UPPER(SUBSTRING(MD5(RANDOM()::TEXT), 1, 8));
@@ -914,6 +1017,7 @@ BEGIN
     'full_name', full_name,
     'email', email,
     'invested_balance', invested_balance,
+    'plan_level', plan_level,
     'created_at', created_at
   ) ORDER BY created_at DESC), '[]'::jsonb)
   INTO v_res
@@ -1076,25 +1180,28 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- One admin-editable list drives everything: the plans shown on the
 -- Investments page, the picker in the dashboard, what a plan costs, the daily
 -- claim payout, the one-off welcome bonus and the per-task reward.
--- ON CONFLICT DO NOTHING so re-running this script never overwrites prices the
--- admin has since edited from the admin panel.
+-- ON CONFLICT DO UPDATE so re-running this script pushes the corrected welcome
+-- and referral bonuses live. If you have since hand-edited prices from the admin
+-- panel, publish them again from the Plan Editor afterwards (or skip the plan
+-- seed) so this run does not revert your edits.
 INSERT INTO public.app_settings (key, value)
 VALUES (
   'investment_plans',
   '[
-    {"level":1,"name":"Starter","price":5000,"welcomeBonus":250,"dailyEarning":900},
-    {"level":2,"name":"Bronze","price":15000,"welcomeBonus":750,"dailyEarning":2700},
-    {"level":3,"name":"Silver","price":30000,"welcomeBonus":1500,"dailyEarning":5400},
-    {"level":4,"name":"Gold","price":50000,"welcomeBonus":2500,"dailyEarning":9000},
-    {"level":5,"name":"Platinum","price":75000,"welcomeBonus":3750,"dailyEarning":13500},
-    {"level":6,"name":"Emerald","price":100000,"welcomeBonus":5000,"dailyEarning":18000},
-    {"level":7,"name":"Sapphire","price":200000,"welcomeBonus":10000,"dailyEarning":36000},
-    {"level":8,"name":"Ruby","price":350000,"welcomeBonus":17500,"dailyEarning":63000},
-    {"level":9,"name":"Diamond","price":500000,"welcomeBonus":25000,"dailyEarning":90000},
-    {"level":10,"name":"Apex","price":1000000,"welcomeBonus":50000,"dailyEarning":180000}
+    {"level":1,"name":"Starter","price":5000,"welcomeBonus":1500,"referralBonus":1000,"dailyEarning":900},
+    {"level":2,"name":"Bronze","price":15000,"welcomeBonus":5000,"referralBonus":3000,"dailyEarning":2700},
+    {"level":3,"name":"Silver","price":30000,"welcomeBonus":10000,"referralBonus":6000,"dailyEarning":5400},
+    {"level":4,"name":"Gold","price":50000,"welcomeBonus":17000,"referralBonus":10000,"dailyEarning":9000},
+    {"level":5,"name":"Platinum","price":75000,"welcomeBonus":25000,"referralBonus":12500,"dailyEarning":13500},
+    {"level":6,"name":"Emerald","price":100000,"welcomeBonus":35000,"referralBonus":15000,"dailyEarning":18000},
+    {"level":7,"name":"Sapphire","price":200000,"welcomeBonus":70000,"referralBonus":30000,"dailyEarning":36000},
+    {"level":8,"name":"Ruby","price":350000,"welcomeBonus":90000,"referralBonus":60000,"dailyEarning":63000},
+    {"level":9,"name":"Diamond","price":500000,"welcomeBonus":150000,"referralBonus":100000,"dailyEarning":90000},
+    {"level":10,"name":"Apex","price":1000000,"welcomeBonus":350000,"referralBonus":200000,"dailyEarning":180000}
   ]'::jsonb
 )
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (key) DO UPDATE
+SET value = EXCLUDED.value;
 
 -- RPC: Submit a plan payment (bank transfer)
 -- The caller names only the level and where the money was sent from. The
@@ -1241,6 +1348,7 @@ BEGIN
 
   UPDATE public.profiles
   SET cash_balance = cash_balance + v_pay,
+      welcome_bonus_balance = COALESCE(welcome_bonus_balance, 0) + CASE WHEN v_welcome_paid THEN COALESCE(v_welcome, 0) ELSE 0 END,
       plan_last_claim_date = v_today_str,
       plan_welcome_paid = TRUE,
       updated_at = NOW()

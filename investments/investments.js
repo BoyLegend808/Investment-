@@ -592,16 +592,16 @@ function showToast(message, type = 'success', duration = 4000) {
  * The array below is the last published set, used if the fetch fails.
  */
 const FALLBACK_INVESTMENT_PLANS = [
-  { level: 1, name: 'Starter', price: 5000, welcomeBonus: 250, dailyEarning: 900 },
-  { level: 2, name: 'Bronze', price: 15000, welcomeBonus: 750, dailyEarning: 2700 },
-  { level: 3, name: 'Silver', price: 30000, welcomeBonus: 1500, dailyEarning: 5400 },
-  { level: 4, name: 'Gold', price: 50000, welcomeBonus: 2500, dailyEarning: 9000 },
-  { level: 5, name: 'Platinum', price: 75000, welcomeBonus: 3750, dailyEarning: 13500 },
-  { level: 6, name: 'Emerald', price: 100000, welcomeBonus: 5000, dailyEarning: 18000 },
-  { level: 7, name: 'Sapphire', price: 200000, welcomeBonus: 10000, dailyEarning: 36000 },
-  { level: 8, name: 'Ruby', price: 350000, welcomeBonus: 17500, dailyEarning: 63000 },
-  { level: 9, name: 'Diamond', price: 500000, welcomeBonus: 25000, dailyEarning: 90000 },
-  { level: 10, name: 'Apex', price: 1000000, welcomeBonus: 50000, dailyEarning: 180000 }
+  { level: 1, name: 'Starter', price: 5000, welcomeBonus: 1500, dailyEarning: 900, referralBonus: 1000 },
+  { level: 2, name: 'Bronze', price: 15000, welcomeBonus: 5000, dailyEarning: 2700, referralBonus: 3000 },
+  { level: 3, name: 'Silver', price: 30000, welcomeBonus: 10000, dailyEarning: 5400, referralBonus: 6000 },
+  { level: 4, name: 'Gold', price: 50000, welcomeBonus: 17000, dailyEarning: 9000, referralBonus: 10000 },
+  { level: 5, name: 'Platinum', price: 75000, welcomeBonus: 25000, dailyEarning: 13500, referralBonus: 12500 },
+  { level: 6, name: 'Emerald', price: 100000, welcomeBonus: 35000, dailyEarning: 18000, referralBonus: 15000 },
+  { level: 7, name: 'Sapphire', price: 200000, welcomeBonus: 70000, dailyEarning: 36000, referralBonus: 30000 },
+  { level: 8, name: 'Ruby', price: 350000, welcomeBonus: 90000, dailyEarning: 63000, referralBonus: 60000 },
+  { level: 9, name: 'Diamond', price: 500000, welcomeBonus: 150000, dailyEarning: 90000, referralBonus: 100000 },
+  { level: 10, name: 'Apex', price: 1000000, welcomeBonus: 350000, dailyEarning: 180000, referralBonus: 200000 }
 ];
 
 function formatNaira(amount) {
@@ -618,6 +618,7 @@ function planCardHtml(plan) {
           <p class="plan-price"><span class="plan-currency">₦</span>${Number(plan.price || 0).toLocaleString('en-NG')}</p>
           <ul class="plan-facts">
             <li><span>Welcome bonus</span><strong>${formatNaira(plan.welcomeBonus)}</strong></li>
+            <li><span>Referral bonus</span><strong>${formatNaira(plan.referralBonus)}</strong></li>
             <li class="plan-daily"><span>Daily earning</span><strong>${formatNaira(plan.dailyEarning)}</strong></li>
           </ul>
           <a class="btn-card-action plan-cta" href="../index/index.html#signup">Start Plan</a>

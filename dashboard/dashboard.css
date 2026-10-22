@@ -3980,3 +3980,202 @@ table td:nth-child(4),
   max-width: 440px;
   line-height: 1.5;
 }
+
+/* ── WITHDRAWAL SCHEDULE & BALANCE BREAKDOWN ── */
+.wd-schedule-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(255, 85, 0, 0.08) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border: 1px solid rgba(255, 85, 0, 0.3);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  transition: all 0.25s ease;
+}
+
+.wd-schedule-card.friday-active {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.wd-sc-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 85, 0, 0.15);
+  border: 1px solid rgba(255, 85, 0, 0.35);
+  color: #FF5500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.wd-schedule-card.friday-active .wd-sc-icon {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.35);
+  color: #10B981;
+}
+
+.wd-sc-info {
+  flex: 1;
+}
+
+.wd-sc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.wd-sc-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 85, 0, 0.18);
+  color: #FF5500;
+  font-family: var(--f-mono);
+}
+
+.wd-schedule-card.friday-active .wd-sc-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+}
+
+.wd-sc-timer {
+  font-size: 0.75rem;
+  color: var(--c-muted, #94A3B8);
+  font-family: var(--f-mono);
+}
+
+.wd-sc-desc {
+  font-size: 0.85rem;
+  color: var(--c-ink, #E2E8F0);
+  line-height: 1.45;
+}
+
+.wd-balance-box {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.wd-bb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.wd-bb-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.wd-bb-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10B981;
+  font-family: var(--f-mono);
+}
+
+.wd-bb-amount {
+  font-size: 1.75rem;
+  font-weight: 700;
+  font-family: var(--f-mono);
+  color: #FFFFFF;
+  margin-bottom: 12px;
+}
+
+.wd-bb-rows {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.wd-bb-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: #94A3B8;
+}
+
+.wd-bb-row strong {
+  font-family: var(--f-mono);
+  color: #F8FAFC;
+}
+
+.wd-bb-row em {
+  font-style: normal;
+  font-size: 0.75rem;
+}
+
+.wd-bb-row.wd-bb-row--total {
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  padding-top: 6px;
+  margin-top: 2px;
+  font-weight: 600;
+  color: #E2E8F0;
+}
+
+/* ── REFERRAL TIERS SCHEDULE ── */
+.ref-tiers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.ref-tier-chip {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.ref-tier-chip:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 85, 0, 0.4);
+}
+
+.rtc-level {
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-family: var(--f-mono);
+  color: #FF5500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.rtc-plan {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94A3B8;
+}
+
+.rtc-bonus {
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--f-mono);
+  color: #10B981;
+  margin-top: 2px;
+}
