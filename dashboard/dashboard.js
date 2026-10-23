@@ -2528,24 +2528,42 @@ async function submitDeposit() {
   var currentUserEmail =
     (window.crestUser && window.crestUser.email) || "investor@crestwealth.com";
 
-  var receiptUrl = null;
-  if (window.supabaseClient && depositReceiptFile) {
+  // Resolve the session first. The receipt has to land inside the member's own
+  // folder, so we need their id before the upload path can be built.
+  var sessionUser = null;
+  if (window.supabaseClient) {
+    try {
+      var sess0 = await window.supabaseClient.auth.getSession();
+      sessionUser =
+        sess0 && sess0.data && sess0.data.session
+          ? sess0.data.session.user
+          : null;
+    } catch (e) {}
+  }
+
+  // The receipt is the proof the admin checks before releasing funds, so it has
+  // to actually survive the round trip. It goes into the private 'receipts'
+  // bucket under the member's own folder, and the row keeps the object *path*
+  // rather than a URL: the bucket is private, so the admin panel mints a
+  // short-lived signed link each time it needs to look at the image.
+  var receiptPath = null;
+  if (sessionUser && depositReceiptFile) {
     try {
       var ext = depositReceiptFile.name
         ? depositReceiptFile.name.split(".").pop()
         : "png";
-      var filePath = "receipts/" + refId + "_" + Date.now() + "." + ext;
-      var { data: upData, error: upErr } = await window.supabaseClient.storage
+      var filePath =
+        sessionUser.id + "/" + refId + "_" + Date.now() + "." + ext;
+      var { error: upErr } = await window.supabaseClient.storage
         .from("receipts")
         .upload(filePath, depositReceiptFile, { upsert: true });
-      if (!upErr && upData) {
-        var { data: pubData } = window.supabaseClient.storage
-          .from("receipts")
-          .getPublicUrl(filePath);
-        if (pubData) receiptUrl = pubData.publicUrl;
+      if (upErr) {
+        console.warn("[Crest] Receipt upload failed:", upErr.message);
+      } else {
+        receiptPath = filePath;
       }
     } catch (err) {
-      console.warn("[Crest] Supabase storage upload notice:", err);
+      console.warn("[Crest] Receipt upload notice:", err);
     }
   }
 
@@ -2557,8 +2575,8 @@ async function submitDeposit() {
     plan: planName,
     bank: bInfo.bankName,
     acctNum: bInfo.acctNum,
-    receiptData: receiptUrl || depositReceiptData,
-    proofUrl: receiptUrl,
+    receiptData: depositReceiptData,
+    proofUrl: receiptPath,
     method:
       "BANK TRANSFER (" + String(bInfo.bankName || "BANK").toUpperCase() + ")",
     date: new Date().toLocaleDateString("en-US", {
@@ -2578,27 +2596,27 @@ async function submitDeposit() {
   setCrestStorage("deposits", existingDep);
 
   // Sync to Supabase DB if user is logged in
-  if (window.supabaseClient) {
+  if (sessionUser) {
     try {
-      var sess = await window.supabaseClient.auth.getSession();
-      var u =
-        sess && sess.data && sess.data.session ? sess.data.session.user : null;
-      if (u) {
-        var { error: depErr } = await window.supabaseClient
-          .from("deposits")
-          .insert({
-            id: refId,
-            user_id: u.id,
-            user_email: u.email,
-            amount: amt,
-            plan: planName,
-            bank_name: bInfo.bankName,
-            account_number: bInfo.acctNum,
-            proof_url:
-              receiptUrl || (depositReceiptData ? "base64_attached" : null),
-            status: "Pending",
-          });
-        if (depErr) console.warn("Supabase deposit sync notice:", depErr);
+      var { error: depErr } = await window.supabaseClient
+        .from("deposits")
+        .insert({
+          id: refId,
+          user_id: sessionUser.id,
+          user_email: sessionUser.email,
+          amount: amt,
+          plan: planName,
+          bank_name: bInfo.bankName,
+          account_number: bInfo.acctNum,
+          proof_url: receiptPath,
+          status: "Pending",
+        });
+      if (depErr) {
+        console.warn("Supabase deposit sync notice:", depErr);
+        toast(
+          "Deposit could not be filed for review: " + depErr.message,
+          "warn",
+        );
       }
     } catch (e) {}
   }
@@ -3309,18 +3327,39 @@ async function submitWithdrawal() {
   }, 1200);
 }
 
-function updateWithdrawalTimeline() {
-  var withdrawals = [];
-  try {
-    var wdRaw2 = getCrestStorage("withdrawals", null);
-    withdrawals = wdRaw2 ? JSON.parse(wdRaw2) : [];
-  } catch (e) {}
-
-  var latest = withdrawals[0];
+async function updateWithdrawalTimeline() {
   var overviewCard = $("overviewWdTimeline");
   var wdCard = $("wdTimelineCard");
   var rejOverview = $("rejectionNotice");
   var rejWd = $("wdRejectionBanner");
+
+  // The admin reviews and settles requests on their own machine, so a
+  // browser-local record here would never learn the outcome — the member would
+  // sit on "Processing" forever. Read this member's newest request back from the
+  // database, and only fall back to the local copy for a request that has not
+  // reached the server yet.
+  var latest = null;
+  var wdUser = window.crestUser;
+  if (wdUser && wdUser.id && window.supabaseClient) {
+    try {
+      var wdRes = await window.supabaseClient
+        .from("withdrawals")
+        .select("id,amount,status,admin_notes,created_at")
+        .eq("user_id", wdUser.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (!wdRes.error && wdRes.data && wdRes.data.length) {
+        latest = wdRes.data[0];
+      }
+    } catch (e) {}
+  }
+  if (!latest) {
+    try {
+      var wdRaw2 = getCrestStorage("withdrawals", null);
+      var wdLocal = wdRaw2 ? JSON.parse(wdRaw2) : [];
+      latest = wdLocal[0] || null;
+    } catch (e) {}
+  }
 
   if (!latest) {
     if (overviewCard) overviewCard.style.display = "none";
@@ -3331,8 +3370,11 @@ function updateWithdrawalTimeline() {
   }
 
   if (latest.status === "Rejected") {
+    // A row read back from the database carries the admin's note in
+    // admin_notes; the local fallback record used rejectionReason.
     var reason =
       latest.rejectionReason ||
+      latest.admin_notes ||
       "Task compliance verification incomplete. Please review required steps and retry.";
     if (rejOverview) {
       $("rejectionNoticeText").textContent =
@@ -3428,6 +3470,36 @@ function updateWithdrawalTimeline() {
         el.querySelector(".t-circle").innerHTML = "4";
       }
     });
+  }
+}
+
+/* ── LIVE WITHDRAWAL UPDATES ───────────────────────────
+   The admin settles a request from their own session, so without this the
+   member would only ever see the new status on their next page load. Scoped to
+   this member's own rows rather than the whole table. */
+function initWithdrawalRealtime() {
+  var user = window.crestUser;
+  if (!user || !user.id || !window.supabaseClient) return;
+  if (window._crestWithdrawalRealtimeSubscribed) return;
+  window._crestWithdrawalRealtimeSubscribed = true;
+  try {
+    window.supabaseClient
+      .channel("dashboard:withdrawals")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "withdrawals",
+          filter: "user_id=eq." + user.id,
+        },
+        function () {
+          updateWithdrawalTimeline();
+        },
+      )
+      .subscribe();
+  } catch (e) {
+    console.warn("[Crest] Realtime withdrawal subscription skipped:", e);
   }
 }
 
@@ -4887,6 +4959,7 @@ function initDashboard() {
   startTaskCycleClock();
   startFridayCountdown();
   updateWithdrawalTimeline();
+  initWithdrawalRealtime();
   initTxnFiltering();
   initSettingsInteractions();
   renderDepositTracker();

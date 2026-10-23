@@ -1898,7 +1898,7 @@ function filterDeposits() {
   renderDepositsTable(search);
 }
 
-function previewDepositReceipt(id) {
+async function previewDepositReceipt(id) {
   var d = AdminState.deposits.find(function (item) {
     return item.id === id;
   });
@@ -1906,9 +1906,18 @@ function previewDepositReceipt(id) {
     toast("No receipt attached for this deposit.", "warn");
     return;
   }
-  var body = $("inspectModalBody");
-  if (body) {
-    body.innerHTML =
+
+  // proof_url is written by the depositing user, so treat it as hostile: the
+  // source is always attribute-escaped before it enters the src="..." value.
+  function imgHtml(src) {
+    return (
+      '<img src="' +
+      escapeHtml(src) +
+      '" alt="POP Receipt" style="max-width:100%;max-height:420px;object-fit:contain;border-radius:6px;border:1px solid rgba(255,255,255,0.1);">'
+    );
+  }
+  function frame(inner) {
+    return (
       '<div style="margin-bottom:12px;">' +
       '<div style="font-weight:600;color:white;font-size:1rem;">Deposit POP Receipt &bull; ' +
       escapeHtml(d.id) +
@@ -1924,14 +1933,11 @@ function previewDepositReceipt(id) {
       "</div>" +
       "</div>" +
       '<div style="background:rgba(0,0,0,0.5);border-radius:8px;padding:12px;text-align:center;overflow:hidden;">' +
-      // proof_url is written by the depositing user, so treat it as hostile:
-      // only inline image data or an http(s) URL is allowed, and the result is
-      // still attribute-escaped so it cannot break out of the src="..." value.
-      '<img src="' +
-      escapeHtml(crestSafeImageSrc(d.receiptData)) +
-      '" alt="POP Receipt" style="max-width:100%;max-height:420px;object-fit:contain;border-radius:6px;border:1px solid rgba(255,255,255,0.1);">' +
-      "</div>";
+      inner +
+      "</div>"
+    );
   }
+
   var btnApprove = $("btnApproveFromModal");
   if (btnApprove) {
     btnApprove.style.display =
@@ -1941,7 +1947,51 @@ function previewDepositReceipt(id) {
       closeModal("inspectModal");
     };
   }
+
+  var body = $("inspectModalBody");
+  var stored = String(d.receiptData);
+
+  // Receipts now live in the private 'receipts' bucket and the deposit row
+  // holds the object *path*, not a URL, so the image cannot be shown as-is.
+  // Mint a short-lived signed link instead: a bank receipt should not stay
+  // reachable by a URL that outlives the review. Older rows may still carry an
+  // inline data URL or a plain http(s) link, and those render directly.
+  var direct = crestSafeImageSrc(stored);
+  if (direct) {
+    if (body) body.innerHTML = frame(imgHtml(direct));
+    openModal("inspectModal");
+    return;
+  }
+
+  if (body) {
+    body.innerHTML = frame(
+      '<div style="padding:28px 8px;color:var(--text-muted);font-size:0.85rem;">Loading receipt&hellip;</div>',
+    );
+  }
   openModal("inspectModal");
+
+  var sb = await waitForSupabase();
+  var signed = "";
+  if (sb) {
+    try {
+      var sig = await sb.storage.from("receipts").createSignedUrl(stored, 300);
+      if (!sig.error && sig.data) signed = sig.data.signedUrl || "";
+    } catch (e) {}
+  }
+
+  if (!signed) {
+    if (body) {
+      body.innerHTML = frame(
+        '<div style="padding:28px 8px;color:var(--color-warning);font-size:0.85rem;">' +
+          "The receipt could not be opened. The upload may have failed when this deposit was filed, so there is no proof of payment to review." +
+          "</div>",
+      );
+    }
+    toast("Could not load the receipt for " + d.id + ".", "warn");
+    return;
+  }
+
+  if (body) body.innerHTML = frame(imgHtml(signed));
 }
 
 function confirmDeposit(id) {

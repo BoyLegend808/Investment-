@@ -853,6 +853,28 @@ CREATE POLICY "Task proofs upload own" ON storage.objects FOR INSERT TO authenti
 CREATE POLICY "Task proofs read own or admin" ON storage.objects FOR SELECT TO authenticated
   USING (bucket_id = 'task-proofs' AND ((storage.foldername(name))[1] = auth.uid()::text OR public.is_admin()));
 
+-- 17b. DEPOSIT RECEIPT STORAGE
+-- The dashboard uploaded every bank-transfer receipt to a 'receipts' bucket that
+-- this script never created, so each upload failed and the deposit row recorded
+-- the placeholder text "base64_attached" instead of an image. The admin's
+-- receipt viewer therefore had nothing to show, which meant deposits were being
+-- confirmed without the proof of payment ever being seen.
+--
+-- The bucket is private and each member writes into their own folder. The
+-- deposit row stores the object *path*, and the admin panel mints a short-lived
+-- signed URL when it opens one, so a bank receipt is never exposed by a URL
+-- that outlives the review.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('receipts', 'receipts', false)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Deposit receipts upload own" ON storage.objects;
+DROP POLICY IF EXISTS "Deposit receipts read own or admin" ON storage.objects;
+CREATE POLICY "Deposit receipts upload own" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'receipts' AND (storage.foldername(name))[1] = auth.uid()::text);
+CREATE POLICY "Deposit receipts read own or admin" ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'receipts' AND ((storage.foldername(name))[1] = auth.uid()::text OR public.is_admin()));
+
 -- 18. REFERRALS, STREAKS & TASK ATOMIC PROCEDURES
 
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS referral_code TEXT;
