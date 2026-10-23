@@ -306,9 +306,9 @@ function initModals() {
         signupForm.querySelector('input[type="password"]')?.value;
       const confirmPassword =
         document.getElementById("signup-password-confirm")?.value || "";
-      const pkg =
-        document.getElementById("signup-package")?.value ||
-        "Level 1 Package (Starter)";
+      // The starting-package picker was removed from signup; the tier is
+      // selected from the dashboard, so new accounts all start on the entry one.
+      const pkg = "Level 1 Package (Starter)";
 
       if (confirmPassword && password !== confirmPassword) {
         if (typeof showToast === "function")

@@ -343,20 +343,6 @@ async function waitForSupabase() {
  * Returns true/false. Safe to call from any page.
  */
 async function crestIsAuthenticated() {
-  // Fast optimistic check for demo user
-  const localUser = localStorage.getItem("crest_current_user");
-  if (localUser) {
-    try {
-      const parsed = JSON.parse(localUser);
-      if (
-        parsed &&
-        typeof parsed.id === "string" &&
-        parsed.id.indexOf("demo_") === 0
-      )
-        return true;
-    } catch (e) {}
-  }
-
   const sb = await waitForSupabase();
   if (sb) {
     try {

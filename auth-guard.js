@@ -6,23 +6,11 @@
   const isProtectedPage =
     path.includes("/dashboard") || path.includes("/admin");
 
-  // Fast check: if demo investor or existing window user
-  const localUserRaw = localStorage.getItem("crest_current_user");
-  let isDemoUser = false;
-  let localUser = null;
-  if (localUserRaw) {
-    try {
-      localUser = JSON.parse(localUserRaw);
-      isDemoUser = !!(
-        localUser &&
-        typeof localUser.id === "string" &&
-        localUser.id.indexOf("demo_") === 0
-      );
-    } catch (e) {}
-  }
-
-  // ONLY hide document on protected pages when neither demo nor authenticated user exists
-  if (isProtectedPage && !isDemoUser && !window.crestUser) {
+  // Hide the document on protected pages until we know whether a session
+  // exists, so a signed-out visitor never sees a flash of dashboard content.
+  // Demo accounts no longer exist, so a real Supabase session is the only
+  // thing that grants access to a protected page.
+  if (isProtectedPage && !window.crestUser) {
     document.documentElement.style.visibility = "hidden";
   }
 
@@ -52,8 +40,8 @@
     document.documentElement.style.visibility = "";
   }
 
-  if (session || isDemoUser) {
-    window.crestUser = session ? session.user : localUser;
+  if (session) {
+    window.crestUser = session.user;
     window.crestSession = session;
     // On protected pages, user is authorized, so do not build or show overlay
     if (isProtectedPage) return;
@@ -284,25 +272,6 @@
       transform: none; 
     }
     
-    .crest-demo-btn {
-      width: 100%;
-      padding: 14px;
-      background: #f8fafc;
-      color: #475569;
-      border: 2px dashed #cbd5e1;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 16px;
-      transition: all 0.2s;
-    }
-    .crest-demo-btn:hover {
-      background: #f1f5f9;
-      border-color: #94a3b8;
-      color: #0f172a;
-    }
-
     /* Footer text */
     .crest-auth-footer {
       text-align: center;
@@ -485,21 +454,8 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               </button>
             </div>
-            <div class="crest-form-group">
-              <label class="crest-form-label">Select Starting Package</label>
-              <select class="crest-form-input" id="crest-signup-package" style="background: #FFFFFF;">
-                <option>Level 1 Package (Starter)</option>
-                <option>Level 2 Package (Basic)</option>
-                <option>Level 3 Package (Pro)</option>
-                <option>Level 4 Package (Advanced)</option>
-                <option>Level 5 Package (VIP)</option>
-              </select>
-            </div>
             <button type="submit" class="crest-submit-btn" id="crest-signup-submit">
               Create Account
-            </button>
-            <button type="button" class="crest-demo-btn" id="crest-demo-btn">
-              Explore Demo Dashboard
             </button>
           </form>
           <div class="crest-auth-footer">
@@ -921,25 +877,6 @@
     .querySelectorAll(".crest-switch-forgot")
     .forEach((el) => el.addEventListener("click", () => switchTab("forgot")));
 
-  var demoBtn = document.getElementById("crest-demo-btn");
-  if (demoBtn) {
-    demoBtn.addEventListener("click", () => {
-      showToast("Continuing as Demo Investor...");
-      const demoUser = {
-        id: "demo_investor",
-        email: "demo@crestwealth.com",
-        user_metadata: { full_name: "Demo Investor" },
-      };
-      if (typeof crestPersistCurrentUser === "function") {
-        crestPersistCurrentUser(demoUser);
-      } else {
-        localStorage.setItem("crest_current_user", JSON.stringify(demoUser));
-      }
-      window.crestUser = demoUser;
-      setTimeout(redirectAfterAuth, 250);
-    });
-  }
-
   document.querySelectorAll(".crest-tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => switchTab(btn.dataset.tab));
   });
@@ -1043,9 +980,9 @@
       const passConfirm = document.getElementById("crest-signup-pass-confirm")
         ? document.getElementById("crest-signup-pass-confirm").value
         : "";
-      const pkg = document.getElementById("crest-signup-package")
-        ? document.getElementById("crest-signup-package").value
-        : "Level 1 Package (Starter)";
+      // Package selection moved off the signup form - the tier is chosen later
+      // from the dashboard, so every new account starts on the entry package.
+      const pkg = "Level 1 Package (Starter)";
 
       if (!name || !email || !phone || !pass) {
         showToast("Please fill in all registration fields.");

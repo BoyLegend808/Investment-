@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <!-- Security Headers -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://open.er-api.com https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https: data:; connect-src 'self' https://api.coingecko.com https://api.exchangerate-api.com https://open.er-api.com https://panxaqueawnqrebikwvb.supabase.co wss://panxaqueawnqrebikwvb.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'">
   <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
@@ -19,16 +21,19 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://crestwealth.com/academy/academy.html">
   <meta property="og:title" content="Financial Academy | Free Investment Education — Crest Wealth">
-  <meta property="og:description" content="Master compound interest, stock evaluation, and inflation hedging with Crest Academy. Free beginner-to-advanced financial courses.">
+  <meta property="og:description"
+    content="Master compound interest, stock evaluation, and inflation hedging with Crest Academy. Free beginner-to-advanced financial courses.">
   <meta property="og:image" content="https://crestwealth.com/og-image.svg">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Financial Academy | Free Investment Education — Crest Wealth">
-  <meta name="twitter:description" content="Master compound interest, stock evaluation, and inflation hedging with Crest Academy. Free beginner-to-advanced financial courses.">
+  <meta name="twitter:description"
+    content="Master compound interest, stock evaluation, and inflation hedging with Crest Academy. Free beginner-to-advanced financial courses.">
   <title>Crest Financial Academy | Free Wealth &amp; Investment Education</title>
   <link rel="canonical" href="https://crestwealth.com/academy/academy.html">
 
-  <meta name="description" content="Master investing, portfolio construction, inflation hedging, and financial independence with Crest Academy's curated modules.">
-  
+  <meta name="description"
+    content="Master investing, portfolio construction, inflation hedging, and financial independence with Crest Academy's curated modules.">
+
   <link rel="stylesheet" href="academy.css">
 
   <!-- Supabase -->
@@ -36,21 +41,32 @@
   <script src="../supabase.js"></script>
   <script src="../shared-utils.js" defer></script>
 </head>
+
 <body>
 
   <!-- Top Real-Time Market Ticker -->
   <div class="ticker-bar">
-        <div class="ticker-track">
-      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span> <span class="ticker-price">5,620.10</span> <span class="ticker-change up">+0.68%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.40</span> <span class="ticker-change up">+1.25%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">$415.20</span> <span class="ticker-change up">+1.10%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$235.50</span> <span class="ticker-change up">+0.85%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span> <span class="ticker-price">$76,520.00</span> <span class="ticker-change up">+1.20%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">$2,432.00</span> <span class="ticker-change up">+1.58%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span> <span class="ticker-price">&#8364;0.9150</span> <span class="ticker-change up">+0.10%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span> <span class="ticker-price">&#163;0.7850</span> <span class="ticker-change up">+0.15%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.00</span> <span class="ticker-change up">+2.15%</span></div>
-      <div class="ticker-item"><span class="ticker-symbol">CBN T-BILLS</span> <span class="ticker-price">5.50%</span> <span class="ticker-change up">+0.25%</span></div>
+    <div class="ticker-track">
+      <div class="ticker-item"><span class="ticker-symbol">S&amp;P 500</span> <span class="ticker-price">5,620.10</span>
+        <span class="ticker-change up">+0.68%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.40</span> <span
+          class="ticker-change up">+1.25%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">MSFT</span> <span class="ticker-price">$415.20</span> <span
+          class="ticker-change up">+1.10%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">TSLA</span> <span class="ticker-price">$235.50</span> <span
+          class="ticker-change up">+0.85%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">BTC/USD</span> <span class="ticker-price">$76,520.00</span>
+        <span class="ticker-change up">+1.20%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">ETH/USD</span> <span class="ticker-price">$2,432.00</span>
+        <span class="ticker-change up">+1.58%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/EUR</span> <span
+          class="ticker-price">&#8364;0.9150</span> <span class="ticker-change up">+0.10%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">USD/GBP</span> <span class="ticker-price">&#163;0.7850</span>
+        <span class="ticker-change up">+0.15%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">AAPL</span> <span class="ticker-price">$228.00</span> <span
+          class="ticker-change up">+2.15%</span></div>
+      <div class="ticker-item"><span class="ticker-symbol">CBN T-BILLS</span> <span class="ticker-price">5.50%</span>
+        <span class="ticker-change up">+0.25%</span></div>
     </div>
   </div>
 
@@ -60,23 +76,27 @@
       <div class="nav-wrapper">
         <a href="../index/index.html" class="brand-logo">
           <div class="brand-icon">
-            <img src="../favicon.svg" alt="Crest Wealth Logo" loading="lazy" style="width: 100%; height: 100%; object-fit: contain;">
+            <img src="../favicon.svg" alt="Crest Wealth Logo" loading="lazy"
+              style="width: 100%; height: 100%; object-fit: contain;">
           </div>
           <div class="brand-name">Crest <span>WEALTH</span></div>
         </a>
 
         <ul class="nav-menu">
           <li class="nav-item"><a href="../about/about.html" class="nav-link">Our Story</a></li>
-          <li class="nav-item"><a href="../accounts/accounts.html" class="nav-link auth-required">Save &amp; Invest</a></li>
+          <li class="nav-item"><a href="../accounts/accounts.html" class="nav-link auth-required">Save &amp; Invest</a>
+          </li>
           <li class="nav-item"><a href="../investments/investments.html" class="nav-link">Investments</a></li>
-          <li class="nav-item"><a href="../academy/academy.html" class="nav-link active auth-required">Financial Academy</a></li>
+          <li class="nav-item"><a href="../academy/academy.html" class="nav-link active auth-required">Financial
+              Academy</a></li>
           <li class="nav-item"><a href="../security/security.html" class="nav-link">Security</a></li>
-          <li class="nav-item"><a href="../dashboard/dashboard.html" class="nav-link nav-link-ember auth-required">Client Dashboard</a></li>
+          <li class="nav-item"><a href="../dashboard/dashboard.html"
+              class="nav-link nav-link-ember auth-required">Client Dashboard</a></li>
         </ul>
 
         <div class="nav-actions">
-          <a href="../dashboard/dashboard.html" class="btn-sign-in">Sign In</a>
-          <a href="../dashboard/dashboard.html" class="btn-get-started">Open Account</a>
+          <a href="../dashboard/dashboard.html" class="btn-sign-in">Login</a>
+          <a href="../dashboard/dashboard.html" class="btn-get-started">Get Started</a>
           <div class="mobile-toggle" aria-label="Toggle navigation menu">
             <span></span>
             <span></span>
@@ -104,8 +124,8 @@
       <li><a href="../dashboard/dashboard.html" class="u-text-ember-bold">Client Dashboard</a></li>
     </ul>
     <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px;">
-      <a href="../dashboard/dashboard.html" class="btn-card-action">Sign In</a>
-      <a href="../dashboard/dashboard.html" class="btn-get-started">Open Account</a>
+      <a href="../dashboard/dashboard.html" class="btn-card-action">Login</a>
+      <a href="../dashboard/dashboard.html" class="btn-get-started">Get Started</a>
     </div>
   </div>
 
@@ -114,7 +134,8 @@
     <div class="container">
       <h1 class="page-hero-title">Crest Financial Academy</h1>
       <p class="page-hero-desc">
-        Empowering every investor with practical, jargon-free knowledge to conquer inflation and build sustainable generational wealth.
+        Empowering every investor with practical, jargon-free knowledge to conquer inflation and build sustainable
+        generational wealth.
       </p>
     </div>
   </section>
@@ -131,69 +152,101 @@
       <div class="academy-grid">
         <!-- Module 1 -->
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_1.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_1.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">BEGINNER • 15 MINS</span>
-            <img src="../assets/academy_img_1.jpg" alt="Personal Budgeting & Inflation Hedging" class="course-img" loading="lazy">
+            <img src="../assets/academy_img_1.jpg" alt="Personal Budgeting & Inflation Hedging" class="course-img"
+              loading="lazy">
           </div>
           <div class="course-body">
             <div>
               <h4 class="course-title">1. Personal Budgeting &amp; Inflation Hedging</h4>
               <p style="font-size: 0.88rem; color: var(--text-secondary);">
-                Understand the real rate of return, emergency fund sizing, and how compound interest outpaces cost of living increases.
+                Understand the real rate of return, emergency fund sizing, and how compound interest outpaces cost of
+                living increases.
               </p>
             </div>
             <div class="course-meta">
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>4 Lessons</span>
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706" stroke="#D97706" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>4.9/5 Rating</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>4 Lessons</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706"
+                  stroke="#D97706" stroke-width="1">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>4.9/5 Rating</span>
             </div>
           </div>
         </div>
 
         <!-- Module 2 -->
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_2.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_2.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">INTERMEDIATE • 25 MINS</span>
-            <img src="../assets/academy_img_2.jpg" alt="Stock Picking & Financial Statements" class="course-img" loading="lazy">
+            <img src="../assets/academy_img_2.jpg" alt="Stock Picking & Financial Statements" class="course-img"
+              loading="lazy">
           </div>
           <div class="course-body">
             <div>
               <h4 class="course-title">2. Stock Picking &amp; Financial Statements</h4>
               <p style="font-size: 0.88rem; color: var(--text-secondary);">
-                Learn how to read balance sheets, calculate Return on Equity (ROE), analyze P/E multiples, and identify dividend champions.
+                Learn how to read balance sheets, calculate Return on Equity (ROE), analyze P/E multiples, and identify
+                dividend champions.
               </p>
             </div>
             <div class="course-meta">
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>6 Lessons</span>
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706" stroke="#D97706" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>4.8/5 Rating</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>6 Lessons</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706"
+                  stroke="#D97706" stroke-width="1">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>4.8/5 Rating</span>
             </div>
           </div>
         </div>
 
         <!-- Module 3 -->
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_3.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_3.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">ADVANCED • 30 MINS</span>
-            <img src="../assets/academy_img_3.jpg" alt="Fixed Income, T-Bills & Sovereign Bonds" class="course-img" loading="lazy">
+            <img src="../assets/academy_img_3.jpg" alt="Fixed Income, T-Bills & Sovereign Bonds" class="course-img"
+              loading="lazy">
           </div>
           <div class="course-body">
             <div>
               <h4 class="course-title">3. Fixed Income, T-Bills &amp; Sovereign Bonds</h4>
               <p style="font-size: 0.88rem; color: var(--text-secondary);">
-                Master CBN primary and secondary auction bid mechanisms, yield curves, bond duration, and sovereign credit ratings.
+                Master CBN primary and secondary auction bid mechanisms, yield curves, bond duration, and sovereign
+                credit ratings.
               </p>
             </div>
             <div class="course-meta">
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>5 Lessons</span>
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706" stroke="#D97706" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>5.0/5 Rating</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>5 Lessons</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706"
+                  stroke="#D97706" stroke-width="1">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>5.0/5 Rating</span>
             </div>
           </div>
         </div>
 
         <!-- Module 4 -->
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_4.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_4.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">GLOBAL • 20 MINS</span>
-            <img src="../assets/academy_img_4.jpg" alt="Global Equities & Dollar Portfolio Construction" class="course-img" loading="lazy">
+            <img src="../assets/academy_img_4.jpg" alt="Global Equities & Dollar Portfolio Construction"
+              class="course-img" loading="lazy">
           </div>
           <div class="course-body">
             <div>
@@ -203,37 +256,56 @@
               </p>
             </div>
             <div class="course-meta">
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>5 Lessons</span>
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706" stroke="#D97706" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>4.9/5 Rating</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>5 Lessons</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706"
+                  stroke="#D97706" stroke-width="1">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>4.9/5 Rating</span>
             </div>
           </div>
         </div>
 
         <!-- Module 5 -->
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_5.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_5.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">PROPERTY • 35 MINS</span>
-            <img src="../assets/academy_img_5.jpg" alt="Real Estate Investing & REITs in Global Markets" class="course-img" loading="lazy">
+            <img src="../assets/academy_img_5.jpg" alt="Real Estate Investing & REITs in Global Markets"
+              class="course-img" loading="lazy">
           </div>
           <div class="course-body">
             <div>
               <h4 class="course-title">5. Real Estate Investing &amp; REITs in Global Markets</h4>
               <p style="font-size: 0.88rem; color: var(--text-secondary);">
-                Assessing property titles (Governor's Consent, C of O), rental yields in prime commercial hubs, and fractional REIT structures.
+                Assessing property titles (Governor's Consent, C of O), rental yields in prime commercial hubs, and
+                fractional REIT structures.
               </p>
             </div>
             <div class="course-meta">
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>7 Lessons</span>
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706" stroke="#D97706" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>4.9/5 Rating</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>7 Lessons</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706"
+                  stroke="#D97706" stroke-width="1">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>4.9/5 Rating</span>
             </div>
           </div>
         </div>
 
         <!-- Module 6 -->
         <div class="course-card">
-          <div class="course-thumb" style="background-image: url('../assets/academy_img_6.jpg'); background-size: cover; background-position: center;">
+          <div class="course-thumb"
+            style="background-image: url('../assets/academy_img_6.jpg'); background-size: cover; background-position: center;">
             <span class="course-badge">RETIREMENT • 20 MINS</span>
-            <img src="../assets/academy_img_6.jpg" alt="Voluntary Pension & Retirement Freedom" class="course-img" loading="lazy">
+            <img src="../assets/academy_img_6.jpg" alt="Voluntary Pension & Retirement Freedom" class="course-img"
+              loading="lazy">
           </div>
           <div class="course-body">
             <div>
@@ -243,8 +315,15 @@
               </p>
             </div>
             <div class="course-meta">
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>4 Lessons</span>
-              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706" stroke="#D97706" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>4.9/5 Rating</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>4 Lessons</span>
+              <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="#D97706"
+                  stroke="#D97706" stroke-width="1">
+                  <polygon
+                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>4.9/5 Rating</span>
             </div>
           </div>
         </div>
@@ -267,7 +346,8 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            APY reflects the actual annual rate of return earned on an investment after accounting for the compounding frequency of interest over 365 days. APR reflects simple uncompounded annual interest.
+            APY reflects the actual annual rate of return earned on an investment after accounting for the compounding
+            frequency of interest over 365 days. APR reflects simple uncompounded annual interest.
           </div>
         </div>
 
@@ -277,7 +357,8 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            A metric measuring a company's current share price relative to its per-share earnings. It helps investors determine whether a stock is overvalued or undervalued relative to historical peers.
+            A metric measuring a company's current share price relative to its per-share earnings. It helps investors
+            determine whether a stock is overvalued or undervalued relative to historical peers.
           </div>
         </div>
 
@@ -287,7 +368,8 @@
             <span class="faq-icon">+</span>
           </button>
           <div class="faq-answer">
-            A short-term debt obligation backed by the Central Bank of Global Markets / Government with a maturity of 364 days or less. They are sold at a discount to face value and carry zero default risk.
+            A short-term debt obligation backed by the Central Bank of Global Markets / Government with a maturity of
+            364 days or less. They are sold at a discount to face value and carry zero default risk.
           </div>
         </div>
       </div>
@@ -295,27 +377,37 @@
   </section>
 
   <!-- Footer -->
-    <!-- LIVE WEBINARS -->
+  <!-- LIVE WEBINARS -->
   <section class="webinars-section" style="padding: 80px 0; background: #0B251A; color: #FFF;">
     <div class="container">
       <div class="section-header-center">
         <span class="section-tag" style="background: rgba(52, 211, 153, 0.1); color: #34D399;">LIVE SESSIONS</span>
         <h2 class="section-title" style="color: #FFF;">Upcoming Financial Webinars</h2>
-        <p class="section-subtitle" style="color: #A3B8B0;">Join our experts live to discuss market trends, investment strategies, and portfolio management.</p>
+        <p class="section-subtitle" style="color: #A3B8B0;">Join our experts live to discuss market trends, investment
+          strategies, and portfolio management.</p>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 48px;">
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; margin-top: 48px;">
         <div style="padding: 32px; background: #1B382B; border-radius: 16px; position: relative;">
-          <div style="position: absolute; top: 32px; right: 32px; background: rgba(16, 185, 129, 0.2); color: #10B981; padding: 4px 12px; border-radius: 100px; font-size: 0.8rem; font-weight: 600;">Free</div>
-          <p style="font-size: 0.9rem; color: #10B981; margin-bottom: 8px; font-weight: 600;">Oct 12, 2026 &bull; 4:00 PM EST</p>
+          <div
+            style="position: absolute; top: 32px; right: 32px; background: rgba(16, 185, 129, 0.2); color: #10B981; padding: 4px 12px; border-radius: 100px; font-size: 0.8rem; font-weight: 600;">
+            Free</div>
+          <p style="font-size: 0.9rem; color: #10B981; margin-bottom: 8px; font-weight: 600;">Oct 12, 2026 &bull; 4:00
+            PM EST</p>
           <h3 style="font-size: 1.2rem; margin-bottom: 16px;">Navigating the Global in Q4</h3>
-          <p style="font-size: 0.95rem; color: #A3B8B0; margin-bottom: 24px;">An in-depth look at sectors poised for growth in the last quarter of the year.</p>
+          <p style="font-size: 0.95rem; color: #A3B8B0; margin-bottom: 24px;">An in-depth look at sectors poised for
+            growth in the last quarter of the year.</p>
           <a href="../dashboard/dashboard.html" class="btn-table-action">Reserve Seat</a>
         </div>
         <div style="padding: 32px; background: #1B382B; border-radius: 16px; position: relative;">
-          <div style="position: absolute; top: 32px; right: 32px; background: rgba(16, 185, 129, 0.2); color: #10B981; padding: 4px 12px; border-radius: 100px; font-size: 0.8rem; font-weight: 600;">Free</div>
-          <p style="font-size: 0.9rem; color: #10B981; margin-bottom: 8px; font-weight: 600;">Oct 18, 2026 &bull; 6:00 PM EST</p>
+          <div
+            style="position: absolute; top: 32px; right: 32px; background: rgba(16, 185, 129, 0.2); color: #10B981; padding: 4px 12px; border-radius: 100px; font-size: 0.8rem; font-weight: 600;">
+            Free</div>
+          <p style="font-size: 0.9rem; color: #10B981; margin-bottom: 8px; font-weight: 600;">Oct 18, 2026 &bull; 6:00
+            PM EST</p>
           <h3 style="font-size: 1.2rem; margin-bottom: 16px;">Mastering US Dollar Assets</h3>
-          <p style="font-size: 0.95rem; color: #A3B8B0; margin-bottom: 24px;">How to hedge against currency devaluation using Eurobonds and US Equities.</p>
+          <p style="font-size: 0.95rem; color: #A3B8B0; margin-bottom: 24px;">How to hedge against currency devaluation
+            using Eurobonds and US Equities.</p>
           <a href="../dashboard/dashboard.html" class="btn-table-action">Reserve Seat</a>
         </div>
       </div>
@@ -331,8 +423,13 @@
             Secure, transparent, and accessible investment solutions engineered for long-term African wealth creation.
           </p>
           <div style="display: flex; gap: 16px; color: #FFFFFF; font-size: 0.82rem; align-items: center;">
-            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>SEC-Compliant Trustees</span>
-            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>GDPR Certified</span>
+            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>SEC-Compliant Trustees</span>
+            <span class="u-flex-inline"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981"
+                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>GDPR Certified</span>
           </div>
         </div>
 
@@ -381,36 +478,19 @@
 
       <div class="footer-bottom">
         <p style="text-align: center; margin-bottom: 12px;">
-          Crest Wealth is an investment platform. All investments carry risk. Read disclosures <a href="../security/security.html">here</a>.
+          Crest Wealth is an investment platform. All investments carry risk. Read disclosures <a
+            href="../security/security.html">here</a>.
         </p>
         <p style="text-align: center; font-size: 0.75rem; color: #5B7068;">
-          © 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
+          © 2026 Crest Wealth Ltd. All rights reserved. Investment products are managed in partnership with
+          SEC-registered Trustees and licensed Asset Custodians. Past performance is no guarantee of future returns.
         </p>
       </div>
     </div>
   </footer>
 
-  
+
   <script src="academy.js" defer></script>
 </body>
+
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -55,9 +55,6 @@ function setCrestStorage(key, val) {
 
     if (u && u.id) {
       localStorage.setItem("crest_" + u.id + "_" + key, strVal);
-    } else if (!isGlobal) {
-      // Temporary unauthenticated fallback for demo user only
-      localStorage.setItem("crest_demo_investor_" + key, strVal);
     }
   } catch (e) {}
 }
@@ -78,22 +75,9 @@ if (!window.crestUser) {
       } catch (e) {}
     }
 
-    var localUserRaw = localStorage.getItem("crest_current_user");
-    var localUser = null;
-    if (localUserRaw) {
-      try {
-        localUser = JSON.parse(localUserRaw);
-      } catch (e) {}
-    }
-
-    // A locally stored user is ONLY trusted if it is the explicit demo account.
-    var isDemoUser = !!(
-      localUser &&
-      typeof localUser.id === "string" &&
-      localUser.id.indexOf("demo_") === 0
-    );
-
-    if (!session && !isDemoUser) {
+    // A Supabase session is the only thing that opens the dashboard. The demo
+    // account is gone, so a hand-written localStorage entry no longer counts.
+    if (!session) {
       // If auth-guard overlay is active, let user sign in via modal instead of abruptly redirecting
       if (!document.getElementById("crest-auth-overlay")) {
         localStorage.removeItem("crest_current_user");
@@ -102,7 +86,7 @@ if (!window.crestUser) {
       return;
     }
 
-    window.crestUser = session ? session.user : localUser;
+    window.crestUser = session.user;
     document.documentElement.style.visibility = "";
 
     if (document.readyState === "loading") {
