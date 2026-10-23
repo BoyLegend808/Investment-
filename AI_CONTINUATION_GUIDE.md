@@ -50,8 +50,9 @@
 
 1. `admin.html` loads `admin.js`.
 2. Admin guard checks `profiles.is_admin === true`.
-3. Stores and reads real-time transactions via `crest_withdrawals`, `crest_deposits`, `crest_user_balance`, and `crest_tasks_config`.
-4. When an admin confirms a deposit in `admin.js`, it now credits `crest_user_balance` and updates `profiles.cash_balance` in Supabase.
+3. An administrator is never shown the client app: `crestRedirectToDashboard()` (post-login and every "Log In" / "Get Started" click), `redirectAfterAuth()` in `auth-guard.js`, and the guard at the top of `dashboard.js` all read the flag and send administrators to `admin/admin.html`. The nav shortcut follows suit, reading "Admin Panel" instead of "Client Dashboard". These are UX redirects only — `admin.js` still re-checks the flag before rendering.
+4. Stores and reads real-time transactions via `crest_withdrawals`, `crest_deposits`, `crest_user_balance`, and `crest_tasks_config`.
+5. When an admin confirms a deposit in `admin.js`, it now credits `crest_user_balance` and updates `profiles.cash_balance` in Supabase.
 
 ---
 

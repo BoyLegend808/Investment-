@@ -605,22 +605,68 @@ async function crestResetPassword(email) {
 }
 
 /**
- * Redirect helper. Navigates to the dashboard relative to current page depth.
- * @param {boolean} isSubdir - Whether current page is inside a subdirectory
+ * Whether a member holds the administrator flag. Read from the database on
+ * every call and never cached: the point of the flag being database-only is
+ * that revoking it in SQL takes effect on the member's very next page load.
+ * @param {string} [userId] - Defaults to the signed-in member's own id.
  */
-function crestRedirectToDashboard(isSubdir) {
+async function crestIsAdminUser(userId) {
+  const sb = await waitForSupabase();
+  if (!sb) return false;
+  try {
+    if (!userId) {
+      const { data } = await sb.auth.getSession();
+      userId = data && data.session ? data.session.user.id : null;
+    }
+    if (!userId) return false;
+
+    const { data, error } = await sb
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) return false;
+    return !!(data && data.is_admin === true);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Where a signed-in member belongs. Administrators run the platform, so they
+ * land in the admin panel; everyone else lands in the dashboard. Decided from
+ * the member's own profile rather than from anything the calling page passed
+ * in, so no page can send an administrator into the client app.
+ */
+async function crestRedirectToDashboard() {
   const depth = window.location.pathname.split("/").filter(Boolean).length;
-  const isInSubdir = isSubdir !== undefined ? isSubdir : depth > 1;
-  window.location.href = isInSubdir
-    ? "../dashboard/dashboard.html"
-    : "dashboard/dashboard.html";
+  const prefix = depth > 1 ? "../" : "";
+  let destination = prefix + "dashboard/dashboard.html";
+
+  const sb = await waitForSupabase();
+  if (sb) {
+    try {
+      const {
+        data: { session },
+      } = await sb.auth.getSession();
+      const userId = session && session.user ? session.user.id : null;
+      if (await crestIsAdminUser(userId)) {
+        destination = prefix + "admin/admin.html";
+      }
+    } catch (e) {}
+  }
+
+  window.location.href = destination;
 }
 
 // =============================================================================
 // NAVBAR AUTHENTICATION STATE UPDATE
 // 2 Nav States:
-// - Unauthenticated (Not Logged In): Hide Client Dashboard nav link, hide Log In button, keep Get Started
-// - Authenticated (Logged In): Show Client Dashboard nav link, change Get Started to Client Dashboard link
+// - Unauthenticated (Not Logged In): Hide every dashboard link, keep both the
+//   Log In and Get Started buttons visible so a visitor can join from any page.
+// - Authenticated (Logged In): Show the dashboard link, hide the now-redundant
+//   Log In button, and turn Get Started into the member's portal shortcut
+//   ("Admin Panel" for administrators, "Client Dashboard" for everyone else).
 // =============================================================================
 function crestLoadAuthGuard(defaultTab) {
   const tab = defaultTab || "login";
@@ -691,33 +737,67 @@ document.addEventListener(
 document.addEventListener("DOMContentLoaded", async () => {
   const isAuth = await crestIsAuthenticated();
 
-  const dashboardNavLinks = document.querySelectorAll(
-    'a[href*="dashboard.html"], a.nav-link-ember',
-  );
-  const signinNavBtns = document.querySelectorAll(
-    'a.btn-sign-in, a[data-modal="signin"]',
-  );
-  const signupNavBtns = document.querySelectorAll("a.btn-get-started");
+  // Nav links and the Log In / Get Started buttons live in the header, the
+  // mobile drawer and the footer. Scoping the sweep to those three containers
+  // keeps it off content buttons that merely happen to link at the dashboard -
+  // "Trade", "Reserve Seat", "Set Up Child Trust" and the 404 page's "Go to
+  // Homepage" all share the same href, and matching by href alone hid them.
+  const navRoots = document.querySelectorAll("header, .mobile-drawer, footer");
+  const dashboardNavLinks = [];
+  const signinNavBtns = [];
+  const signupNavBtns = [];
+  navRoots.forEach((root) => {
+    root
+      .querySelectorAll('a[href*="dashboard.html"], a.nav-link-ember')
+      .forEach((el) => dashboardNavLinks.push(el));
+    root
+      .querySelectorAll('a.btn-sign-in, a[data-modal="signin"]')
+      .forEach((el) => signinNavBtns.push(el));
+    root
+      .querySelectorAll("a.btn-get-started")
+      .forEach((el) => signupNavBtns.push(el));
+  });
 
   if (isAuth) {
-    // Authenticated: show dashboard link, hide the separate "Sign In" button,
-    // and repurpose "Get Started" as a "Client Dashboard" shortcut
+    // An administrator runs the platform, so their nav shortcut leads to the
+    // admin panel rather than to a client page they would only be bounced off.
+    // This is UX only - admin.js still re-checks the flag before it renders.
+    const isAdmin = await crestIsAdminUser();
+    const depth = window.location.pathname.split("/").filter(Boolean).length;
+    const prefix = depth > 1 ? "../" : "";
+    const portalHref =
+      prefix + (isAdmin ? "admin/admin.html" : "dashboard/dashboard.html");
+
+    // Authenticated: show the dashboard link, hide the redundant "Log In"
+    // button, and repurpose "Get Started" as the member's portal shortcut
     dashboardNavLinks.forEach((link) => {
       link.style.display = "";
+      link.setAttribute("href", portalHref);
+      // An administrator has no client dashboard, so the link that used to
+      // say "Client Dashboard" says what it now opens.
+      if (isAdmin && link.textContent.trim() === "Client Dashboard") {
+        link.textContent = "Admin Panel";
+      }
     });
     signinNavBtns.forEach((btn) => {
       btn.style.display = "none";
-    }); // already in via dashboard link
+    }); // already in via the dashboard link
     signupNavBtns.forEach((btn) => {
-      btn.textContent = "Client Dashboard";
+      btn.textContent = isAdmin ? "Admin Panel" : "Client Dashboard";
       btn.removeAttribute("data-modal");
+      btn.setAttribute("href", portalHref);
     });
   } else {
-    // Not authenticated: hide dashboard link, keep both auth buttons visible
+    // Not authenticated: hide every dashboard link, then put the two auth
+    // buttons back. They sit in the nav but some of them point at
+    // dashboard.html, so the sweep above would otherwise hide them too.
     dashboardNavLinks.forEach((link) => {
       link.style.display = "none";
     });
     signinNavBtns.forEach((btn) => {
+      btn.style.display = "";
+    });
+    signupNavBtns.forEach((btn) => {
       btn.style.display = "";
     });
 

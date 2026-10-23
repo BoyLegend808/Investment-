@@ -693,20 +693,11 @@
     }
 
     setTimeout(() => {
-      const isSubDir =
-        p.includes("/index/") ||
-        p.includes("/accounts/") ||
-        p.includes("/investments/") ||
-        p.includes("/academy/") ||
-        p.includes("/pricing/") ||
-        p.includes("/security/") ||
-        p.includes("/about/") ||
-        p.includes("/careers/") ||
-        p.includes("/support/") ||
-        p.includes("/legal/");
-      window.location.href = isSubDir
-        ? "../dashboard/dashboard.html"
-        : "dashboard/dashboard.html";
+      closeOverlay();
+      // crestRedirectToDashboard picks the admin panel or the dashboard from
+      // the member's own profile, so a newly promoted administrator lands in
+      // the admin panel on their first login rather than in the client app.
+      crestRedirectToDashboard();
     }, 450);
   }
 

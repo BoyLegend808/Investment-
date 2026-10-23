@@ -121,6 +121,18 @@ async function initDashboardUserProfile() {
   if (!user) return;
   window.crestUser = user;
 
+  // An administrator runs the platform, so the client dashboard is not their
+  // side of the site: send them to the admin panel instead of rendering a
+  // member's view for them. The flag is read from the database here, which
+  // means revoking it in SQL takes effect on the very next page load.
+  if (
+    typeof crestIsAdminUser === "function" &&
+    (await crestIsAdminUser(user.id))
+  ) {
+    window.location.href = "../admin/admin.html";
+    return;
+  }
+
   var fullName =
     (user.user_metadata && user.user_metadata.full_name) ||
     (user.user_metadata && user.user_metadata.name) ||
