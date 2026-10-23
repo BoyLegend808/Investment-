@@ -1480,7 +1480,8 @@ BEGIN
   VALUES (
     v_uid,
     'Plan Payment Submitted',
-    'Your ' || v_plan_name || ' payment notice (₦' || TO_CHAR(v_amount, 'FM999,999,990') || ') has been received. An administrator will confirm it shortly.'
+    'Your ' || v_plan_name || ' payment notice (₦' || TO_CHAR(v_amount, 'FM999,999,990') || ') has been received. An administrator will confirm it shortly.',
+    'info'
   );
 
   RETURN jsonb_build_object(
@@ -1723,6 +1724,5 @@ GRANT EXECUTE ON FUNCTION public.admin_update_kyc_status(UUID, TEXT) TO authenti
 --    including an existing admin, so nothing the app can reach can hand out
 --    administrator rights. Only you, in SQL, can.
 -- ==============================================================================
-
 
 
