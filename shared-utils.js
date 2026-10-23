@@ -643,6 +643,14 @@ async function crestRedirectToDashboard() {
   const prefix = depth > 1 ? "../" : "";
   let destination = prefix + "dashboard/dashboard.html";
 
+  // The current page is no longer relevant once auth succeeds, and keeping it
+  // visible while we read the member's admin flag causes a brief flash of the
+  // marketing page before the browser lands on the real destination.
+  document.documentElement.style.visibility = "hidden";
+  if (document.body) {
+    document.body.style.pointerEvents = "none";
+  }
+
   const sb = await waitForSupabase();
   if (sb) {
     try {
@@ -656,7 +664,7 @@ async function crestRedirectToDashboard() {
     } catch (e) {}
   }
 
-  window.location.href = destination;
+  window.location.replace(destination);
 }
 
 // =============================================================================

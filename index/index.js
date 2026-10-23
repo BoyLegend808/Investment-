@@ -280,7 +280,7 @@ function initModals() {
         '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.25);margin-right:8px;vertical-align:middle;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Authentication Complete';
       if (typeof showToast === "function")
         showToast("Authentication Complete", "success", 2000);
-      setTimeout(() => crestRedirectToDashboard(), 400);
+      setTimeout(() => crestRedirectToDashboard(), 120);
     });
   }
 
@@ -339,7 +339,7 @@ function initModals() {
       } else {
         if (typeof showToast === "function")
           showToast("Account created! Redirecting...", "success", 2000);
-        setTimeout(() => crestRedirectToDashboard(), 150);
+        setTimeout(() => crestRedirectToDashboard(), 120);
       }
     });
   }

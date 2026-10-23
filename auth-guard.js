@@ -681,24 +681,24 @@
       p.includes("/dashboard") || p.includes("dashboard.html");
 
     if (isDashboard) {
-      setTimeout(() => {
-        closeOverlay();
+      setTimeout(async () => {
         if (typeof initDashboardUserProfile === "function") {
-          initDashboardUserProfile();
+          await initDashboardUserProfile();
+          closeOverlay();
         } else {
           window.location.reload();
         }
-      }, 400);
+      }, 150);
       return;
     }
 
+    // Keep the overlay in place while the redirect helper checks whether this
+    // member is an administrator. Closing the overlay first briefly reveals
+    // the marketing page underneath, which looks like a flash before landing
+    // in the admin panel.
     setTimeout(() => {
-      closeOverlay();
-      // crestRedirectToDashboard picks the admin panel or the dashboard from
-      // the member's own profile, so a newly promoted administrator lands in
-      // the admin panel on their first login rather than in the client app.
       crestRedirectToDashboard();
-    }, 450);
+    }, 120);
   }
 
   // ── Two-step verification ────────────────────────────────────────────────────
