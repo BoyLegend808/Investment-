@@ -1426,11 +1426,14 @@ ON CONFLICT (key) DO NOTHING;
 -- can never name their own price. The row lands as Pending — that is the
 -- signal the admin desk reviews, and approving it runs
 -- admin_confirm_deposit(), which credits the amount and activates the plan.
+DROP FUNCTION IF EXISTS public.submit_plan_payment(INT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.submit_plan_payment(INT, TEXT, TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.submit_plan_payment(
   p_level INT,
   p_bank_name TEXT DEFAULT NULL,
   p_account_number TEXT DEFAULT NULL,
-  p_account_name TEXT DEFAULT NULL
+  p_account_name TEXT DEFAULT NULL,
+  p_proof_url TEXT DEFAULT NULL
 )
 RETURNS JSONB AS $$
 DECLARE
@@ -1462,6 +1465,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'message', 'That investment plan has no price configured.');
   END IF;
 
+  IF NULLIF(TRIM(COALESCE(p_proof_url, '')), '') IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Attach the transfer receipt screenshot before submitting this payment.');
+  END IF;
+
   v_plan_name := COALESCE(v_plan->>'name', 'Level ' || p_level);
 
   SELECT email INTO v_email FROM public.profiles WHERE id = v_uid;
@@ -1470,10 +1477,10 @@ BEGIN
 
   INSERT INTO public.deposits (
     id, user_id, user_email, amount, method, reference, status,
-    plan, plan_level, bank_name, account_number, account_name
+    plan, plan_level, bank_name, account_number, account_name, proof_url
   ) VALUES (
     v_dep_id, v_uid, v_email, v_amount, 'Bank Transfer', v_plan_name, 'Pending',
-    v_plan_name, p_level, p_bank_name, p_account_number, p_account_name
+    v_plan_name, p_level, p_bank_name, p_account_number, p_account_name, p_proof_url
   );
 
   INSERT INTO public.notifications (user_id, title, message, type)
@@ -1661,7 +1668,7 @@ GRANT EXECUTE ON FUNCTION public.request_withdrawal(NUMERIC, TEXT, TEXT, TEXT, T
 GRANT EXECUTE ON FUNCTION public.set_withdrawal_pin(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_my_security_settings() TO authenticated;
 -- The plan funding loop is only ever driven by a signed-in user.
-GRANT EXECUTE ON FUNCTION public.submit_plan_payment(INT, TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.submit_plan_payment(INT, TEXT, TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_plan_daily_reward() TO authenticated;
 
 -- Admin RPCs are granted to signed-in users only. Each one now also asserts
@@ -1724,5 +1731,3 @@ GRANT EXECUTE ON FUNCTION public.admin_update_kyc_status(UUID, TEXT) TO authenti
 --    including an existing admin, so nothing the app can reach can hand out
 --    administrator rights. Only you, in SQL, can.
 -- ==============================================================================
-
-

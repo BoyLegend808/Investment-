@@ -2445,6 +2445,39 @@ function removeReceipt(e) {
   if ($("popPreview")) $("popPreview").style.display = "none";
 }
 
+function syncPlanPaymentSubmitState() {
+  var btn = $("pmSubmitBtn");
+  if (!btn || PLAN_STATE.submitting) return;
+  btn.disabled = !PLAN_STATE.receiptFile;
+}
+
+function handlePlanReceiptUpload(e) {
+  var file = e.target.files && e.target.files[0];
+  if (!file) return;
+  PLAN_STATE.receiptFile = file;
+  var reader = new FileReader();
+  reader.onload = function (evt) {
+    PLAN_STATE.receiptData = evt.target.result;
+    if ($("pmPopPreviewImg")) $("pmPopPreviewImg").src = PLAN_STATE.receiptData;
+    if ($("pmPopFileName")) $("pmPopFileName").textContent = file.name;
+    if ($("pmPopPrompt")) $("pmPopPrompt").style.display = "none";
+    if ($("pmPopPreview")) $("pmPopPreview").style.display = "flex";
+    syncPlanPaymentSubmitState();
+    toast("Transfer receipt screenshot attached: " + file.name, "emerald");
+  };
+  reader.readAsDataURL(file);
+}
+
+function removePlanReceipt(e) {
+  if (e) e.stopPropagation();
+  PLAN_STATE.receiptData = null;
+  PLAN_STATE.receiptFile = null;
+  if ($("pmPopFileInput")) $("pmPopFileInput").value = "";
+  if ($("pmPopPrompt")) $("pmPopPrompt").style.display = "block";
+  if ($("pmPopPreview")) $("pmPopPreview").style.display = "none";
+  syncPlanPaymentSubmitState();
+}
+
 var depositSecondsRemaining = 899;
 var depositTimerInterval = null;
 function startDepositSessionTimer() {
@@ -2653,6 +2686,8 @@ var PLAN_STATE = {
   selectedLevel: 0,
   step: "choose",
   submitting: false,
+  receiptData: null,
+  receiptFile: null,
   bank: { bankName: "", acctNum: "", acctName: "", bankNote: "" },
 };
 
@@ -3914,6 +3949,8 @@ function openPlanPicker(level) {
   if (!backdrop) return;
 
   PLAN_STATE.submitting = false;
+  PLAN_STATE.receiptData = null;
+  PLAN_STATE.receiptFile = null;
   var lv = parseInt(level, 10) || 0;
   if (lv) {
     PLAN_STATE.selectedLevel = lv;
@@ -3937,17 +3974,23 @@ function closePlanModal() {
   PLAN_STATE.submitting = false;
   PLAN_STATE.selectedLevel = 0;
   PLAN_STATE.step = "choose";
+  PLAN_STATE.receiptData = null;
+  PLAN_STATE.receiptFile = null;
 }
 
 function selectPlan(level) {
   PLAN_STATE.selectedLevel = parseInt(level, 10) || 0;
   PLAN_STATE.step = "pay";
+  PLAN_STATE.receiptData = null;
+  PLAN_STATE.receiptFile = null;
   renderPlanModal();
 }
 
 function backToPlanList() {
   PLAN_STATE.selectedLevel = 0;
   PLAN_STATE.step = "choose";
+  PLAN_STATE.receiptData = null;
+  PLAN_STATE.receiptFile = null;
   renderPlanModal();
 }
 
@@ -4055,9 +4098,43 @@ function renderPlanModal() {
         '<label class="pm-label" for="pmSenderName">Account name</label>' +
         '<input class="pm-input" id="pmSenderName" type="text" placeholder="Name on the paying account" autocomplete="off">' +
         "</div>" +
-        '<button class="pm-submit" id="pmSubmitBtn" onclick="submitPlanPayment()">I have made the transfer</button>' +
+        '<div class="pop-upload-box">' +
+        '<div class="pop-title">Proof of Payment (Transfer Receipt)</div>' +
+        '<div class="pop-sub">Attach the transfer screenshot before you can submit this payment for review.</div>' +
+        '<label class="pop-dropzone" for="pmPopFileInput">' +
+        '<input type="file" id="pmPopFileInput" accept="image/*" style="display:none" onchange="handlePlanReceiptUpload(event)">' +
+        '<div class="pop-prompt" id="pmPopPrompt" style="' +
+        (PLAN_STATE.receiptData ? "display:none;" : "") +
+        '">' +
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" /></svg>' +
+        "<div><strong>Click to attach receipt screenshot</strong></div>" +
+        '<span style="font-size:0.75rem;color:var(--c-muted);">JPG, PNG or WEBP up to 5MB</span>' +
+        "</div>" +
+        '<div class="pop-preview" id="pmPopPreview" style="' +
+        (PLAN_STATE.receiptData ? "display:flex;" : "display:none;") +
+        '">' +
+        '<img id="pmPopPreviewImg" src="' +
+        dEsc(PLAN_STATE.receiptData || "") +
+        '" alt="Receipt Preview">' +
+        '<div class="pop-preview-info">' +
+        '<span id="pmPopFileName">' +
+        dEsc(
+          PLAN_STATE.receiptFile && PLAN_STATE.receiptFile.name
+            ? PLAN_STATE.receiptFile.name
+            : "receipt.png",
+        ) +
+        "</span>" +
+        '<button type="button" class="btn-remove-pop" onclick="removePlanReceipt(event)">Remove</button>' +
+        "</div>" +
+        "</div>" +
+        "</label>" +
+        "</div>" +
+        '<button class="pm-submit" id="pmSubmitBtn" onclick="submitPlanPayment()" ' +
+        (PLAN_STATE.receiptFile ? "" : "disabled") +
+        ">I have made the transfer</button>" +
         '<button class="pm-back" onclick="backToPlanList()">Back to plans</button>' +
-        '<p class="pm-note">Your payment is only credited after an administrator confirms the transfer into the receiving account above.</p>';
+        '<p class="pm-note">Your payment is only credited after an administrator confirms the transfer into the receiving account above. A receipt screenshot is required before submission.</p>';
+      syncPlanPaymentSubmitState();
       return;
     }
   }
@@ -4120,6 +4197,10 @@ async function submitPlanPayment() {
     toast("Enter a valid account number (6–20 digits).", "warn");
     return;
   }
+  if (!PLAN_STATE.receiptFile) {
+    toast("Attach the transfer receipt screenshot before submitting.", "warn");
+    return;
+  }
 
   var btn = $("pmSubmitBtn");
   PLAN_STATE.submitting = true;
@@ -4139,6 +4220,41 @@ async function submitPlanPayment() {
   }
 
   try {
+    var {
+      data: { session },
+    } = await window.supabaseClient.auth.getSession();
+    var sessionUser = session && session.user ? session.user : null;
+    if (!sessionUser) {
+      throw new Error("Your session expired. Please log in again.");
+    }
+
+    // The proof screenshot is what the admin checks before approving the plan,
+    // so the payment notice is blocked until the image lands in the private
+    // receipts bucket under this member's own folder.
+    var ext = PLAN_STATE.receiptFile.name
+      ? PLAN_STATE.receiptFile.name.split(".").pop()
+      : "png";
+    var proofPath =
+      sessionUser.id +
+      "/plan_" +
+      parseInt(plan.level, 10) +
+      "_" +
+      Date.now() +
+      "." +
+      ext;
+    var { error: upErr } = await window.supabaseClient.storage
+      .from("receipts")
+      .upload(proofPath, PLAN_STATE.receiptFile, { upsert: true });
+    if (upErr) {
+      PLAN_STATE.submitting = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "I have made the transfer";
+      }
+      toast("Receipt upload failed: " + upErr.message, "error");
+      return;
+    }
+
     // The server resolves the price and plan name; we only name the level.
     var { data: rpcRes, error: rpcErr } = await window.supabaseClient.rpc(
       "submit_plan_payment",
@@ -4147,6 +4263,7 @@ async function submitPlanPayment() {
         p_bank_name: bankName,
         p_account_number: acctNum,
         p_account_name: acctName,
+        p_proof_url: proofPath,
       },
     );
 
@@ -4166,6 +4283,8 @@ async function submitPlanPayment() {
     }
 
     PLAN_STATE.step = "success";
+    PLAN_STATE.receiptData = null;
+    PLAN_STATE.receiptFile = null;
     renderPlanModal();
     if (typeof loadUserTransactionsFromDB === "function")
       loadUserTransactionsFromDB();
